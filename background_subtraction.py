@@ -13,6 +13,27 @@ class BackgroundSubtractor:
         _, thresholded_diff = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
         return thresholded_diff
 
+def detect_blobs(binarized_image):
+    # Convert the input image to CV_8UC1 format
+    binarized_image = cv2.convertScaleAbs(binarized_image)
+
+    # Find contours in the binarized image
+    contours, _ = cv2.findContours(binarized_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Filter contours based on area
+    min_area = 1  # Minimum contour area to consider
+    filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_area]
+
+    # Compute centroid for each filtered contour
+    blob_centroids = []
+    for cnt in filtered_contours:
+        moments = cv2.moments(cnt)
+        cx = int(moments['m10'] / moments['m00'])
+        cy = int(moments['m01'] / moments['m00'])
+        blob_centroids.append((cx, cy))
+
+    return blob_centroids
+
 # Example usage:
 cap = cv2.VideoCapture('mosquito_data/many-mosquitoes-flying-white-bg.mp4')  # Open video file
 total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # Get total number of frames in the video
@@ -53,6 +74,11 @@ if ret:
 
             # Display current frame number and total frames
             cv2.putText(comparison, f'Frame: {frame_counter}/{total_frames}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+            # Detect blobs and draw circles
+            blob_centroids = detect_blobs(subtracted_frame)
+            for cx, cy in blob_centroids:
+                cv2.circle(comparison, (cx, cy), 5, (0, 255, 0), 2)
 
             cv2.imshow('Original vs. Subtracted', comparison)
 
