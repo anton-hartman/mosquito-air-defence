@@ -2,14 +2,16 @@ import cv2
 import numpy as np
 
 class BackgroundSubtractor:
-    def __init__(self, first_frame):
-        self.background = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY)
+    def __init__(self, first_frame, alpha=0.5):
+        self.background = cv2.cvtColor(first_frame, cv2.COLOR_BGR2GRAY).astype(float)
+        self.alpha = alpha
 
     def subtract(self, frame):
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY).astype(float)
+        self.background = self.alpha * gray_frame + (1 - self.alpha) * self.background
         diff = cv2.absdiff(gray_frame, self.background)
-        _, thresholded = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
-        return thresholded
+        _, thresholded_diff = cv2.threshold(diff, 30, 255, cv2.THRESH_BINARY)
+        return thresholded_diff
 
 # Example usage:
 cap = cv2.VideoCapture('mosquito_data/many-mosquitoes-flying-white-bg.mp4')  # Open video file
@@ -20,14 +22,13 @@ ret, frame = cap.read()  # Read the first frame
 
 if ret:
     # Create a BackgroundSubtractor object with the first frame
-    background_subtractor = BackgroundSubtractor(frame)
+    background_subtractor = BackgroundSubtractor(frame, alpha=0.01)
 
     # Variables for video control
     is_paused = False
     delay = 1  # Default delay (in milliseconds) between frames
 
     while True:
-
         if not is_paused:
             ret, frame = cap.read()  # Read a new frame
             if not ret:
@@ -40,9 +41,15 @@ if ret:
             # Resize frames for side-by-side display
             frame = cv2.resize(frame, (640, 480))
             subtracted_frame = cv2.resize(subtracted_frame, (640, 480))
+            bg_frame = cv2.resize(background_subtractor.background, (640, 480))
+
+            # Convert the images to 8-bit unsigned integer
+            frame = cv2.convertScaleAbs(frame)
+            subtracted_frame = cv2.convertScaleAbs(subtracted_frame)
+            bg_frame = cv2.convertScaleAbs(bg_frame)
 
             # Create a side-by-side comparison
-            comparison = np.hstack((frame, cv2.cvtColor(subtracted_frame, cv2.COLOR_GRAY2BGR)))
+            comparison = np.hstack((frame, cv2.cvtColor(subtracted_frame, cv2.COLOR_GRAY2BGR), cv2.cvtColor(bg_frame, cv2.COLOR_GRAY2BGR)))
 
             # Display current frame number and total frames
             cv2.putText(comparison, f'Frame: {frame_counter}/{total_frames}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
