@@ -34,6 +34,66 @@ def detect_blobs(binarized_image):
 
     return blob_centroids
 
+class MosquitoTracker:
+    def __init__(self, max_distance=50, max_frames_missing=5):
+        self.max_distance = max_distance  # Maximum distance to consider a centroid as a match
+        self.max_frames_missing = max_frames_missing  # Maximum number of frames a centroid can be missing before considered lost
+        self.next_mosquito_id = 0  # Counter to assign unique IDs to mosquitoes
+        self.mosquitoes = []  # List to store tracked mosquitoes
+
+    def track(self, centroids):
+        # Assign current frame centroids to existing mosquitoes
+        for mosquito in self.mosquitoes:
+            mosquito.is_matched = False  # Reset matched flag
+
+        for centroid in centroids:
+            best_match = None
+            best_distance = self.max_distance
+
+            for mosquito in self.mosquitoes:
+                if not mosquito.is_matched:
+                    distance = np.sqrt((centroid[0] - mosquito.last_centroid[0])**2 +
+                                       (centroid[1] - mosquito.last_centroid[1])**2)
+
+                    if distance < best_distance:
+                        best_distance = distance
+                        best_match = mosquito
+
+            if best_match is not None:
+                best_match.update(centroid)
+                best_match.is_matched = True
+            else:
+                self.add_mosquito(centroid)
+
+        # Remove lost mosquitoes
+        self.mosquitoes = [mosquito for mosquito in self.mosquitoes if mosquito.frames_missing <= self.max_frames_missing]
+
+        # Update frames missing for unmatched mosquitoes
+        for mosquito in self.mosquitoes:
+            if not mosquito.is_matched:
+                mosquito.frames_missing += 1
+
+    def add_mosquito(self, centroid):
+        mosquito = Mosquito(self.next_mosquito_id, centroid)
+        self.next_mosquito_id += 1
+        self.mosquitoes.append(mosquito)
+
+    def get_tracked_mosquitoes(self):
+        return self.mosquitoes
+
+
+class Mosquito:
+    def __init__(self, mosquito_id, centroid):
+        self.mosquito_id = mosquito_id
+        self.last_centroid = centroid
+        self.frames_missing = 0
+        self.is_matched = True
+
+    def update(self, centroid):
+        self.last_centroid = centroid
+        self.frames_missing = 0
+
+
 # Example usage:
 cap = cv2.VideoCapture('mosquito_data/many-mosquitoes-flying-white-bg.mp4')  # Open video file
 total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # Get total number of frames in the video
@@ -44,6 +104,9 @@ ret, frame = cap.read()  # Read the first frame
 if ret:
     # Create a BackgroundSubtractor object with the first frame
     background_subtractor = BackgroundSubtractor(frame, alpha=0.01)
+
+    # Create a MosquitoTracker object
+    tracker = MosquitoTracker()
 
     # Variables for video control
     is_paused = False
@@ -59,10 +122,30 @@ if ret:
             # Perform background subtraction
             subtracted_frame = background_subtractor.subtract(frame)
 
-            # Resize frames for side-by-side display
-            frame = cv2.resize(frame, (640, 480))
-            subtracted_frame = cv2.resize(subtracted_frame, (640, 480))
-            bg_frame = cv2.resize(background_subtractor.background, (640, 480))
+            # Detect blobs and get centroid coordinates
+            blob_centroids = detect_blobs(subtracted_frame)
+
+            # Track mosquitoes based on centroids
+            tracker.track(blob_centroids)
+
+            # Get tracked mosquitoes
+            tracked_mosquitoes = tracker.get_tracked_mosquitoes()
+
+            # Draw circles around tracked mosquitoes
+            for mosquito in tracked_mosquitoes:
+                cx, cy = mosquito.last_centroid
+                if mosquito.is_matched:
+                    color = (0, 255, 0)  # Green color for matched mosquitoes
+                else:
+                    color = (0, 0, 255)  # Red color for unmatched mosquitoes
+                cv2.circle(frame, (cx, cy), 5, color, 2)
+                cv2.putText(frame, str(mosquito.mosquito_id), (cx, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+            # # Resize frames for side-by-side display
+            # frame = cv2.resize(frame, (640, 480))
+            # subtracted_frame = cv2.resize(subtracted_frame, (640, 480))
+            # bg_frame = cv2.resize(background_subtractor.background, (640, 480))
+            bg_frame = background_subtractor.background
 
             # Convert the images to 8-bit unsigned integer
             frame = cv2.convertScaleAbs(frame)
@@ -74,11 +157,6 @@ if ret:
 
             # Display current frame number and total frames
             cv2.putText(comparison, f'Frame: {frame_counter}/{total_frames}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-            # Detect blobs and draw circles
-            blob_centroids = detect_blobs(subtracted_frame)
-            for cx, cy in blob_centroids:
-                cv2.circle(comparison, (cx, cy), 5, (0, 255, 0), 2)
 
             cv2.imshow('Original vs. Subtracted', comparison)
 
