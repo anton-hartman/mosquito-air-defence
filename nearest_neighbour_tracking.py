@@ -10,6 +10,7 @@ class Mosquito:
     def update(self, centroid):
         self.last_centroid = centroid
         self.frames_missing = 0
+        self.is_matched = True
 
 class MosquitoTracker:
     def __init__(self, max_distance=50, max_frames_missing=5):
@@ -38,7 +39,6 @@ class MosquitoTracker:
 
             if best_match is not None:
                 best_match.update(centroid)
-                best_match.is_matched = True
             else:
                 self.add_mosquito(centroid)
 
