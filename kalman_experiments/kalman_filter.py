@@ -8,7 +8,7 @@ iVy = 3
 NUMVARS = iVy + 1
 
 
-class KF:
+class KalmanFilter:
     def __init__(
         self,
         initial_x: int,  # initial position
@@ -57,11 +57,11 @@ class KF:
 
     def update(
         self,
-        meas_x: int, # meas = measurement
+        meas_x: int,  # meas = measurement
         meas_y: int,
-        meas_ax_variance = None,
-        meas_ay_variance = None,
-    ) -> tuple:  
+        meas_ax_variance=None,
+        meas_ay_variance=None,
+    ) -> tuple:
         # y = z - H x
         # S = H P Ht + R
         # K = P Ht S^-1
@@ -78,8 +78,7 @@ class KF:
             meas_ay_variance = self.y_accel_variance
 
         z = np.array([meas_x, meas_y])
-        R = np.array([[meas_ax_variance, 0.0],
-                      [0.0, meas_ay_variance]])
+        R = np.array([[meas_ax_variance, 0.0], [0.0, meas_ay_variance]])
 
         y = z - H.dot(self._x)
         S = H.dot(self._P).dot(H.T) + R

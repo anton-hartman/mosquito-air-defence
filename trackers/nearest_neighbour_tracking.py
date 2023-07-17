@@ -1,37 +1,26 @@
 import numpy as np
+from mosquito import Mosquito
 
-class Mosquito:
-    def __init__(self, mosquito_id, centroid):
-        self.mosquito_id = mosquito_id
-        self.last_centroid = centroid
-        self.frames_missing = 0
-        self.is_matched = True
-
-    def update(self, centroid):
-        self.last_centroid = centroid
-        self.frames_missing = 0
-        self.is_matched = True
-
-class MosquitoTracker:
+class NearestNeighbourTracker:
     def __init__(self, max_distance=50, max_frames_missing=5):
         self.max_distance = max_distance  # Maximum distance to consider a centroid as a match
         self.max_frames_missing = max_frames_missing  # Maximum number of frames a centroid can be missing before considered lost
         self.next_mosquito_id = 0  # Counter to assign unique IDs to mosquitoes
-        self.mosquitoes = []  # List to store tracked mosquitoes
+        self.mosquitoes: list[Mosquito] = []  # List to store tracked mosquitoes
 
     def track(self, centroids):
         # Assign current frame centroids to existing mosquitoes
         for mosquito in self.mosquitoes:
-            mosquito.is_matched = False  # Reset matched flag
+            mosquito.matched = False  # Reset matched flag
 
         for centroid in centroids:
             best_match = None
             best_distance = self.max_distance
 
             for mosquito in self.mosquitoes:
-                if not mosquito.is_matched:
-                    distance = np.sqrt((centroid[0] - mosquito.last_centroid[0])**2 +
-                                       (centroid[1] - mosquito.last_centroid[1])**2)
+                if not mosquito.matched:
+                    distance = np.sqrt((centroid[0] - mosquito.centroid[0])**2 +
+                                       (centroid[1] - mosquito.centroid[1])**2)
 
                     if distance < best_distance:
                         best_distance = distance
@@ -47,7 +36,7 @@ class MosquitoTracker:
 
         # Update frames missing for unmatched mosquitoes
         for mosquito in self.mosquitoes:
-            if not mosquito.is_matched:
+            if not mosquito.matched:
                 mosquito.frames_missing += 1
 
         return self.mosquitoes
@@ -56,6 +45,3 @@ class MosquitoTracker:
         mosquito = Mosquito(self.next_mosquito_id, centroid)
         self.next_mosquito_id += 1
         self.mosquitoes.append(mosquito)
-
-    def get_tracked_mosquitoes(self):
-        return self.mosquitoes

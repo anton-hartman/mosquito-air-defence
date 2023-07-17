@@ -1,18 +1,18 @@
 import numpy as np
 import unittest
 
-from kalman_filter import KF
+from kalman_filter import KalmanFilter
 
 class TestKF(unittest.TestCase):
     def test_can_construct(self):
-        x = 0.2
+        x = 2
         vx = 2.3
         ax_variance = 1.2
-        y = 0.1
+        y = 1
         vy = 1.2
         ay_variance = 1.2
 
-        kf = KF(x, vx, ax_variance, y, vy, ay_variance)
+        kf = KalmanFilter(x, vx, ax_variance, y, vy, ay_variance)
         self.assertAlmostEqual(kf.x_pos, x)
         self.assertAlmostEqual(kf.x_vel, vx)
         self.assertAlmostEqual(kf.x_accel_variance, ax_variance)
@@ -22,28 +22,28 @@ class TestKF(unittest.TestCase):
                 
 
     def test_after_calling_predict_mean_and_cov_are_of_right_shape(self):
-        x = 0.2
+        x = 2
         vx = 2.3
         ax_variance = 1.2
-        y = 0.1
+        y = 1
         vy = 1.2
         ay_variance = 1.2
 
-        kf = KF(x, vx, ax_variance, y, vy, ay_variance)
+        kf = KalmanFilter(x, vx, ax_variance, y, vy, ay_variance)
         kf.predict(0.1)
 
         self.assertEqual(kf.cov.shape, (4, 4))
         self.assertEqual(kf.mean.shape, (4, ))
 
     def test_calling_predict_increases_state_uncertainty(self):
-        x = 0.2
+        x = 2
         vx = 2.3
         ax_variance = 1.2
-        y = 0.1
+        y = 1
         vy = 1.2
         ay_variance = 1.2
 
-        kf = KF(x, vx, ax_variance, y, vy, ay_variance)
+        kf = KalmanFilter(x, vx, ax_variance, y, vy, ay_variance)
 
         for _ in range(10):
             det_before = np.linalg.det(kf.cov)
@@ -54,17 +54,17 @@ class TestKF(unittest.TestCase):
             print(det_before, det_after)
 
     def test_calling_update_decreases_state_uncertainty(self):
-        x = 0.2
+        x = 2
         vx = 2.3
         ax_variance = 1.2
-        y = 0.1
+        y = 1
         vy = 1.2
         ay_variance = 1.2
 
-        kf = KF(x, vx, ax_variance, y, vy, ay_variance)
+        kf = KalmanFilter(x, vx, ax_variance, y, vy, ay_variance)
 
         det_before = np.linalg.det(kf.cov)
-        kf.update(meas_x=0.1, meas_y=0.1, meas_ax_variance=0.01, meas_ay_variance=0.01)
+        kf.update(meas_x=2, meas_y=1, meas_ax_variance=0.01, meas_ay_variance=0.01)
         det_after = np.linalg.det(kf.cov)
 
         self.assertLess(det_after, det_before)

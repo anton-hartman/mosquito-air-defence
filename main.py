@@ -1,18 +1,15 @@
-import math
 import cv2
 import numpy as np
-from background_subtraction import BackgroundSubtractor
-from blob_detection import detect_blobs
-# from nearest_neighbour_tracking import MosquitoTracker
-from kalman_filter import KF as KalmanFilter
+from object_detector import ObjectDetector
+from trackers.nearest_neighbour_tracking import NearestNeighbourTracker 
 
-class MosquitoTrackingInterface:
+class VideoInterface:
     def __init__(self, frame_resize_factor = 1.0, darkmode=False, comparison=False):
         self.frame_resize_factor = frame_resize_factor
         self.darkmode = darkmode
         self.comparison = comparison
 
-    def start_tracking(self, video_path):
+    def start_feed(self, video_path):
         # Open the video file
         cap = cv2.VideoCapture(video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -21,7 +18,7 @@ class MosquitoTrackingInterface:
         print('FPS:', fps)
         
         # Initialize the frame index and step
-        frame_index = 0
+        frame_index = 1
         step = 1
 
         # Read the first frame
@@ -32,17 +29,17 @@ class MosquitoTrackingInterface:
         frame_size = tuple(map(lambda x: int(x * self.frame_resize_factor), frame.shape[1::-1]))
         frame = cv2.resize(frame, frame_size)
 
-        # Initialize the background subtractor
-        background_subtractor = BackgroundSubtractor(frame, alpha=0.000001)
+        # Initialize the object detector
+        obj_detector = ObjectDetector(frame, alpha=0.001)
 
         # Initialize the mosquito tracker
-        # tracker = MosquitoTracker()
+        tracker = NearestNeighbourTracker()
 
         # Variables for video control
         is_paused = False
-        delay = 100   # Default delay (in milliseconds) between frames
+        delay = 1   # Default delay (in milliseconds) between frames
 
-        init = False
+        # init = False
         while True:
             if not is_paused:
                 ret, frame = cap.read()
@@ -51,50 +48,25 @@ class MosquitoTrackingInterface:
                     break
                 frame = cv2.resize(frame, frame_size)
 
-                # Perform background subtraction
-                subtracted_frame = background_subtractor.subtract(frame)
-
-                # Detect blobs and get centroid coordinates
-                blob_centroids = detect_blobs(subtracted_frame)
-                # if not blob_centroids:
-                #     continue
+                blob_centroids = obj_detector.detect_objects(frame)
 
                 # Track mosquitoes based on centroids
-                # tracked_mosquitoes = tracker.track(blob_centroids)
-
-                if not init and blob_centroids:
-                    kf = KalmanFilter(initial_x=blob_centroids[0][0],
-                                      initial_vx=0,
-                                      x_accel_variance=300,
-                                      initial_y=blob_centroids[0][1],
-                                      initial_vy=0,
-                                      y_accel_variance=300) 
-                    init = True
-                elif init:  
-                    if blob_centroids:
-                        updated = kf.update(blob_centroids[0][0], blob_centroids[0][1])
-                        cv2.circle(frame, (blob_centroids[0][0], blob_centroids[0][1]), 10, (0, 255, 0), 2)
-                        cv2.circle(frame, updated, 10, (255, 0, 0), 2)
-
-                    predicted = kf.predict(1/fps)
-                    cv2.circle(frame, predicted, 10, (0 , 0, 255), 2)
+                tracked_mosquitoes = tracker.track(blob_centroids)
                 
-                # # Draw circles around tracked mosquitoes
-                # for mosquito in tracked_mosquitoes:
-                #     cx, cy = mosquito.last_centroid
-                #     if mosquito.is_matched:
-                #         color = (0, 255, 0)  # Green color for matched mosquitoes
-                #     else:
-                #         color = (0, 0, 255)  # Red color for unmatched mosquitoes
-                #     cv2.circle(frame, (cx, cy), 5, color, 2)
-                #     cv2.putText(frame, str(mosquito.mosquito_id), (cx, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-                #     cv2.circle(frame, predicted, 5, (255 , 0, 0), 2)
+                # Draw circles around tracked mosquitoes
+                for mosquito in tracked_mosquitoes:
+                    cx, cy = mosquito.centroid
+                    if mosquito.matched:
+                        color = (0, 255, 0)  # Green color for matched mosquitoes
+                    else:
+                        color = (0, 0, 255)  # Red color for unmatched mosquitoes
+                    cv2.circle(frame, (cx, cy), radius=5, color=color, thickness=2)
+                    cv2.putText(frame, str(mosquito.id), (cx, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
                 if self.comparison:
                     # Convert the images to 8-bit unsigned integer
-                    # frame = cv2.convertScaleAbs(frame)
-                    subtracted_frame = cv2.convertScaleAbs(subtracted_frame)
-                    bg_frame = cv2.convertScaleAbs(background_subtractor.background)
+                    subtracted_frame = cv2.convertScaleAbs(obj_detector.subtracted_frame)
+                    bg_frame = cv2.convertScaleAbs(obj_detector.background)
 
                     # Create a side-by-side comparison
                     comparison = np.hstack((frame, cv2.cvtColor(subtracted_frame, cv2.COLOR_GRAY2BGR), cv2.cvtColor(bg_frame, cv2.COLOR_GRAY2BGR)))
@@ -142,7 +114,7 @@ class MosquitoTrackingInterface:
         cv2.destroyAllWindows()
 
 
-mti = MosquitoTrackingInterface(frame_resize_factor=1, comparison=True)
-# mti.start_tracking('mosquito_data/many-mosquitoes-flying-white-bg.mp4')
-mti.start_tracking('mosquito_data/black-dot-bouncing-across.mp4')
+mti = VideoInterface(frame_resize_factor=1, comparison=True)
+mti.start_feed('mosquito_data/many-mosquitoes-flying-white-bg.mp4')
+# mti.start_tracking('mosquito_data/black-dot-bouncing-across.mp4')
 # mti.start_tracking('mosquito_data/squash-ball-rolling.mp4')
