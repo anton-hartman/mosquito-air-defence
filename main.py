@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from object_detector import ObjectDetector
 from trackers.nearest_neighbour_tracking import NearestNeighbourTracker 
+from trackers.kcf_tracker import KcfTracker
+from trackers.sort_tracker import SORT as SortTracker
 
 class VideoInterface:
     def __init__(self, frame_resize_factor = 1.0, darkmode=False, comparison=False):
@@ -13,7 +15,7 @@ class VideoInterface:
         # Open the video file
         cap = cv2.VideoCapture(video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        total_frames = 103
+        # total_frames = 103 # Just for black dot video 
         fps = int(cap.get(cv2.CAP_PROP_FPS))
         print('FPS:', fps)
         
@@ -30,10 +32,12 @@ class VideoInterface:
         frame = cv2.resize(frame, frame_size)
 
         # Initialize the object detector
-        obj_detector = ObjectDetector(frame, alpha=0.001)
+        obj_detector = ObjectDetector(frame, alpha=0.01)
 
         # Initialize the mosquito tracker
-        tracker = NearestNeighbourTracker()
+        # tracker = NearestNeighbourTracker()
+        # tracker = KcfTracker()
+        sort_tracker = SortTracker()
 
         # Variables for video control
         is_paused = False
@@ -48,10 +52,14 @@ class VideoInterface:
                     break
                 frame = cv2.resize(frame, frame_size)
 
-                blob_centroids = obj_detector.detect_objects(frame)
+                blob_info = obj_detector.detect_objects(frame)
 
                 # Track mosquitoes based on centroids
-                tracked_mosquitoes = tracker.track(blob_centroids)
+                # tracked_mosquitoes = tracker.track(blob_centroids)
+                # tracked_mosquitoes = tracker.track(frame, blob_centroids)
+                tracked_mosquitoes = sort_tracker.update(blob_info)
+                print('Frame:', frame_index)
+                print(tracked_mosquitoes)
                 
                 # Draw circles around tracked mosquitoes
                 for mosquito in tracked_mosquitoes:
@@ -114,7 +122,7 @@ class VideoInterface:
         cv2.destroyAllWindows()
 
 
-mti = VideoInterface(frame_resize_factor=1, comparison=True)
-mti.start_feed('mosquito_data/many-mosquitoes-flying-white-bg.mp4')
-# mti.start_tracking('mosquito_data/black-dot-bouncing-across.mp4')
-# mti.start_tracking('mosquito_data/squash-ball-rolling.mp4')
+vi = VideoInterface(frame_resize_factor=1, comparison=True)
+# vi.start_feed('mosquito_data/many-mosquitoes-flying-white-bg.mp4')
+# vi.start_feed('mosquito_data/black-dot-bouncing-across.mp4')
+vi.start_feed('mosquito_data/squash-ball-rolling.mp4')

@@ -18,7 +18,7 @@ class ObjectDetector:
     def __init__(self, first_frame, alpha=0.01) -> None:
         self.bg_subtractor = self.BackgroundSubtractor(first_frame, alpha=alpha)
 
-    def detect_blobs(self, binarized_image) -> list[tuple[int, int]]:
+    def detect_blobs(self, binarized_image) -> list[tuple[int, int, int, int]]:
         # Convert the input image to CV_8UC1 format
         binarized_image = cv2.convertScaleAbs(binarized_image)
 
@@ -29,17 +29,21 @@ class ObjectDetector:
         min_area = 1  # Minimum contour area to consider
         filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_area]
 
-        # Compute centroid for each filtered contour
+        # Compute centroid and bounding rectangle for each filtered contour
+        blob_info = []
         blob_centroids = []
         for cnt in filtered_contours:
             moments = cv2.moments(cnt)
-            cx = int(moments['m10'] / moments['m00'])
+            cx = int(moments['m10'] / moments['m00']) # x coordinate of centroid 
             cy = int(moments['m01'] / moments['m00'])
+            x, y, w, h = cv2.boundingRect(cnt) # x and y coordinates of top-left corner, width and height of bounding rectangle
+            blob_info.append((cx, cy, w, h))
             blob_centroids.append((cx, cy))
 
+        # return blob_info
         return blob_centroids
     
-    def detect_objects(self, frame) -> list[tuple[int, int]]:
+    def detect_objects(self, frame) -> list[tuple[int, int, int, int]]:
         # Perform background subtraction
         self.subtracted_frame = self.bg_subtractor.subtract(frame)
 
