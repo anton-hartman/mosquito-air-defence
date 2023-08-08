@@ -1,15 +1,38 @@
 import cv2
 import numpy as np
 from object_detector import ObjectDetector
-from trackers.nearest_neighbour_tracking import NearestNeighbourTracker 
-from trackers.kcf_tracker import KcfTracker
-from trackers.sort_tracker import SORT as SortTracker
+# from trackers.nearest_neighbour_tracking import NearestNeighbourTracker 
+# from trackers.kcf_tracker import KcfTracker
+# from trackers.sort_tracker import SORT as SortTracker
+from trackers.sort import *
 
 class VideoInterface:
     def __init__(self, frame_resize_factor = 1.0, darkmode=False, comparison=False):
         self.frame_resize_factor = frame_resize_factor
         self.darkmode = darkmode
         self.comparison = comparison
+
+    def mosquito_based(self, frame, tracked_mosquitoes):
+        print(tracked_mosquitoes)
+                
+        # Draw circles around tracked mosquitoes
+        for mosquito in tracked_mosquitoes:
+            cx, cy = mosquito.centroid
+            if mosquito.matched:
+                color = (0, 255, 0)  # Green color for matched mosquitoes
+            else:
+                color = (0, 0, 255)  # Red color for unmatched mosquitoes
+            cv2.circle(frame, (cx, cy), radius=5, color=color, thickness=2)
+            cv2.putText(frame, str(mosquito.id), (cx, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        return frame
+
+    def bbox_based(self, frame, track_bbs_ids):
+        green = (0, 255, 0) 
+        for bb in track_bbs_ids:
+            bb = [int(i) for i in bb]
+            cv2.rectangle(frame, (bb[0], bb[1]), (bb[2], bb[3]), green, 2)
+            cv2.putText(frame, str(bb[4]), (bb[0], bb[1] - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, green, 2)
+        return frame
 
     def start_feed(self, video_path):
         # Open the video file
@@ -37,11 +60,12 @@ class VideoInterface:
         # Initialize the mosquito tracker
         # tracker = NearestNeighbourTracker()
         # tracker = KcfTracker()
-        sort_tracker = SortTracker()
+        # sort_tracker = SortTracker()
+        mot_tracker = Sort(max_age=1, min_hits=1, iou_threshold=0.0)
 
         # Variables for video control
         is_paused = False
-        delay = 1   # Default delay (in milliseconds) between frames
+        delay = 1001   # Default delay (in milliseconds) between frames
 
         # init = False
         while True:
@@ -52,24 +76,24 @@ class VideoInterface:
                     break
                 frame = cv2.resize(frame, frame_size)
 
-                blob_info = obj_detector.detect_objects(frame)
+                # blob_info = obj_detector.detect_objects(frame)
+                # blob_centroids = obj_detector.detect_objects(frame)
+                bounding_boxes = obj_detector.detect_objects(frame)
+                if bounding_boxes.size == 0:
+                    bounding_boxes = np.empty((0, 5))
 
-                # Track mosquitoes based on centroids
+                if frame_index == 51:
+                    print()
+                # Track mosquitoes based on centroids/info
                 # tracked_mosquitoes = tracker.track(blob_centroids)
                 # tracked_mosquitoes = tracker.track(frame, blob_centroids)
-                tracked_mosquitoes = sort_tracker.update(blob_info)
+                # tracked_mosquitoes = sort_tracker.update(blob_info)
+                track_bbs_ids  = mot_tracker.update(bounding_boxes)
+
+
                 print('Frame:', frame_index)
-                print(tracked_mosquitoes)
-                
-                # Draw circles around tracked mosquitoes
-                for mosquito in tracked_mosquitoes:
-                    cx, cy = mosquito.centroid
-                    if mosquito.matched:
-                        color = (0, 255, 0)  # Green color for matched mosquitoes
-                    else:
-                        color = (0, 0, 255)  # Red color for unmatched mosquitoes
-                    cv2.circle(frame, (cx, cy), radius=5, color=color, thickness=2)
-                    cv2.putText(frame, str(mosquito.id), (cx, cy - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                # frame = self.mosquito_based(frame, tracked_mosquitoes)
+                frame = self.bbox_based(frame, track_bbs_ids)
 
                 if self.comparison:
                     # Convert the images to 8-bit unsigned integer
@@ -105,6 +129,9 @@ class VideoInterface:
                 delay += speeds[key]
             elif key == ord('r'):
                 delay = 1
+            elif key == ord('s'):
+                # save the background image
+                cv2.imwrite('background.png', obj_detector.background)
 
             # Update the frame index
             frame_index += step
@@ -123,6 +150,8 @@ class VideoInterface:
 
 
 vi = VideoInterface(frame_resize_factor=1, comparison=True)
-# vi.start_feed('mosquito_data/many-mosquitoes-flying-white-bg.mp4')
-# vi.start_feed('mosquito_data/black-dot-bouncing-across.mp4')
-vi.start_feed('mosquito_data/squash-ball-rolling.mp4')
+# vi.start_feed('test_footage/many-mosquitoes-flying-white-bg.mp4')
+# vi.start_feed('test_footage/black-dot-bouncing-across.mp4')
+# vi.start_feed('test_footage/squash-ball-rolling.mp4')
+# vi.start_feed('test_footage/isolated-black-particles-on-white-background.mp4')
+vi.start_feed('test_footage/flock-of-birds-flying.mp4')
