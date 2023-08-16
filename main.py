@@ -55,17 +55,17 @@ class VideoInterface:
         frame = cv2.resize(frame, frame_size)
 
         # Initialize the object detector
-        obj_detector = ObjectDetector(frame, alpha=0.01)
+        obj_detector = ObjectDetector(frame, alpha=0.1)
 
         # Initialize the mosquito tracker
         # tracker = NearestNeighbourTracker()
         # tracker = KcfTracker()
         # sort_tracker = SortTracker()
-        mot_tracker = Sort(max_age=1, min_hits=1, iou_threshold=0.0)
+        mot_tracker = Sort(max_age=2, min_hits=2, iou_threshold=0.0)
 
         # Variables for video control
         is_paused = False
-        delay = 1001   # Default delay (in milliseconds) between frames
+        delay = 1   # Default delay (in milliseconds) between frames
 
         # init = False
         while True:
@@ -149,9 +149,10 @@ class VideoInterface:
         cv2.destroyAllWindows()
 
 
-vi = VideoInterface(frame_resize_factor=1, comparison=True)
+vi = VideoInterface(frame_resize_factor=0.4, comparison=True)
 # vi.start_feed('test_footage/many-mosquitoes-flying-white-bg.mp4')
 # vi.start_feed('test_footage/black-dot-bouncing-across.mp4')
 # vi.start_feed('test_footage/squash-ball-rolling.mp4')
 # vi.start_feed('test_footage/isolated-black-particles-on-white-background.mp4')
-vi.start_feed('test_footage/flock-of-birds-flying.mp4')
+# vi.start_feed('test_footage/flock-of-birds-flying.mp4')
+vi.start_feed('test_footage/min-30fps.mp4')
