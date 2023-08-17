@@ -81,7 +81,7 @@ void DEV_ModuleExit(void)
  * Example:
  * DEV_Delay_ms(500);//delay 500ms
  */
-void DEV_Delay_ms_mstep(uint32_t xms, uint8_t micro_steps)
+void step_delay_ms(uint32_t xms, uint8_t micro_steps)
 {
     int basedelay = 50000 / micro_steps;
     for(int j=xms; j > 0; j--)

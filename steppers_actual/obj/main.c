@@ -38,13 +38,12 @@ int main(void)
         # '1/16step': A cycle = 200 * 16 steps
         # '1/32step': A cycle = 200 * 32 steps
         */
+        setMicroStep(16);
     
         HR8825_SelectMotor(MOTOR1);
-        // HR8825_SetMicroStep(HARDWARD, "fullstep");
-        setMicroStep(1);
         HR8825_TurnStep(BACKWARD, FULL_REV, 3);
         HR8825_Stop();
-        DEV_Delay_ms(5000);
+        DEV_Delay_ms(2000);
 
         /*
         # 28BJY-48:
@@ -56,16 +55,11 @@ int main(void)
         # '1/16step': A cycle = 2048 * 16 steps
         # '1/32step': A cycle = 2048 * 32 steps
         */
-        // HR8825_SelectMotor(MOTOR2);
-        // HR8825_SetMicroStep(HARDWARD, "fullstep");
-        // HR8825_TurnStep(BACKWARD, 2000, 1);
-        // HR8825_Stop();
+       
         HR8825_SelectMotor(MOTOR2);
-        // HR8825_SetMicroStep(HARDWARD, "fullstep");
-        setMicroStep(1);
         HR8825_TurnStep(BACKWARD, FULL_REV, 3);
         HR8825_Stop();
-        DEV_Delay_ms(5000);
+        // DEV_Delay_ms(5000);
     }
     
     //3.System Exit

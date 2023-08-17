@@ -40,7 +40,7 @@ char *microstepmode[6] =  {
  * HR8825_SelectMotor(MOTOR1);
  * or: HR8825_SelectMotor(MOTOR2);
  */
-void HR8825_SelectMotor(UBYTE name)
+void HR8825_SelectMotor(uint8_t name)
 {
     Motor.Name = name;
     if(name == MOTOR1) {
@@ -135,9 +135,9 @@ void setMicroStep(uint8_t micro_steps)
  * @param stepdelay: step delay.
  *
  * Example:
- * UBYTE buf = HR8825_ReadByte(0x00);
+ * uint8_t buf = HR8825_ReadByte(0x00);
  */
-void HR8825_TurnStep(UBYTE dir, UWORD steps, UWORD stepdelay)
+void HR8825_TurnStep(uint8_t dir, uint16_t steps, uint16_t stepdelay)
 {
     steps = steps * MICRO_STEPS;
     Motor.Dir = dir;
@@ -156,13 +156,13 @@ void HR8825_TurnStep(UBYTE dir, UWORD steps, UWORD stepdelay)
     if(steps == 0)
         return;
 
-    UWORD i = 0;
+    uint16_t i = 0;
     DEBUG("turn %d steps\r\n", steps);
     for(i = 0; i < steps; i++) {
         DEV_Digital_Write(Motor.StepPin, 1);
-        DEV_Delay_ms_mstep(stepdelay, MICRO_STEPS);
+        step_delay_ms(stepdelay, MICRO_STEPS);
         DEV_Digital_Write(Motor.StepPin, 0);
-        DEV_Delay_ms_mstep(stepdelay, MICRO_STEPS);
+        step_delay_ms(stepdelay, MICRO_STEPS);
     }
 
 }

@@ -23,7 +23,7 @@
  * if(DEV_ModuleInit())
  *   exit(0);
  */
-UBYTE DEV_ModuleInit(void)
+uint8_t DEV_ModuleInit(void)
 {
     SYSFS_GPIO_Export(M1_ENABLE_PIN);
     SYSFS_GPIO_Export(M1_DIR_PIN);
@@ -73,6 +73,13 @@ void DEV_ModuleExit(void)
 
 }
 
+void step_delay_ms(uint32_t xms, uint8_t micro_steps)
+{
+    int basedelay = 50000 / micro_steps;
+    for(int j=xms; j > 0; j--)
+        for(int i=basedelay; i > 0; i--);
+}
+
 /**
  * Millisecond delay.
  *
@@ -81,18 +88,9 @@ void DEV_ModuleExit(void)
  * Example:
  * DEV_Delay_ms(500);//delay 500ms
  */
-void DEV_Delay_ms_mstep(uint32_t xms, uint8_t micro_steps)
-{
-    int basedelay = 50000 / micro_steps;
-    for(int j=xms; j > 0; j--)
-        for(int i=basedelay; i > 0; i--);
-}
-
 void DEV_Delay_ms(uint32_t xms)
 {
-    int basedelay = 50000;
-    for(int j=xms; j > 0; j--)
-        for(int i=basedelay; i > 0; i--);
+    step_delay_ms(xms, 1);
 }
 
 /**

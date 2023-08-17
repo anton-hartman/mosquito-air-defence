@@ -20,9 +20,10 @@
 /**
  * data
 **/
-#define UBYTE   uint8_t
-#define UWORD   uint16_t
-#define UDOUBLE uint32_t
+// Sommer pot kak naming convention
+// #define UBYTE   uint8_t
+// #define UWORD   uint16_t
+// #define UDOUBLE uint32_t
 
 /**
  * GPIO
@@ -45,11 +46,11 @@
 
 /*------------------------------------------------------------------------------------------------------*/
 
-UBYTE DEV_ModuleInit(void);
+uint8_t DEV_ModuleInit(void);
 void DEV_ModuleExit(void);
 
-void DEV_Delay_ms(UDOUBLE xms);
-void DEV_Delay_ms_mstep(uint32_t xms, uint8_t micro_steps);
-void DEV_Delay_us(UDOUBLE xus);
+void DEV_Delay_ms(uint32_t xms);
+void step_delay_ms(uint32_t xms, uint8_t micro_steps);
+void DEV_Delay_us(uint32_t xus);
 
 #endif

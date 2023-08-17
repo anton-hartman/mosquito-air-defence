@@ -30,20 +30,20 @@
 #define SOFTWARD 1
 
 typedef struct {
-    UBYTE Name;
+    uint8_t Name;
     char *MicroStep;
-    UBYTE Dir;
-    UBYTE EnablePin;
-    UBYTE DirPin;
-    UBYTE StepPin;
-    UBYTE M0Pin;
-    UBYTE M1Pin;
-    UBYTE M2Pin;
+    uint8_t Dir;
+    uint8_t EnablePin;
+    uint8_t DirPin;
+    uint8_t StepPin;
+    uint8_t M0Pin;
+    uint8_t M1Pin;
+    uint8_t M2Pin;
 } MOTOR;
 
-void HR8825_SelectMotor(UBYTE name);
+void HR8825_SelectMotor(uint8_t name);
 void HR8825_Stop(void);
 void HR8825_SetMicroStep(char mode, const char *stepformat);
 void setMicroStep(uint8_t micro_steps);
-void HR8825_TurnStep(UBYTE dir, UWORD steps, UWORD stepdelay);
+void HR8825_TurnStep(uint8_t dir, uint16_t steps, uint16_t stepdelay);
 #endif

@@ -49,7 +49,7 @@ UBYTE DEV_ModuleInit(void);
 void DEV_ModuleExit(void);
 
 void DEV_Delay_ms(UDOUBLE xms);
-void DEV_Delay_ms_mstep(uint32_t xms, uint8_t micro_steps);
+void step_delay_ms(uint32_t xms, uint8_t micro_steps);
 void DEV_Delay_us(UDOUBLE xus);
 
 #endif

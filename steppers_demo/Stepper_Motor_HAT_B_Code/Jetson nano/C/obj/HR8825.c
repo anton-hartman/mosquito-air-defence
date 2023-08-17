@@ -160,9 +160,9 @@ void HR8825_TurnStep(UBYTE dir, UWORD steps, UWORD stepdelay)
     DEBUG("turn %d steps\r\n", steps);
     for(i = 0; i < steps; i++) {
         DEV_Digital_Write(Motor.StepPin, 1);
-        DEV_Delay_ms_mstep(stepdelay, MICRO_STEPS);
+        step_delay_ms(stepdelay, MICRO_STEPS);
         DEV_Digital_Write(Motor.StepPin, 0);
-        DEV_Delay_ms_mstep(stepdelay, MICRO_STEPS);
+        step_delay_ms(stepdelay, MICRO_STEPS);
     }
 
 }
