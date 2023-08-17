@@ -18,9 +18,9 @@
 #include <stdlib.h> //exit()
 #include <stdio.h>  //printf()
 #include <string.h> //strcmp()
+#include "controller.h"
 
 MOTOR Motor;
-uint8_t MICRO_STEPS = 1;
 
 char *microstepmode[6] =  {
     "fullstep",
@@ -119,13 +119,6 @@ void HR8825_SetMicroStep(char mode, const char *stepformat)
     DEV_Digital_Write(Motor.M2Pin, (i >> 2) & 0x01);
 }
 
-/**
- * Set micro steps and assumes hardware mode it used.
-*/
-void setMicroStep(uint8_t micro_steps)
-{
-    MICRO_STEPS = micro_steps;
-}
 
 /**
  * turn.
@@ -139,7 +132,7 @@ void setMicroStep(uint8_t micro_steps)
  */
 void HR8825_TurnStep(uint8_t dir, uint16_t steps, uint16_t stepdelay)
 {
-    steps = steps * MICRO_STEPS;
+    // steps = steps * MICROSTEPS; //microstepping handeled in turret_control()
     Motor.Dir = dir;
     if(dir == FORWARD) {
         DEBUG("motor %d formward\r\n", Motor.Name);
@@ -160,9 +153,9 @@ void HR8825_TurnStep(uint8_t dir, uint16_t steps, uint16_t stepdelay)
     DEBUG("turn %d steps\r\n", steps);
     for(i = 0; i < steps; i++) {
         DEV_Digital_Write(Motor.StepPin, 1);
-        step_delay_ms(stepdelay, MICRO_STEPS);
+        microstep_delay_ms(stepdelay, MICROSTEPS);
         DEV_Digital_Write(Motor.StepPin, 0);
-        step_delay_ms(stepdelay, MICRO_STEPS);
+        microstep_delay_ms(stepdelay, MICROSTEPS);
     }
 
 }

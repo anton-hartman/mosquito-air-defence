@@ -3,8 +3,8 @@
 #include <signal.h>
 #include "DEV_Config.h"
 #include "HR8825.h"
+#include "controller.h"
 
-#define FULL_REV 2048
 
 void  Handler(int signo)
 {
@@ -27,39 +27,16 @@ int main(void)
     
     // Exception handling:ctrl + c
     signal(SIGINT, Handler);
-    while(1){
-        /*
-        # 1.8 degree: nema23, nema14
-        # softward Control :
-        # 'fullstep': A cycle = 200 steps
-        # 'halfstep': A cycle = 200 * 2 steps
-        # '1/4step': A cycle = 200 * 4 steps
-        # '1/8step': A cycle = 200 * 8 steps
-        # '1/16step': A cycle = 200 * 16 steps
-        # '1/32step': A cycle = 200 * 32 steps
-        */
-        setMicroStep(16);
-    
-        HR8825_SelectMotor(MOTOR1);
-        HR8825_TurnStep(BACKWARD, FULL_REV, 3);
-        HR8825_Stop();
-        DEV_Delay_ms(2000);
 
-        /*
-        # 28BJY-48:
-        # softward Control :
-        # 'fullstep': A cycle = 2048 steps
-        # 'halfstep': A cycle = 2048 * 2 steps
-        # '1/4step': A cycle = 2048 * 4 steps
-        # '1/8step': A cycle = 2048 * 8 steps
-        # '1/16step': A cycle = 2048 * 16 steps
-        # '1/32step': A cycle = 2048 * 32 steps
-        */
-       
-        HR8825_SelectMotor(MOTOR2);
-        HR8825_TurnStep(BACKWARD, FULL_REV, 3);
-        HR8825_Stop();
-        // DEV_Delay_ms(5000);
+    m1_current_angle = 45;
+    m2_current_angle = 45;
+
+    m1_target_angle = 15;
+    m2_target_angle = 50;
+    while (1) {
+        turret_control();
+        // print test
+        printf("m1_current_angle: %d\n", m1_current_angle);
     }
     
     //3.System Exit

@@ -73,9 +73,9 @@ void DEV_ModuleExit(void)
 
 }
 
-void step_delay_ms(uint32_t xms, uint8_t micro_steps)
+void microstep_delay_ms(uint32_t xms, uint8_t microsteps)
 {
-    int basedelay = 50000 / micro_steps;
+    int basedelay = 50000 / microsteps;
     for(int j=xms; j > 0; j--)
         for(int i=basedelay; i > 0; i--);
 }
@@ -90,7 +90,7 @@ void step_delay_ms(uint32_t xms, uint8_t micro_steps)
  */
 void DEV_Delay_ms(uint32_t xms)
 {
-    step_delay_ms(xms, 1);
+    microstep_delay_ms(xms, 1);
 }
 
 /**

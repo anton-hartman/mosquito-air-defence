@@ -50,7 +50,7 @@ uint8_t DEV_ModuleInit(void);
 void DEV_ModuleExit(void);
 
 void DEV_Delay_ms(uint32_t xms);
-void step_delay_ms(uint32_t xms, uint8_t micro_steps);
+void microstep_delay_ms(uint32_t xms, uint8_t micro_steps);
 void DEV_Delay_us(uint32_t xus);
 
 #endif

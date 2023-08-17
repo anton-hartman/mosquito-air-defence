@@ -3,51 +3,56 @@
 #include <signal.h>
 #include "DEV_Config.h"
 #include "HR8825.h"
+#include "controller.h"
 
-// #define FULL_REV 2048
-#define FULL_STEP_ANGLE 0.17578125 // 360/(32*64) = 0.17578125
+// float 	        4 byte 	    1.2E-38 to 3.4E+38 	    6 decimal places
+// double 	        8 byte 	    2.3E-308 to 1.7E+308 	15 decimal places
+// long double 	    10 byte 	3.4E-4932 to 1.1E+4932 	19 decimal places
+
 
 // Global Variables
-int16_t m1_current_angle; // Current angle of motor 1
+// Inputs
+int16_t m1_target_angle; // Target angle of motor 1
+int16_t m2_target_angle;
+int16_t m1_actual_angle; // Actual angle of motor 1 measured by camera detection
+int16_t m2_actual_angle;
+
+// Internal variables
+int16_t m1_count_angle; // Current angle of motor 1 by counting steps
+int16_t m2_count_angle;
+
+// For testing
+int16_t m1_current_angle; // Will be set to either m1_count_angle or m1_actual_angle
 int16_t m2_current_angle;
 
-void Handler(int signo) {
-    //System Exit
-    printf("\r\nHandler:Motor Stop\r\n");
-    HR8825_SelectMotor(MOTOR1);
-    HR8825_Stop();
-    HR8825_SelectMotor(MOTOR2);
-    HR8825_Stop();
-    DEV_ModuleExit();
 
-    exit(0);
-}
+uint32_t steps;
+void turret_control() {
 
-int main(void) {
-    //1.System Initialization
-    if(DEV_ModuleInit()) // If init is successful it returns 0
-        exit(0);
-    
-    // Exception handling:ctrl + c
-    signal(SIGINT, Handler);
-
-    while(1) {
-
-        setMicroStep(1);
-    
+    if (m1_current_angle != m1_target_angle) {
         HR8825_SelectMotor(MOTOR1);
-        HR8825_TurnStep(BACKWARD, FULL_REV, 3);
-        HR8825_Stop();
-        DEV_Delay_ms(5000);
-       
-        HR8825_SelectMotor(MOTOR2);
-        HR8825_TurnStep(BACKWARD, FULL_REV, 3);
-        HR8825_Stop();
-        DEV_Delay_ms(5000);
+        steps = abs(m1_target_angle - m1_current_angle) / STEP_ANGLE;
+        printf("steps: %d\n", steps);
+        if (m1_current_angle < m1_target_angle) {
+            HR8825_TurnStep(FORWARD, steps, 3);
+            HR8825_Stop();
+        } else {
+            HR8825_TurnStep(BACKWARD, steps, 3);
+            HR8825_Stop();
+        }
+        m1_current_angle = m1_target_angle;
     }
-    
-    //3.System Exit
-    DEV_ModuleExit();
-    return 0;
-}
 
+    if (m2_current_angle != m2_target_angle) {
+        HR8825_SelectMotor(MOTOR2);
+        steps = abs(m2_target_angle - m2_current_angle) / STEP_ANGLE;
+        if (m2_current_angle < m2_target_angle) {
+            HR8825_TurnStep(FORWARD, steps, 3);
+            HR8825_Stop();
+        } else {
+            HR8825_TurnStep(BACKWARD, steps, 3);
+            HR8825_Stop();
+        }
+        m2_current_angle = m2_target_angle;
+    }
+}

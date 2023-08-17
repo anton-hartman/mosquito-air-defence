@@ -44,6 +44,5 @@ typedef struct {
 void HR8825_SelectMotor(uint8_t name);
 void HR8825_Stop(void);
 void HR8825_SetMicroStep(char mode, const char *stepformat);
-void setMicroStep(uint8_t micro_steps);
 void HR8825_TurnStep(uint8_t dir, uint16_t steps, uint16_t stepdelay);
 #endif
