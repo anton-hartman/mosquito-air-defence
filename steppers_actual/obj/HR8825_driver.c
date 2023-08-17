@@ -17,9 +17,9 @@ uint8_t init_pins(void) {
   SYSFS_GPIO_Export(M1_ENABLE_PIN);
   SYSFS_GPIO_Export(M1_DIR_PIN);
   SYSFS_GPIO_Export(M1_STEP_PIN);
-  SYSFS_GPIO_Export(M1_M0_PIN);
-  SYSFS_GPIO_Export(M1_M1_PIN);
-  SYSFS_GPIO_Export(M1_M2_PIN);
+  // SYSFS_GPIO_Export(M1_M0_PIN);
+  // SYSFS_GPIO_Export(M1_M1_PIN);
+  // SYSFS_GPIO_Export(M1_M2_PIN);
 
   SYSFS_GPIO_Write(M2_DIR_PIN, 1);
   SYSFS_GPIO_Write(M1_DIR_PIN, 1);
@@ -27,23 +27,23 @@ uint8_t init_pins(void) {
   SYSFS_GPIO_Direction(M1_ENABLE_PIN, OUT);
   SYSFS_GPIO_Direction(M1_DIR_PIN, OUT);
   SYSFS_GPIO_Direction(M1_STEP_PIN, OUT);
-  SYSFS_GPIO_Direction(M1_M0_PIN, OUT);
-  SYSFS_GPIO_Direction(M1_M1_PIN, OUT);
-  SYSFS_GPIO_Direction(M1_M2_PIN, OUT);
+  // SYSFS_GPIO_Direction(M1_M0_PIN, OUT);
+  // SYSFS_GPIO_Direction(M1_M1_PIN, OUT);
+  // SYSFS_GPIO_Direction(M1_M2_PIN, OUT);
 
   SYSFS_GPIO_Export(M2_ENABLE_PIN);
   SYSFS_GPIO_Export(M2_DIR_PIN);
   SYSFS_GPIO_Export(M2_STEP_PIN);
-  SYSFS_GPIO_Export(M2_M0_PIN);
-  SYSFS_GPIO_Export(M2_M1_PIN);
-  SYSFS_GPIO_Export(M2_M2_PIN);
+  // SYSFS_GPIO_Export(M2_M0_PIN);
+  // SYSFS_GPIO_Export(M2_M1_PIN);
+  // SYSFS_GPIO_Export(M2_M2_PIN);
 
   SYSFS_GPIO_Direction(M2_ENABLE_PIN, OUT);
   SYSFS_GPIO_Direction(M2_DIR_PIN, OUT);
   SYSFS_GPIO_Direction(M2_STEP_PIN, OUT);
-  SYSFS_GPIO_Direction(M2_M0_PIN, OUT);
-  SYSFS_GPIO_Direction(M2_M1_PIN, OUT);
-  SYSFS_GPIO_Direction(M2_M2_PIN, OUT);
+  // SYSFS_GPIO_Direction(M2_M0_PIN, OUT);
+  // SYSFS_GPIO_Direction(M2_M1_PIN, OUT);
+  // SYSFS_GPIO_Direction(M2_M2_PIN, OUT);
 
   return 0;
 }
@@ -91,16 +91,16 @@ void select_motor(uint8_t name) {
     Motor.enable_pin = M1_ENABLE_PIN;
     Motor.direction_pin = M1_DIR_PIN;
     Motor.step_pin = M1_STEP_PIN;
-    Motor.M0_pin = M1_M0_PIN;
-    Motor.M1_pin = M1_M1_PIN;
-    Motor.M2_pin = M1_M2_PIN;
+    // Motor.M0_pin = M1_M0_PIN;
+    // Motor.M1_pin = M1_M1_PIN;
+    // Motor.M2_pin = M1_M2_PIN;
   } else if (name == MOTOR2) {
     Motor.enable_pin = M2_ENABLE_PIN;
     Motor.direction_pin = M2_DIR_PIN;
     Motor.step_pin = M2_STEP_PIN;
-    Motor.M0_pin = M2_M0_PIN;
-    Motor.M1_pin = M2_M1_PIN;
-    Motor.M2_pin = M2_M2_PIN;
+    // Motor.M0_pin = M2_M0_PIN;
+    // Motor.M1_pin = M2_M1_PIN;
+    // Motor.M2_pin = M2_M2_PIN;
   } else {
     DEBUG("please set motor: MOTOR1 or MOTOR2\r\n");
   }

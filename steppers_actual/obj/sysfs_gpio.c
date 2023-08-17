@@ -37,6 +37,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+/**
+ * @brief Exports a GPIO pin, making it accessible from user space.
+ *
+ * @param Pin The GPIO pin number to be exported.
+ * @return 0 on success, -1 on failure.
+ */
 int SYSFS_GPIO_Export(int Pin) {
   char buffer[NUM_MAXBUF];
   int len;
@@ -57,6 +63,12 @@ int SYSFS_GPIO_Export(int Pin) {
   return 0;
 }
 
+/**
+ * @brief Unexports a GPIO pin, making it inaccessible from user space.
+ *
+ * @param Pin The GPIO pin number to be unexported.
+ * @return 0 on success, -1 on failure.
+ */
 int SYSFS_GPIO_Unexport(int Pin) {
   char buffer[NUM_MAXBUF];
   int len;
@@ -77,6 +89,13 @@ int SYSFS_GPIO_Unexport(int Pin) {
   return 0;
 }
 
+/**
+ * @brief Sets the direction of a GPIO pin.
+ *
+ * @param Pin The GPIO pin number.
+ * @param Dir The desired direction for the pin (either `IN` or `OUT`).
+ * @return 0 on success, -1 on failure.
+ */
 int SYSFS_GPIO_Direction(int Pin, int Dir) {
   const char dir_str[] = "in\0out";
   char path[DIR_MAXSIZ];
@@ -104,6 +123,12 @@ int SYSFS_GPIO_Direction(int Pin, int Dir) {
   return 0;
 }
 
+/**
+ * @brief Reads the current value of a GPIO pin.
+ *
+ * @param Pin The GPIO pin number to be read.
+ * @return The value of the GPIO pin (either 0 or 1) on success, -1 on failure.
+ */
 int SYSFS_GPIO_Read(int Pin) {
   char path[DIR_MAXSIZ];
   char value_str[3];
@@ -125,6 +150,13 @@ int SYSFS_GPIO_Read(int Pin) {
   return (atoi(value_str));
 }
 
+/**
+ * @brief Writes a value to a GPIO pin.
+ *
+ * @param Pin The GPIO pin number to which the value will be written.
+ * @param value The value to write (either `LOW` or `HIGH`).
+ * @return 0 on success, -1 on failure.
+ */
 int SYSFS_GPIO_Write(int Pin, int value) {
   const char s_values_str[] = "01";
   char path[DIR_MAXSIZ];

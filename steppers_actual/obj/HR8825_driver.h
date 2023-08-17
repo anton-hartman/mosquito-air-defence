@@ -22,16 +22,16 @@
 #define M1_ENABLE_PIN PIN32
 #define M1_DIR_PIN PIN33
 #define M1_STEP_PIN PIN35
-#define M1_M0_PIN PIN36
-#define M1_M1_PIN PIN37
-#define M1_M2_PIN PIN38
+// #define M1_M0_PIN PIN36
+// #define M1_M1_PIN PIN37
+// #define M1_M2_PIN PIN38
 
 #define M2_ENABLE_PIN PIN7
 #define M2_DIR_PIN PIN18
 #define M2_STEP_PIN PIN12
-#define M2_M0_PIN PIN40
-#define M2_M1_PIN PIN15
-#define M2_M2_PIN PIN13
+// #define M2_M0_PIN PIN40
+// #define M2_M1_PIN PIN15
+// #define M2_M2_PIN PIN13
 
 // HR8825
 #define MOTOR1 1
