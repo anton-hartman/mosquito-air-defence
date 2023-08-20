@@ -42,9 +42,10 @@
 #define NUM_MAXBUF 4
 #define DIR_MAXSIZ 60
 
-#define SYSFS_GPIO_DEBUG 1
+#define SYSFS_GPIO_DEBUG 0
 #if SYSFS_GPIO_DEBUG
-#define SYSFS_GPIO_Debug(__info, ...) printf("Debug: " __info, ##__VA_ARGS__)
+#define SYSFS_GPIO_Debug(__info, ...) \
+  printf("SYSFS Debug: " __info, ##__VA_ARGS__)
 #else
 #define SYSFS_GPIO_Debug(__info, ...)
 #endif

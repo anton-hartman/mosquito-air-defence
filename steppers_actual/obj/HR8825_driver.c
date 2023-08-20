@@ -7,43 +7,29 @@
 #include "controller.h"
 
 /**
- * Initialises all the pins used by the driver.
- *
- * Example:
- * if(init_pins())
- *   exit(0);
+ * @brief Inits all the pins used by the driver.
+ * @return 0 on success.
  */
-uint8_t init_pins(void) {
+uint8_t init_driver_pins(void) {
   SYSFS_GPIO_Export(M1_ENABLE_PIN);
   SYSFS_GPIO_Export(M1_DIR_PIN);
   SYSFS_GPIO_Export(M1_STEP_PIN);
-  // SYSFS_GPIO_Export(M1_M0_PIN);
-  // SYSFS_GPIO_Export(M1_M1_PIN);
-  // SYSFS_GPIO_Export(M1_M2_PIN);
 
-  SYSFS_GPIO_Write(M2_DIR_PIN, 1);
   SYSFS_GPIO_Write(M1_DIR_PIN, 1);
 
   SYSFS_GPIO_Direction(M1_ENABLE_PIN, OUT);
   SYSFS_GPIO_Direction(M1_DIR_PIN, OUT);
   SYSFS_GPIO_Direction(M1_STEP_PIN, OUT);
-  // SYSFS_GPIO_Direction(M1_M0_PIN, OUT);
-  // SYSFS_GPIO_Direction(M1_M1_PIN, OUT);
-  // SYSFS_GPIO_Direction(M1_M2_PIN, OUT);
 
   SYSFS_GPIO_Export(M2_ENABLE_PIN);
   SYSFS_GPIO_Export(M2_DIR_PIN);
   SYSFS_GPIO_Export(M2_STEP_PIN);
-  // SYSFS_GPIO_Export(M2_M0_PIN);
-  // SYSFS_GPIO_Export(M2_M1_PIN);
-  // SYSFS_GPIO_Export(M2_M2_PIN);
+
+  SYSFS_GPIO_Write(M2_DIR_PIN, 1);
 
   SYSFS_GPIO_Direction(M2_ENABLE_PIN, OUT);
   SYSFS_GPIO_Direction(M2_DIR_PIN, OUT);
   SYSFS_GPIO_Direction(M2_STEP_PIN, OUT);
-  // SYSFS_GPIO_Direction(M2_M0_PIN, OUT);
-  // SYSFS_GPIO_Direction(M2_M1_PIN, OUT);
-  // SYSFS_GPIO_Direction(M2_M2_PIN, OUT);
 
   return 0;
 }
@@ -91,16 +77,10 @@ void select_motor(uint8_t name) {
     Motor.enable_pin = M1_ENABLE_PIN;
     Motor.direction_pin = M1_DIR_PIN;
     Motor.step_pin = M1_STEP_PIN;
-    // Motor.M0_pin = M1_M0_PIN;
-    // Motor.M1_pin = M1_M1_PIN;
-    // Motor.M2_pin = M1_M2_PIN;
   } else if (name == MOTOR2) {
     Motor.enable_pin = M2_ENABLE_PIN;
     Motor.direction_pin = M2_DIR_PIN;
     Motor.step_pin = M2_STEP_PIN;
-    // Motor.M0_pin = M2_M0_PIN;
-    // Motor.M1_pin = M2_M1_PIN;
-    // Motor.M2_pin = M2_M2_PIN;
   } else {
     DEBUG("please set motor: MOTOR1 or MOTOR2\r\n");
   }
@@ -119,9 +99,11 @@ void stop_motor(void) {
 
 /**
  * Turn the motor.
- * @param direction: direction.
- * @param steps: Step count.
- * @param stepdelay: step delay.
+ * @param direction: Direction of rotation.
+ * @param steps: Step count. Microstepping is accounted for in fucntion. Steps
+ * must be the amout of full steps.
+ * @param stepdelay: Delay between steps in milliseconds. Microstepping is
+ * accounted for in this delay. Delay must be the delay for full steps.
  */
 void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay) {
   Motor.direction = direction;
@@ -140,9 +122,9 @@ void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay) {
   if (steps == 0)
     return;
 
-  uint16_t i = 0;
-  DEBUG("turn %d steps\r\n", steps);
-  for (i = 0; i < steps; i++) {
+  uint32_t microsteps = steps * MICROSTEPS;
+  DEBUG("Turn %d steps = %d microsteps\r\n", steps, microsteps);
+  for (uint32_t i = 0; i < steps; i++) {
     SYSFS_GPIO_Write(Motor.step_pin, 1);
     microstep_delay_ms(stepdelay, MICROSTEPS);
     SYSFS_GPIO_Write(Motor.step_pin, 0);

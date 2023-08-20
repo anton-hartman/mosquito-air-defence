@@ -18,8 +18,10 @@ void Handler(int signo) {
 
 int main(void) {
   // 1.System Initialization
-  if (init_pins())
-    exit(0);
+  init_driver_pins();
+  init_manual_control();
+  // if (init_driver_pins())
+  //   exit(0);
 
   // Exception handling:ctrl + c
   signal(SIGINT, Handler);
@@ -31,6 +33,7 @@ int main(void) {
   m2_target_angle = 50;
   while (1) {
     turret_control();
+    // delay_ms(3000);
   }
 
   // 3.System Exit

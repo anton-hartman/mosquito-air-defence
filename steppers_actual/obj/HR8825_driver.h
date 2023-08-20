@@ -53,7 +53,7 @@ typedef struct {
   uint8_t M2_pin;
 } MOTOR;
 
-uint8_t init_pins(void);  // DEV_ModuleInit(void)
+uint8_t init_driver_pins(void);  // DEV_ModuleInit(void)
 void driver_exit(void);   // DEV_ModuleExit(void)
 
 void microstep_delay_ms(uint32_t xms, uint8_t micro_steps);
