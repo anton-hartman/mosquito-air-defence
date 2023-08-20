@@ -12,5 +12,6 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
-    "python.formatting.provider": "none"
+    "python.formatting.provider": "none",
+    "cmake.sourceDirectory": "/home/anton/mosquito-air-defence/CameraCalibration"
 }

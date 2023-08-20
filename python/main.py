@@ -4,7 +4,7 @@ from object_detector import ObjectDetector
 # from trackers.nearest_neighbour_tracking import NearestNeighbourTracker 
 # from trackers.kcf_tracker import KcfTracker
 # from trackers.sort_tracker import SORT as SortTracker
-from trackers.sort import *
+# from trackers.sort import *
 
 class VideoInterface:
     def __init__(self, frame_resize_factor = 1.0, darkmode=False, comparison=False):
@@ -61,7 +61,7 @@ class VideoInterface:
         # tracker = NearestNeighbourTracker()
         # tracker = KcfTracker()
         # sort_tracker = SortTracker()
-        mot_tracker = Sort(max_age=2, min_hits=2, iou_threshold=0.0)
+        # mot_tracker = Sort(max_age=2, min_hits=2, iou_threshold=0.0)
 
         # Variables for video control
         is_paused = False
@@ -88,12 +88,12 @@ class VideoInterface:
                 # tracked_mosquitoes = tracker.track(blob_centroids)
                 # tracked_mosquitoes = tracker.track(frame, blob_centroids)
                 # tracked_mosquitoes = sort_tracker.update(blob_info)
-                track_bbs_ids  = mot_tracker.update(bounding_boxes)
+                # track_bbs_ids  = mot_tracker.update(bounding_boxes)
 
 
                 print('Frame:', frame_index)
                 # frame = self.mosquito_based(frame, tracked_mosquitoes)
-                frame = self.bbox_based(frame, track_bbs_ids)
+                # frame = self.bbox_based(frame, track_bbs_ids)
 
                 if self.comparison:
                     # Convert the images to 8-bit unsigned integer
