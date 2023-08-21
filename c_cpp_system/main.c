@@ -1,8 +1,8 @@
 #include <signal.h>
 #include <stdio.h>   //printf()
 #include <stdlib.h>  //exit()
-#include "HR8825_driver.h"
-#include "controller.h"
+#include "steppers/HR8825_driver.h"
+#include "steppers/controller.h"
 
 void Handler(int signo) {
   // System Exit

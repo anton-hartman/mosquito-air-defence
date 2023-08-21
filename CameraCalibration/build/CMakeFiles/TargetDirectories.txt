@@ -1,0 +1,4 @@
+/home/anton/mosquito-air-defence/CameraCalibration/build/CMakeFiles/rebuild_cache.dir
+/home/anton/mosquito-air-defence/CameraCalibration/build/CMakeFiles/edit_cache.dir
+/home/anton/mosquito-air-defence/CameraCalibration/build/CMakeFiles/cameraCalibration.dir
+/home/anton/mosquito-air-defence/CameraCalibration/build/CMakeFiles/cameraCalibrationWithUndistortion.dir

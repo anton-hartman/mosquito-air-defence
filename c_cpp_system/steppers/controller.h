@@ -2,9 +2,8 @@
 #define HR8825_CONTROLLER_H
 
 #include <stdint.h>
-// #include <time.h>
-#include "Debug.h"
-#include "sysfs_gpio.h"
+#include "../debug.h"
+#include "../sysfs_gpio.h"
 
 // Constants
 // #define FULL_REV 2048

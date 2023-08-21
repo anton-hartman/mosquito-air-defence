@@ -2,7 +2,7 @@
 #include <stdlib.h>  //exit()
 #include <string.h>  //strcmp()
 
-#include "Debug.h"  //DEBUG()
+#include "../debug.h"  //DEBUG()
 #include "HR8825_driver.h"
 #include "controller.h"
 

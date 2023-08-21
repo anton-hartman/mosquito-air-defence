@@ -2,7 +2,7 @@
 #define HR8825_DRIVER_H
 
 #include <stdint.h>
-#include "sysfs_gpio.h"
+#include "../sysfs_gpio.h"
 
 /* GPIO */
 // #define M1_ENABLE_PIN GPIO12

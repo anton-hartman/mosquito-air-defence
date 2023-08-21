@@ -1,5 +1,5 @@
 /*****************************************************************************
-* | File        :   Debug.h
+* | File        :   debug.h
 * | Author      :   Waveshare team
 * | Function    :   debug with printf
 * | Info        :
