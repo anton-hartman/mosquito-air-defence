@@ -1,0 +1,8 @@
+/home/anton/mosquito-air-defence/build/CMakeFiles/rebuild_cache.dir
+/home/anton/mosquito-air-defence/build/CMakeFiles/edit_cache.dir
+/home/anton/mosquito-air-defence/build/src/CMakeFiles/rebuild_cache.dir
+/home/anton/mosquito-air-defence/build/src/CMakeFiles/MosquitoAirDefence.dir
+/home/anton/mosquito-air-defence/build/src/CMakeFiles/edit_cache.dir
+/home/anton/mosquito-air-defence/build/tests/CMakeFiles/rebuild_cache.dir
+/home/anton/mosquito-air-defence/build/tests/CMakeFiles/MosquitoAirDefenceTests.dir
+/home/anton/mosquito-air-defence/build/tests/CMakeFiles/edit_cache.dir

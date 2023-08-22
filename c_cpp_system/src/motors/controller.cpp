@@ -1,16 +1,17 @@
-#include "controller.h"
+namespace stepper {
+
+#include "controller.hpp"
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "HR8825_driver.h"
-
-// float 	       4 byte 	1.2E-38 to 3.4E+38 	    6 decimal places
-// double 	     8 byte 	2.3E-308 to 1.7E+308 	  15 decimal places
-// long double 	 10 byte 	3.4E-4932 to 1.1E+4932 	19 decimal places
+#include <cstdint>
+#include "HR8825_driver.hpp"
+#include "utilities/debug.hpp"
+#include "utilities/utilities.hpp"
 
 // Global Variables
 // Inputs
-// int16_t m1_target_angle;
+int16_t m1_target_angle;
 int16_t m2_target_angle;
 int16_t m1_actual_angle;
 int16_t m2_actual_angle;
@@ -40,7 +41,7 @@ int8_t init_manual_control(void) {
 int8_t read_pin(uint8_t pin) {
   SYSFS_GPIO_Direction(pin, IN);
   uint8_t pin_val = SYSFS_GPIO_Read(pin);
-  DEBUG("Pin %d: %d\n", pin, pin_val);
+  //   LOG_DEBUG("Pin %d: %d\n", pin, pin_val);
   SYSFS_GPIO_Direction(pin, OUT);
   SYSFS_GPIO_Write(pin, LOW);
   return pin_val;
@@ -55,9 +56,9 @@ void single_step(uint8_t motor, uint8_t direction) {
 
 void turret_control() {
   uint8_t home = read_pin(HOME_BTN);
-  DEBUG("Home: %d\n", home);
+  //   LOG_DEBUG("Home: %d\n", home);
   if (home) {
-    delay_ms(1000);
+    utilities::delay_ms(1000);
     manual_mode = manual_mode ? 0 : 1;
   }
 
@@ -114,3 +115,5 @@ void auto_control() {
     // m2_current_angle = m2_target_angle;
   }
 }
+
+}  // namespace stepper

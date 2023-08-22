@@ -1,0 +1,1 @@
+/usr/bin/aarch64-linux-gnu-g++  -g   CMakeFiles/MosquitoAirDefenceTests.dir/gpio/gpio_test.cpp.o CMakeFiles/MosquitoAirDefenceTests.dir/detection/detection_test.cpp.o CMakeFiles/MosquitoAirDefenceTests.dir/motors/controller_test.cpp.o  -o MosquitoAirDefenceTests -lgtest -lgtest_main 
