@@ -48,7 +48,7 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/anton/mosquito-air-defence/c_cpp_system
+CMAKE_SOURCE_DIR = /home/anton/mosquito-air-defence
 
 # The top-level build directory on which CMake was run.
 CMAKE_BINARY_DIR = /home/anton/mosquito-air-defence/build
@@ -111,30 +111,125 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named MosquitoAirDefence
+# Target rules for targets named mosquito-air-defence
 
 # Build rule for target.
-MosquitoAirDefence: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 MosquitoAirDefence
-.PHONY : MosquitoAirDefence
+mosquito-air-defence: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 mosquito-air-defence
+.PHONY : mosquito-air-defence
 
 # fast build rule for target.
-MosquitoAirDefence/fast:
-	$(MAKE) -f src/CMakeFiles/MosquitoAirDefence.dir/build.make src/CMakeFiles/MosquitoAirDefence.dir/build
-.PHONY : MosquitoAirDefence/fast
+mosquito-air-defence/fast:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/build
+.PHONY : mosquito-air-defence/fast
 
-#=============================================================================
-# Target rules for targets named MosquitoAirDefenceTests
+main.o: main.cpp.o
 
-# Build rule for target.
-MosquitoAirDefenceTests: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 MosquitoAirDefenceTests
-.PHONY : MosquitoAirDefenceTests
+.PHONY : main.o
 
-# fast build rule for target.
-MosquitoAirDefenceTests/fast:
-	$(MAKE) -f tests/CMakeFiles/MosquitoAirDefenceTests.dir/build.make tests/CMakeFiles/MosquitoAirDefenceTests.dir/build
-.PHONY : MosquitoAirDefenceTests/fast
+# target to build an object file
+main.cpp.o:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/main.cpp.o
+.PHONY : main.cpp.o
+
+main.i: main.cpp.i
+
+.PHONY : main.i
+
+# target to preprocess a source file
+main.cpp.i:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/main.cpp.i
+.PHONY : main.cpp.i
+
+main.s: main.cpp.s
+
+.PHONY : main.s
+
+# target to generate assembly for a file
+main.cpp.s:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/main.cpp.s
+.PHONY : main.cpp.s
+
+src/motors/HR8825_driver.o: src/motors/HR8825_driver.cpp.o
+
+.PHONY : src/motors/HR8825_driver.o
+
+# target to build an object file
+src/motors/HR8825_driver.cpp.o:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driver.cpp.o
+.PHONY : src/motors/HR8825_driver.cpp.o
+
+src/motors/HR8825_driver.i: src/motors/HR8825_driver.cpp.i
+
+.PHONY : src/motors/HR8825_driver.i
+
+# target to preprocess a source file
+src/motors/HR8825_driver.cpp.i:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driver.cpp.i
+.PHONY : src/motors/HR8825_driver.cpp.i
+
+src/motors/HR8825_driver.s: src/motors/HR8825_driver.cpp.s
+
+.PHONY : src/motors/HR8825_driver.s
+
+# target to generate assembly for a file
+src/motors/HR8825_driver.cpp.s:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driver.cpp.s
+.PHONY : src/motors/HR8825_driver.cpp.s
+
+src/motors/controller.o: src/motors/controller.cpp.o
+
+.PHONY : src/motors/controller.o
+
+# target to build an object file
+src/motors/controller.cpp.o:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/motors/controller.cpp.o
+.PHONY : src/motors/controller.cpp.o
+
+src/motors/controller.i: src/motors/controller.cpp.i
+
+.PHONY : src/motors/controller.i
+
+# target to preprocess a source file
+src/motors/controller.cpp.i:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/motors/controller.cpp.i
+.PHONY : src/motors/controller.cpp.i
+
+src/motors/controller.s: src/motors/controller.cpp.s
+
+.PHONY : src/motors/controller.s
+
+# target to generate assembly for a file
+src/motors/controller.cpp.s:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/motors/controller.cpp.s
+.PHONY : src/motors/controller.cpp.s
+
+src/utilities/utilities.o: src/utilities/utilities.cpp.o
+
+.PHONY : src/utilities/utilities.o
+
+# target to build an object file
+src/utilities/utilities.cpp.o:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o
+.PHONY : src/utilities/utilities.cpp.o
+
+src/utilities/utilities.i: src/utilities/utilities.cpp.i
+
+.PHONY : src/utilities/utilities.i
+
+# target to preprocess a source file
+src/utilities/utilities.cpp.i:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.i
+.PHONY : src/utilities/utilities.cpp.i
+
+src/utilities/utilities.s: src/utilities/utilities.cpp.s
+
+.PHONY : src/utilities/utilities.s
+
+# target to generate assembly for a file
+src/utilities/utilities.cpp.s:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.s
+.PHONY : src/utilities/utilities.cpp.s
 
 # Help Target
 help:
@@ -143,9 +238,20 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
+	@echo "... mosquito-air-defence"
 	@echo "... edit_cache"
-	@echo "... MosquitoAirDefence"
-	@echo "... MosquitoAirDefenceTests"
+	@echo "... main.o"
+	@echo "... main.i"
+	@echo "... main.s"
+	@echo "... src/motors/HR8825_driver.o"
+	@echo "... src/motors/HR8825_driver.i"
+	@echo "... src/motors/HR8825_driver.s"
+	@echo "... src/motors/controller.o"
+	@echo "... src/motors/controller.i"
+	@echo "... src/motors/controller.s"
+	@echo "... src/utilities/utilities.o"
+	@echo "... src/utilities/utilities.i"
+	@echo "... src/utilities/utilities.s"
 .PHONY : help
 
 

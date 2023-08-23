@@ -1,4 +1,4 @@
-# Install script for directory: /home/anton/mosquito-air-defence/c_cpp_system
+# Install script for directory: /home/anton/mosquito-air-defence
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -35,13 +35,6 @@ endif()
 # Is this installation the result of a crosscompile?
 if(NOT DEFINED CMAKE_CROSSCOMPILING)
   set(CMAKE_CROSSCOMPILING "FALSE")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for each subdirectory.
-  include("/home/anton/mosquito-air-defence/build/src/cmake_install.cmake")
-  include("/home/anton/mosquito-air-defence/build/tests/cmake_install.cmake")
-
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)

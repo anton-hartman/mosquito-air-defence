@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Site BuildName="(empty)"
+	BuildStamp="20230823-1127-Experimental"
+	Name="(empty)"
+	Generator="ctest-3.10.2"
+	CompilerName=""
+	CompilerVersion=""
+	OSName="Linux"
+	Hostname="anton-jetson"
+	OSRelease="4.9.253-tegra"
+	OSVersion="#1 SMP PREEMPT Sat Feb 19 08:59:22 PST 2022"
+	OSPlatform="aarch64"
+	Is64Bits="1"
+	VendorString=""
+	VendorID="Unknown Manufacturer"
+	FamilyID="8"
+	ModelID="0"
+	ProcessorCacheSize="0"
+	NumberOfLogicalCPU="4"
+	NumberOfPhysicalCPU="1"
+	TotalVirtualMemory="1982"
+	TotalPhysicalMemory="3964"
+	LogicalProcessorsPerPhysical="4"
+	ProcessorClockFrequency="0"
+	>
+	<Testing>
+		<StartDateTime>Aug 23 13:27 SAST</StartDateTime>
+		<StartTestTime>1692790046</StartTestTime>
+		<TestList/>
+		<EndDateTime>Aug 23 13:27 SAST</EndDateTime>
+		<EndTestTime>1692790046</EndTestTime>
+		<ElapsedMinutes>0</ElapsedMinutes>
+	</Testing>
+</Site>

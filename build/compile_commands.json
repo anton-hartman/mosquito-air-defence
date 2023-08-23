@@ -1,17 +1,22 @@
 [
 {
-  "directory": "/home/anton/mosquito-air-defence/build/tests",
-  "command": "/usr/bin/aarch64-linux-gnu-g++    -g   -o CMakeFiles/MosquitoAirDefenceTests.dir/gpio/gpio_test.cpp.o -c /home/anton/mosquito-air-defence/c_cpp_system/tests/gpio/gpio_test.cpp",
-  "file": "/home/anton/mosquito-air-defence/c_cpp_system/tests/gpio/gpio_test.cpp"
+  "directory": "/home/anton/mosquito-air-defence/build",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/local/include  -g   -std=gnu++11 -o CMakeFiles/mosquito-air-defence.dir/main.cpp.o -c /home/anton/mosquito-air-defence/main.cpp",
+  "file": "/home/anton/mosquito-air-defence/main.cpp"
 },
 {
-  "directory": "/home/anton/mosquito-air-defence/build/tests",
-  "command": "/usr/bin/aarch64-linux-gnu-g++    -g   -o CMakeFiles/MosquitoAirDefenceTests.dir/detection/detection_test.cpp.o -c /home/anton/mosquito-air-defence/c_cpp_system/tests/detection/detection_test.cpp",
-  "file": "/home/anton/mosquito-air-defence/c_cpp_system/tests/detection/detection_test.cpp"
+  "directory": "/home/anton/mosquito-air-defence/build",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/local/include  -g   -std=gnu++11 -o CMakeFiles/mosquito-air-defence.dir/src/motors/controller.cpp.o -c /home/anton/mosquito-air-defence/src/motors/controller.cpp",
+  "file": "/home/anton/mosquito-air-defence/src/motors/controller.cpp"
 },
 {
-  "directory": "/home/anton/mosquito-air-defence/build/tests",
-  "command": "/usr/bin/aarch64-linux-gnu-g++    -g   -o CMakeFiles/MosquitoAirDefenceTests.dir/motors/controller_test.cpp.o -c /home/anton/mosquito-air-defence/c_cpp_system/tests/motors/controller_test.cpp",
-  "file": "/home/anton/mosquito-air-defence/c_cpp_system/tests/motors/controller_test.cpp"
+  "directory": "/home/anton/mosquito-air-defence/build",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/local/include  -g   -std=gnu++11 -o CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driver.cpp.o -c /home/anton/mosquito-air-defence/src/motors/HR8825_driver.cpp",
+  "file": "/home/anton/mosquito-air-defence/src/motors/HR8825_driver.cpp"
+},
+{
+  "directory": "/home/anton/mosquito-air-defence/build",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/local/include  -g   -std=gnu++11 -o CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o -c /home/anton/mosquito-air-defence/src/utilities/utilities.cpp",
+  "file": "/home/anton/mosquito-air-defence/src/utilities/utilities.cpp"
 }
 ]

@@ -1,0 +1,3 @@
+/home/anton/mosquito-air-defence/build/CMakeFiles/rebuild_cache.dir
+/home/anton/mosquito-air-defence/build/CMakeFiles/mosquito-air-defence.dir
+/home/anton/mosquito-air-defence/build/CMakeFiles/edit_cache.dir
