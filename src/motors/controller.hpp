@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ncurses.h>
 #include <cstdint>
 #include "HR8825_driver.hpp"
 
@@ -8,10 +9,10 @@ namespace stepper {
 // Constants
 // #define FULL_REV 2048
 #define FULL_STEP_ANGLE 0.17578125
-#define MICROSTEPS 1
+#define MICROSTEPS 16
 #define MICROSTEP_ANGLE (FULL_STEP_ANGLE / MICROSTEPS)
-
 #define STEP_DELAY 3
+#define MIRCOSTEP_DELAY (STEP_DELAY / MICROSTEPS)
 
 // Global Variables
 // Inputs
@@ -34,7 +35,7 @@ int8_t read_pin(uint8_t pin);
 // unsigned long millis(void);
 void single_step(uint8_t motor, uint8_t direction);
 void turret_control(void);
-void manual_control(void);
+void manual_control(int ch);
 void auto_control(void);
 
 }  // namespace stepper

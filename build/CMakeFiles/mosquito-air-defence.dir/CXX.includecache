@@ -41,6 +41,8 @@ cstdlib
 /home/anton/mosquito-air-defence/src/utilities/utilities.hpp
 
 /home/anton/mosquito-air-defence/src/motors/controller.hpp
+ncurses.h
+-
 cstdint
 -
 HR8825_driver.hpp

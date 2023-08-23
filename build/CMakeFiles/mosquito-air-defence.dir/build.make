@@ -169,6 +169,8 @@ mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driv
 mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o
 mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/build.make
 mosquito-air-defence: /usr/local/lib/libJetsonGPIO.so.1.2.4
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libcurses.so
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libform.so
 mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/anton/mosquito-air-defence/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable mosquito-air-defence"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/mosquito-air-defence.dir/link.txt --verbose=$(VERBOSE)

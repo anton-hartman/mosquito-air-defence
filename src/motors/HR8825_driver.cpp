@@ -46,6 +46,10 @@ void stop_motor(void) {
   GPIO::output(Motor.enable_pin, GPIO::LOW);
 }
 
+/**
+ * @brief Turn the motor a certain number of steps in a certain direction.
+ * For now delay compensates for microstepping inside turn_motor().
+ */
 void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay) {
   Motor.direction = direction;
   if (direction == FORWARD) {
@@ -63,7 +67,6 @@ void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay) {
   if (steps == 0)
     return;
 
-  uint32_t microsteps = steps * MICROSTEPS;
   //   LOG_DEBUG("Turn %d steps = %d microsteps\\r\\n", steps, microsteps);
   for (uint32_t i = 0; i < steps; i++) {
     GPIO::output(Motor.step_pin, GPIO::HIGH);
