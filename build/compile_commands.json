@@ -1,22 +1,32 @@
 [
 {
   "directory": "/home/anton/mosquito-air-defence/build",
-  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/local/include  -g   -std=gnu++11 -o CMakeFiles/mosquito-air-defence.dir/main.cpp.o -c /home/anton/mosquito-air-defence/main.cpp",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/include/opencv4 -isystem /usr/local/include  -g   -std=gnu++14 -o CMakeFiles/mosquito-air-defence.dir/main.cpp.o -c /home/anton/mosquito-air-defence/main.cpp",
   "file": "/home/anton/mosquito-air-defence/main.cpp"
 },
 {
   "directory": "/home/anton/mosquito-air-defence/build",
-  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/local/include  -g   -std=gnu++11 -o CMakeFiles/mosquito-air-defence.dir/src/motors/controller.cpp.o -c /home/anton/mosquito-air-defence/src/motors/controller.cpp",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/include/opencv4 -isystem /usr/local/include  -g   -std=gnu++14 -o CMakeFiles/mosquito-air-defence.dir/src/motors/controller.cpp.o -c /home/anton/mosquito-air-defence/src/motors/controller.cpp",
   "file": "/home/anton/mosquito-air-defence/src/motors/controller.cpp"
 },
 {
   "directory": "/home/anton/mosquito-air-defence/build",
-  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/local/include  -g   -std=gnu++11 -o CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driver.cpp.o -c /home/anton/mosquito-air-defence/src/motors/HR8825_driver.cpp",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/include/opencv4 -isystem /usr/local/include  -g   -std=gnu++14 -o CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driver.cpp.o -c /home/anton/mosquito-air-defence/src/motors/HR8825_driver.cpp",
   "file": "/home/anton/mosquito-air-defence/src/motors/HR8825_driver.cpp"
 },
 {
   "directory": "/home/anton/mosquito-air-defence/build",
-  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/local/include  -g   -std=gnu++11 -o CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o -c /home/anton/mosquito-air-defence/src/utilities/utilities.cpp",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/include/opencv4 -isystem /usr/local/include  -g   -std=gnu++14 -o CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o -c /home/anton/mosquito-air-defence/src/utilities/utilities.cpp",
   "file": "/home/anton/mosquito-air-defence/src/utilities/utilities.cpp"
+},
+{
+  "directory": "/home/anton/mosquito-air-defence/build",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/include/opencv4 -isystem /usr/local/include  -g   -std=gnu++14 -o CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o -c /home/anton/mosquito-air-defence/src/detection/detection.cpp",
+  "file": "/home/anton/mosquito-air-defence/src/detection/detection.cpp"
+},
+{
+  "directory": "/home/anton/mosquito-air-defence/build",
+  "command": "/usr/bin/aarch64-linux-gnu-g++   -I/home/anton/mosquito-air-defence/src -isystem /usr/include/opencv4 -isystem /usr/local/include  -g   -std=gnu++14 -o CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o -c /home/anton/mosquito-air-defence/src/detection/videoInterface.cpp",
+  "file": "/home/anton/mosquito-air-defence/src/detection/videoInterface.cpp"
 }
 ]

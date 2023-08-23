@@ -150,6 +150,60 @@ main.cpp.s:
 	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/main.cpp.s
 .PHONY : main.cpp.s
 
+src/detection/detection.o: src/detection/detection.cpp.o
+
+.PHONY : src/detection/detection.o
+
+# target to build an object file
+src/detection/detection.cpp.o:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o
+.PHONY : src/detection/detection.cpp.o
+
+src/detection/detection.i: src/detection/detection.cpp.i
+
+.PHONY : src/detection/detection.i
+
+# target to preprocess a source file
+src/detection/detection.cpp.i:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.i
+.PHONY : src/detection/detection.cpp.i
+
+src/detection/detection.s: src/detection/detection.cpp.s
+
+.PHONY : src/detection/detection.s
+
+# target to generate assembly for a file
+src/detection/detection.cpp.s:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.s
+.PHONY : src/detection/detection.cpp.s
+
+src/detection/videoInterface.o: src/detection/videoInterface.cpp.o
+
+.PHONY : src/detection/videoInterface.o
+
+# target to build an object file
+src/detection/videoInterface.cpp.o:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o
+.PHONY : src/detection/videoInterface.cpp.o
+
+src/detection/videoInterface.i: src/detection/videoInterface.cpp.i
+
+.PHONY : src/detection/videoInterface.i
+
+# target to preprocess a source file
+src/detection/videoInterface.cpp.i:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.i
+.PHONY : src/detection/videoInterface.cpp.i
+
+src/detection/videoInterface.s: src/detection/videoInterface.cpp.s
+
+.PHONY : src/detection/videoInterface.s
+
+# target to generate assembly for a file
+src/detection/videoInterface.cpp.s:
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.s
+.PHONY : src/detection/videoInterface.cpp.s
+
 src/motors/HR8825_driver.o: src/motors/HR8825_driver.cpp.o
 
 .PHONY : src/motors/HR8825_driver.o
@@ -243,6 +297,12 @@ help:
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
+	@echo "... src/detection/detection.o"
+	@echo "... src/detection/detection.i"
+	@echo "... src/detection/detection.s"
+	@echo "... src/detection/videoInterface.o"
+	@echo "... src/detection/videoInterface.i"
+	@echo "... src/detection/videoInterface.s"
 	@echo "... src/motors/HR8825_driver.o"
 	@echo "... src/motors/HR8825_driver.i"
 	@echo "... src/motors/HR8825_driver.s"

@@ -1,4 +1,4 @@
-The system is: Linux - 4.9.253-tegra - aarch64
+The system is: Linux - 4.9.337-tegra - aarch64
 Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
 Compiler: /usr/bin/aarch64-linux-gnu-gcc 
 Build flags: 
@@ -28,28 +28,28 @@ The CXX compiler identification is GNU, found in "/home/anton/mosquito-air-defen
 Determining if the C compiler works passed with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_7227b/fast"
-/usr/bin/make -f CMakeFiles/cmTC_7227b.dir/build.make CMakeFiles/cmTC_7227b.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_af6fd/fast"
+/usr/bin/make -f CMakeFiles/cmTC_af6fd.dir/build.make CMakeFiles/cmTC_af6fd.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_7227b.dir/testCCompiler.c.o
-/usr/bin/aarch64-linux-gnu-gcc    -o CMakeFiles/cmTC_7227b.dir/testCCompiler.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp/testCCompiler.c
-Linking C executable cmTC_7227b
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7227b.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_7227b.dir/testCCompiler.c.o  -o cmTC_7227b 
+Building C object CMakeFiles/cmTC_af6fd.dir/testCCompiler.c.o
+/usr/bin/aarch64-linux-gnu-gcc    -o CMakeFiles/cmTC_af6fd.dir/testCCompiler.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTC_af6fd
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_af6fd.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_af6fd.dir/testCCompiler.c.o  -o cmTC_af6fd 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
 Detecting C compiler ABI info compiled with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_31fa5/fast"
-/usr/bin/make -f CMakeFiles/cmTC_31fa5.dir/build.make CMakeFiles/cmTC_31fa5.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_e48ff/fast"
+/usr/bin/make -f CMakeFiles/cmTC_e48ff.dir/build.make CMakeFiles/cmTC_e48ff.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_31fa5.dir/CMakeCCompilerABI.c.o
-/usr/bin/aarch64-linux-gnu-gcc    -o CMakeFiles/cmTC_31fa5.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.10/Modules/CMakeCCompilerABI.c
-Linking C executable cmTC_31fa5
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_31fa5.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-gcc     -v CMakeFiles/cmTC_31fa5.dir/CMakeCCompilerABI.c.o  -o cmTC_31fa5 
+Building C object CMakeFiles/cmTC_e48ff.dir/CMakeCCompilerABI.c.o
+/usr/bin/aarch64-linux-gnu-gcc    -o CMakeFiles/cmTC_e48ff.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.10/Modules/CMakeCCompilerABI.c
+Linking C executable cmTC_e48ff
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e48ff.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-gcc     -v CMakeFiles/cmTC_e48ff.dir/CMakeCCompilerABI.c.o  -o cmTC_e48ff 
 Using built-in specs.
 COLLECT_GCC=/usr/bin/aarch64-linux-gnu-gcc
 COLLECT_LTO_WRAPPER=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper
@@ -59,9 +59,9 @@ Thread model: posix
 gcc version 7.5.0 (Ubuntu/Linaro 7.5.0-3ubuntu1~18.04) 
 COMPILER_PATH=/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/:/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib/:/lib/aarch64-linux-gnu/:/lib/../lib/:/usr/lib/aarch64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../:/lib/:/usr/lib/
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_31fa5' '-mlittle-endian' '-mabi=lp64'
- /usr/lib/gcc/aarch64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/ccledXTf.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr --hash-style=gnu --as-needed -dynamic-linker /lib/ld-linux-aarch64.so.1 -X -EL -maarch64linux --fix-cortex-a53-843419 -pie -z now -z relro -o cmTC_31fa5 /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o /usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/aarch64-linux-gnu/7 -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib -L/lib/aarch64-linux-gnu -L/lib/../lib -L/usr/lib/aarch64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/aarch64-linux-gnu/7/../../.. CMakeFiles/cmTC_31fa5.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/aarch64-linux-gnu/7/crtendS.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crtn.o
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_31fa5' '-mlittle-endian' '-mabi=lp64'
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_e48ff' '-mlittle-endian' '-mabi=lp64'
+ /usr/lib/gcc/aarch64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/ccpeYxCU.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr --hash-style=gnu --as-needed -dynamic-linker /lib/ld-linux-aarch64.so.1 -X -EL -maarch64linux --fix-cortex-a53-843419 -pie -z now -z relro -o cmTC_e48ff /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o /usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/aarch64-linux-gnu/7 -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib -L/lib/aarch64-linux-gnu -L/lib/../lib -L/usr/lib/aarch64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/aarch64-linux-gnu/7/../../.. CMakeFiles/cmTC_e48ff.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/aarch64-linux-gnu/7/crtendS.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_e48ff' '-mlittle-endian' '-mabi=lp64'
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
@@ -69,14 +69,14 @@ Parsed C implicit link information from above output:
   link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
   ignore line: [Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp]
   ignore line: []
-  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_31fa5/fast"]
-  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_31fa5.dir/build.make CMakeFiles/cmTC_31fa5.dir/build]
+  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_e48ff/fast"]
+  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_e48ff.dir/build.make CMakeFiles/cmTC_e48ff.dir/build]
   ignore line: [make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp']
-  ignore line: [Building C object CMakeFiles/cmTC_31fa5.dir/CMakeCCompilerABI.c.o]
-  ignore line: [/usr/bin/aarch64-linux-gnu-gcc    -o CMakeFiles/cmTC_31fa5.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.10/Modules/CMakeCCompilerABI.c]
-  ignore line: [Linking C executable cmTC_31fa5]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_31fa5.dir/link.txt --verbose=1]
-  ignore line: [/usr/bin/aarch64-linux-gnu-gcc     -v CMakeFiles/cmTC_31fa5.dir/CMakeCCompilerABI.c.o  -o cmTC_31fa5 ]
+  ignore line: [Building C object CMakeFiles/cmTC_e48ff.dir/CMakeCCompilerABI.c.o]
+  ignore line: [/usr/bin/aarch64-linux-gnu-gcc    -o CMakeFiles/cmTC_e48ff.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.10/Modules/CMakeCCompilerABI.c]
+  ignore line: [Linking C executable cmTC_e48ff]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e48ff.dir/link.txt --verbose=1]
+  ignore line: [/usr/bin/aarch64-linux-gnu-gcc     -v CMakeFiles/cmTC_e48ff.dir/CMakeCCompilerABI.c.o  -o cmTC_e48ff ]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/aarch64-linux-gnu-gcc]
   ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper]
@@ -86,13 +86,13 @@ Parsed C implicit link information from above output:
   ignore line: [gcc version 7.5.0 (Ubuntu/Linaro 7.5.0-3ubuntu1~18.04) ]
   ignore line: [COMPILER_PATH=/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/:/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib/:/lib/aarch64-linux-gnu/:/lib/../lib/:/usr/lib/aarch64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../:/lib/:/usr/lib/]
-  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_31fa5' '-mlittle-endian' '-mabi=lp64']
-  link line: [ /usr/lib/gcc/aarch64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/ccledXTf.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr --hash-style=gnu --as-needed -dynamic-linker /lib/ld-linux-aarch64.so.1 -X -EL -maarch64linux --fix-cortex-a53-843419 -pie -z now -z relro -o cmTC_31fa5 /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o /usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/aarch64-linux-gnu/7 -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib -L/lib/aarch64-linux-gnu -L/lib/../lib -L/usr/lib/aarch64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/aarch64-linux-gnu/7/../../.. CMakeFiles/cmTC_31fa5.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/aarch64-linux-gnu/7/crtendS.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crtn.o]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_e48ff' '-mlittle-endian' '-mabi=lp64']
+  link line: [ /usr/lib/gcc/aarch64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/ccpeYxCU.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr --hash-style=gnu --as-needed -dynamic-linker /lib/ld-linux-aarch64.so.1 -X -EL -maarch64linux --fix-cortex-a53-843419 -pie -z now -z relro -o cmTC_e48ff /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o /usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/aarch64-linux-gnu/7 -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib -L/lib/aarch64-linux-gnu -L/lib/../lib -L/usr/lib/aarch64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/aarch64-linux-gnu/7/../../.. CMakeFiles/cmTC_e48ff.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/aarch64-linux-gnu/7/crtendS.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crtn.o]
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/collect2] ==> ignore
     arg [-plugin] ==> ignore
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so] ==> ignore
     arg [-plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper] ==> ignore
-    arg [-plugin-opt=-fresolution=/tmp/ccledXTf.res] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/ccpeYxCU.res] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
     arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -112,7 +112,7 @@ Parsed C implicit link information from above output:
     arg [-znow] ==> ignore
     arg [-zrelro] ==> ignore
     arg [-o] ==> ignore
-    arg [cmTC_31fa5] ==> ignore
+    arg [cmTC_e48ff] ==> ignore
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o] ==> ignore
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o] ==> ignore
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o] ==> ignore
@@ -124,7 +124,7 @@ Parsed C implicit link information from above output:
     arg [-L/usr/lib/aarch64-linux-gnu] ==> dir [/usr/lib/aarch64-linux-gnu]
     arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
     arg [-L/usr/lib/gcc/aarch64-linux-gnu/7/../../..] ==> dir [/usr/lib/gcc/aarch64-linux-gnu/7/../../..]
-    arg [CMakeFiles/cmTC_31fa5.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [CMakeFiles/cmTC_e48ff.dir/CMakeCCompilerABI.c.o] ==> ignore
     arg [-lgcc] ==> lib [gcc]
     arg [--push-state] ==> ignore
     arg [--as-needed] ==> ignore
@@ -156,14 +156,14 @@ Parsed C implicit link information from above output:
 Detecting C [-std=c11] compiler features compiled with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_3eb5c/fast"
-/usr/bin/make -f CMakeFiles/cmTC_3eb5c.dir/build.make CMakeFiles/cmTC_3eb5c.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_e0edf/fast"
+/usr/bin/make -f CMakeFiles/cmTC_e0edf.dir/build.make CMakeFiles/cmTC_e0edf.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_3eb5c.dir/feature_tests.c.o
-/usr/bin/aarch64-linux-gnu-gcc   -std=c11 -o CMakeFiles/cmTC_3eb5c.dir/feature_tests.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.c
-Linking C executable cmTC_3eb5c
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3eb5c.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_3eb5c.dir/feature_tests.c.o  -o cmTC_3eb5c 
+Building C object CMakeFiles/cmTC_e0edf.dir/feature_tests.c.o
+/usr/bin/aarch64-linux-gnu-gcc   -std=c11 -o CMakeFiles/cmTC_e0edf.dir/feature_tests.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.c
+Linking C executable cmTC_e0edf
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e0edf.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_e0edf.dir/feature_tests.c.o  -o cmTC_e0edf 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
@@ -176,14 +176,14 @@ make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CM
 Detecting C [-std=c99] compiler features compiled with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_b04b4/fast"
-/usr/bin/make -f CMakeFiles/cmTC_b04b4.dir/build.make CMakeFiles/cmTC_b04b4.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_49949/fast"
+/usr/bin/make -f CMakeFiles/cmTC_49949.dir/build.make CMakeFiles/cmTC_49949.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_b04b4.dir/feature_tests.c.o
-/usr/bin/aarch64-linux-gnu-gcc   -std=c99 -o CMakeFiles/cmTC_b04b4.dir/feature_tests.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.c
-Linking C executable cmTC_b04b4
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b04b4.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_b04b4.dir/feature_tests.c.o  -o cmTC_b04b4 
+Building C object CMakeFiles/cmTC_49949.dir/feature_tests.c.o
+/usr/bin/aarch64-linux-gnu-gcc   -std=c99 -o CMakeFiles/cmTC_49949.dir/feature_tests.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.c
+Linking C executable cmTC_49949
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_49949.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_49949.dir/feature_tests.c.o  -o cmTC_49949 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
@@ -196,14 +196,14 @@ make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CM
 Detecting C [-std=c90] compiler features compiled with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_c9c34/fast"
-/usr/bin/make -f CMakeFiles/cmTC_c9c34.dir/build.make CMakeFiles/cmTC_c9c34.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_5af5e/fast"
+/usr/bin/make -f CMakeFiles/cmTC_5af5e.dir/build.make CMakeFiles/cmTC_5af5e.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_c9c34.dir/feature_tests.c.o
-/usr/bin/aarch64-linux-gnu-gcc   -std=c90 -o CMakeFiles/cmTC_c9c34.dir/feature_tests.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.c
-Linking C executable cmTC_c9c34
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c9c34.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_c9c34.dir/feature_tests.c.o  -o cmTC_c9c34 
+Building C object CMakeFiles/cmTC_5af5e.dir/feature_tests.c.o
+/usr/bin/aarch64-linux-gnu-gcc   -std=c90 -o CMakeFiles/cmTC_5af5e.dir/feature_tests.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.c
+Linking C executable cmTC_5af5e
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5af5e.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_5af5e.dir/feature_tests.c.o  -o cmTC_5af5e 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
@@ -214,28 +214,28 @@ make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CM
 Determining if the CXX compiler works passed with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_ed82f/fast"
-/usr/bin/make -f CMakeFiles/cmTC_ed82f.dir/build.make CMakeFiles/cmTC_ed82f.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_21d79/fast"
+/usr/bin/make -f CMakeFiles/cmTC_21d79.dir/build.make CMakeFiles/cmTC_21d79.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_ed82f.dir/testCXXCompiler.cxx.o
-/usr/bin/aarch64-linux-gnu-g++     -o CMakeFiles/cmTC_ed82f.dir/testCXXCompiler.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
-Linking CXX executable cmTC_ed82f
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ed82f.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_ed82f.dir/testCXXCompiler.cxx.o  -o cmTC_ed82f 
+Building CXX object CMakeFiles/cmTC_21d79.dir/testCXXCompiler.cxx.o
+/usr/bin/aarch64-linux-gnu-g++     -o CMakeFiles/cmTC_21d79.dir/testCXXCompiler.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+Linking CXX executable cmTC_21d79
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_21d79.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_21d79.dir/testCXXCompiler.cxx.o  -o cmTC_21d79 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
 Detecting CXX compiler ABI info compiled with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_4e38a/fast"
-/usr/bin/make -f CMakeFiles/cmTC_4e38a.dir/build.make CMakeFiles/cmTC_4e38a.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_b1bf4/fast"
+/usr/bin/make -f CMakeFiles/cmTC_b1bf4.dir/build.make CMakeFiles/cmTC_b1bf4.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_4e38a.dir/CMakeCXXCompilerABI.cpp.o
-/usr/bin/aarch64-linux-gnu-g++     -o CMakeFiles/cmTC_4e38a.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.10/Modules/CMakeCXXCompilerABI.cpp
-Linking CXX executable cmTC_4e38a
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4e38a.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-g++      -v CMakeFiles/cmTC_4e38a.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_4e38a 
+Building CXX object CMakeFiles/cmTC_b1bf4.dir/CMakeCXXCompilerABI.cpp.o
+/usr/bin/aarch64-linux-gnu-g++     -o CMakeFiles/cmTC_b1bf4.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.10/Modules/CMakeCXXCompilerABI.cpp
+Linking CXX executable cmTC_b1bf4
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b1bf4.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-g++      -v CMakeFiles/cmTC_b1bf4.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_b1bf4 
 Using built-in specs.
 COLLECT_GCC=/usr/bin/aarch64-linux-gnu-g++
 COLLECT_LTO_WRAPPER=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper
@@ -245,9 +245,9 @@ Thread model: posix
 gcc version 7.5.0 (Ubuntu/Linaro 7.5.0-3ubuntu1~18.04) 
 COMPILER_PATH=/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/:/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib/:/lib/aarch64-linux-gnu/:/lib/../lib/:/usr/lib/aarch64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../:/lib/:/usr/lib/
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_4e38a' '-shared-libgcc' '-mlittle-endian' '-mabi=lp64'
- /usr/lib/gcc/aarch64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/cc2cyeyg.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu --as-needed -dynamic-linker /lib/ld-linux-aarch64.so.1 -X -EL -maarch64linux --fix-cortex-a53-843419 -pie -z now -z relro -o cmTC_4e38a /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o /usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/aarch64-linux-gnu/7 -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib -L/lib/aarch64-linux-gnu -L/lib/../lib -L/usr/lib/aarch64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/aarch64-linux-gnu/7/../../.. CMakeFiles/cmTC_4e38a.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/aarch64-linux-gnu/7/crtendS.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crtn.o
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_4e38a' '-shared-libgcc' '-mlittle-endian' '-mabi=lp64'
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_b1bf4' '-shared-libgcc' '-mlittle-endian' '-mabi=lp64'
+ /usr/lib/gcc/aarch64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/ccLw0r58.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu --as-needed -dynamic-linker /lib/ld-linux-aarch64.so.1 -X -EL -maarch64linux --fix-cortex-a53-843419 -pie -z now -z relro -o cmTC_b1bf4 /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o /usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/aarch64-linux-gnu/7 -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib -L/lib/aarch64-linux-gnu -L/lib/../lib -L/usr/lib/aarch64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/aarch64-linux-gnu/7/../../.. CMakeFiles/cmTC_b1bf4.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/aarch64-linux-gnu/7/crtendS.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_b1bf4' '-shared-libgcc' '-mlittle-endian' '-mabi=lp64'
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
@@ -255,14 +255,14 @@ Parsed CXX implicit link information from above output:
   link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
   ignore line: [Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp]
   ignore line: []
-  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_4e38a/fast"]
-  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_4e38a.dir/build.make CMakeFiles/cmTC_4e38a.dir/build]
+  ignore line: [Run Build Command:"/usr/bin/make" "cmTC_b1bf4/fast"]
+  ignore line: [/usr/bin/make -f CMakeFiles/cmTC_b1bf4.dir/build.make CMakeFiles/cmTC_b1bf4.dir/build]
   ignore line: [make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp']
-  ignore line: [Building CXX object CMakeFiles/cmTC_4e38a.dir/CMakeCXXCompilerABI.cpp.o]
-  ignore line: [/usr/bin/aarch64-linux-gnu-g++     -o CMakeFiles/cmTC_4e38a.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.10/Modules/CMakeCXXCompilerABI.cpp]
-  ignore line: [Linking CXX executable cmTC_4e38a]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_4e38a.dir/link.txt --verbose=1]
-  ignore line: [/usr/bin/aarch64-linux-gnu-g++      -v CMakeFiles/cmTC_4e38a.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_4e38a ]
+  ignore line: [Building CXX object CMakeFiles/cmTC_b1bf4.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [/usr/bin/aarch64-linux-gnu-g++     -o CMakeFiles/cmTC_b1bf4.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.10/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [Linking CXX executable cmTC_b1bf4]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b1bf4.dir/link.txt --verbose=1]
+  ignore line: [/usr/bin/aarch64-linux-gnu-g++      -v CMakeFiles/cmTC_b1bf4.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_b1bf4 ]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/aarch64-linux-gnu-g++]
   ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper]
@@ -272,13 +272,13 @@ Parsed CXX implicit link information from above output:
   ignore line: [gcc version 7.5.0 (Ubuntu/Linaro 7.5.0-3ubuntu1~18.04) ]
   ignore line: [COMPILER_PATH=/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/:/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/aarch64-linux-gnu/7/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib/:/lib/aarch64-linux-gnu/:/lib/../lib/:/usr/lib/aarch64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/aarch64-linux-gnu/7/../../../:/lib/:/usr/lib/]
-  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_4e38a' '-shared-libgcc' '-mlittle-endian' '-mabi=lp64']
-  link line: [ /usr/lib/gcc/aarch64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/cc2cyeyg.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu --as-needed -dynamic-linker /lib/ld-linux-aarch64.so.1 -X -EL -maarch64linux --fix-cortex-a53-843419 -pie -z now -z relro -o cmTC_4e38a /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o /usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/aarch64-linux-gnu/7 -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib -L/lib/aarch64-linux-gnu -L/lib/../lib -L/usr/lib/aarch64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/aarch64-linux-gnu/7/../../.. CMakeFiles/cmTC_4e38a.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/aarch64-linux-gnu/7/crtendS.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crtn.o]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_b1bf4' '-shared-libgcc' '-mlittle-endian' '-mabi=lp64']
+  link line: [ /usr/lib/gcc/aarch64-linux-gnu/7/collect2 -plugin /usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so -plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper -plugin-opt=-fresolution=/tmp/ccLw0r58.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr --hash-style=gnu --as-needed -dynamic-linker /lib/ld-linux-aarch64.so.1 -X -EL -maarch64linux --fix-cortex-a53-843419 -pie -z now -z relro -o cmTC_b1bf4 /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o /usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o -L/usr/lib/gcc/aarch64-linux-gnu/7 -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu -L/usr/lib/gcc/aarch64-linux-gnu/7/../../../../lib -L/lib/aarch64-linux-gnu -L/lib/../lib -L/usr/lib/aarch64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/aarch64-linux-gnu/7/../../.. CMakeFiles/cmTC_b1bf4.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/aarch64-linux-gnu/7/crtendS.o /usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crtn.o]
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/collect2] ==> ignore
     arg [-plugin] ==> ignore
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/liblto_plugin.so] ==> ignore
     arg [-plugin-opt=/usr/lib/gcc/aarch64-linux-gnu/7/lto-wrapper] ==> ignore
-    arg [-plugin-opt=-fresolution=/tmp/cc2cyeyg.res] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/ccLw0r58.res] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
     arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -298,7 +298,7 @@ Parsed CXX implicit link information from above output:
     arg [-znow] ==> ignore
     arg [-zrelro] ==> ignore
     arg [-o] ==> ignore
-    arg [cmTC_4e38a] ==> ignore
+    arg [cmTC_b1bf4] ==> ignore
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/Scrt1.o] ==> ignore
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/../../../aarch64-linux-gnu/crti.o] ==> ignore
     arg [/usr/lib/gcc/aarch64-linux-gnu/7/crtbeginS.o] ==> ignore
@@ -310,7 +310,7 @@ Parsed CXX implicit link information from above output:
     arg [-L/usr/lib/aarch64-linux-gnu] ==> dir [/usr/lib/aarch64-linux-gnu]
     arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
     arg [-L/usr/lib/gcc/aarch64-linux-gnu/7/../../..] ==> dir [/usr/lib/gcc/aarch64-linux-gnu/7/../../..]
-    arg [CMakeFiles/cmTC_4e38a.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [CMakeFiles/cmTC_b1bf4.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
     arg [-lstdc++] ==> lib [stdc++]
     arg [-lm] ==> lib [m]
     arg [-lgcc_s] ==> lib [gcc_s]
@@ -338,14 +338,14 @@ Parsed CXX implicit link information from above output:
 Detecting CXX [-std=c++1z] compiler features compiled with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_5bcce/fast"
-/usr/bin/make -f CMakeFiles/cmTC_5bcce.dir/build.make CMakeFiles/cmTC_5bcce.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_160e4/fast"
+/usr/bin/make -f CMakeFiles/cmTC_160e4.dir/build.make CMakeFiles/cmTC_160e4.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_5bcce.dir/feature_tests.cxx.o
-/usr/bin/aarch64-linux-gnu-g++    -std=c++1z -o CMakeFiles/cmTC_5bcce.dir/feature_tests.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_5bcce
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5bcce.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_5bcce.dir/feature_tests.cxx.o  -o cmTC_5bcce 
+Building CXX object CMakeFiles/cmTC_160e4.dir/feature_tests.cxx.o
+/usr/bin/aarch64-linux-gnu-g++    -std=c++1z -o CMakeFiles/cmTC_160e4.dir/feature_tests.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_160e4
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_160e4.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_160e4.dir/feature_tests.cxx.o  -o cmTC_160e4 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
@@ -411,14 +411,14 @@ make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CM
 Detecting CXX [-std=c++14] compiler features compiled with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_fdb83/fast"
-/usr/bin/make -f CMakeFiles/cmTC_fdb83.dir/build.make CMakeFiles/cmTC_fdb83.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_3bc48/fast"
+/usr/bin/make -f CMakeFiles/cmTC_3bc48.dir/build.make CMakeFiles/cmTC_3bc48.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_fdb83.dir/feature_tests.cxx.o
-/usr/bin/aarch64-linux-gnu-g++    -std=c++14 -o CMakeFiles/cmTC_fdb83.dir/feature_tests.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_fdb83
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fdb83.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_fdb83.dir/feature_tests.cxx.o  -o cmTC_fdb83 
+Building CXX object CMakeFiles/cmTC_3bc48.dir/feature_tests.cxx.o
+/usr/bin/aarch64-linux-gnu-g++    -std=c++14 -o CMakeFiles/cmTC_3bc48.dir/feature_tests.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_3bc48
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3bc48.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_3bc48.dir/feature_tests.cxx.o  -o cmTC_3bc48 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
@@ -484,14 +484,14 @@ make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CM
 Detecting CXX [-std=c++11] compiler features compiled with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_5bc86/fast"
-/usr/bin/make -f CMakeFiles/cmTC_5bc86.dir/build.make CMakeFiles/cmTC_5bc86.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_c9f0e/fast"
+/usr/bin/make -f CMakeFiles/cmTC_c9f0e.dir/build.make CMakeFiles/cmTC_c9f0e.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_5bc86.dir/feature_tests.cxx.o
-/usr/bin/aarch64-linux-gnu-g++    -std=c++11 -o CMakeFiles/cmTC_5bc86.dir/feature_tests.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_5bc86
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5bc86.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_5bc86.dir/feature_tests.cxx.o  -o cmTC_5bc86 
+Building CXX object CMakeFiles/cmTC_c9f0e.dir/feature_tests.cxx.o
+/usr/bin/aarch64-linux-gnu-g++    -std=c++11 -o CMakeFiles/cmTC_c9f0e.dir/feature_tests.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_c9f0e
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c9f0e.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_c9f0e.dir/feature_tests.cxx.o  -o cmTC_c9f0e 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
@@ -557,14 +557,14 @@ make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CM
 Detecting CXX [-std=c++98] compiler features compiled with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_0fdad/fast"
-/usr/bin/make -f CMakeFiles/cmTC_0fdad.dir/build.make CMakeFiles/cmTC_0fdad.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_b12ab/fast"
+/usr/bin/make -f CMakeFiles/cmTC_b12ab.dir/build.make CMakeFiles/cmTC_b12ab.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_0fdad.dir/feature_tests.cxx.o
-/usr/bin/aarch64-linux-gnu-g++    -std=c++98 -o CMakeFiles/cmTC_0fdad.dir/feature_tests.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.cxx
-Linking CXX executable cmTC_0fdad
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0fdad.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_0fdad.dir/feature_tests.cxx.o  -o cmTC_0fdad 
+Building CXX object CMakeFiles/cmTC_b12ab.dir/feature_tests.cxx.o
+/usr/bin/aarch64-linux-gnu-g++    -std=c++98 -o CMakeFiles/cmTC_b12ab.dir/feature_tests.cxx.o -c /home/anton/mosquito-air-defence/build/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_b12ab
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b12ab.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-g++       CMakeFiles/cmTC_b12ab.dir/feature_tests.cxx.o  -o cmTC_b12ab 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
@@ -628,28 +628,28 @@ make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CM
 Determining if the include file pthread.h exists passed with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_db88b/fast"
-/usr/bin/make -f CMakeFiles/cmTC_db88b.dir/build.make CMakeFiles/cmTC_db88b.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_f5ff3/fast"
+/usr/bin/make -f CMakeFiles/cmTC_f5ff3.dir/build.make CMakeFiles/cmTC_f5ff3.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_db88b.dir/CheckIncludeFile.c.o
-/usr/bin/aarch64-linux-gnu-gcc    -o CMakeFiles/cmTC_db88b.dir/CheckIncludeFile.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
-Linking C executable cmTC_db88b
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_db88b.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_db88b.dir/CheckIncludeFile.c.o  -o cmTC_db88b 
+Building C object CMakeFiles/cmTC_f5ff3.dir/CheckIncludeFile.c.o
+/usr/bin/aarch64-linux-gnu-gcc    -o CMakeFiles/cmTC_f5ff3.dir/CheckIncludeFile.c.o   -c /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTC_f5ff3
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f5ff3.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-gcc      CMakeFiles/cmTC_f5ff3.dir/CheckIncludeFile.c.o  -o cmTC_f5ff3 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 
 Determining if the function pthread_create exists in the pthread passed with the following output:
 Change Dir: /home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp
 
-Run Build Command:"/usr/bin/make" "cmTC_797a8/fast"
-/usr/bin/make -f CMakeFiles/cmTC_797a8.dir/build.make CMakeFiles/cmTC_797a8.dir/build
+Run Build Command:"/usr/bin/make" "cmTC_f7136/fast"
+/usr/bin/make -f CMakeFiles/cmTC_f7136.dir/build.make CMakeFiles/cmTC_f7136.dir/build
 make[1]: Entering directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_797a8.dir/CheckFunctionExists.c.o
-/usr/bin/aarch64-linux-gnu-gcc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_797a8.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
-Linking C executable cmTC_797a8
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_797a8.dir/link.txt --verbose=1
-/usr/bin/aarch64-linux-gnu-gcc  -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_797a8.dir/CheckFunctionExists.c.o  -o cmTC_797a8 -lpthread 
+Building C object CMakeFiles/cmTC_f7136.dir/CheckFunctionExists.c.o
+/usr/bin/aarch64-linux-gnu-gcc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_f7136.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_f7136
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f7136.dir/link.txt --verbose=1
+/usr/bin/aarch64-linux-gnu-gcc  -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_f7136.dir/CheckFunctionExists.c.o  -o cmTC_f7136 -lpthread 
 make[1]: Leaving directory '/home/anton/mosquito-air-defence/build/CMakeFiles/CMakeTmp'
 
 

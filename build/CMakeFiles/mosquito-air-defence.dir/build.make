@@ -153,12 +153,62 @@ CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o.provides: CMak
 CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o.provides.build: CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o
 
 
+CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o: CMakeFiles/mosquito-air-defence.dir/flags.make
+CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o: ../src/detection/detection.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/anton/mosquito-air-defence/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o"
+	/usr/bin/aarch64-linux-gnu-g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o -c /home/anton/mosquito-air-defence/src/detection/detection.cpp
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.i"
+	/usr/bin/aarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/anton/mosquito-air-defence/src/detection/detection.cpp > CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.i
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.s"
+	/usr/bin/aarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/anton/mosquito-air-defence/src/detection/detection.cpp -o CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.s
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o.requires:
+
+.PHONY : CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o.requires
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o.provides: CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o.requires
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o.provides.build
+.PHONY : CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o.provides
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o.provides.build: CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o
+
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o: CMakeFiles/mosquito-air-defence.dir/flags.make
+CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o: ../src/detection/videoInterface.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/anton/mosquito-air-defence/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o"
+	/usr/bin/aarch64-linux-gnu-g++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o -c /home/anton/mosquito-air-defence/src/detection/videoInterface.cpp
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.i"
+	/usr/bin/aarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/anton/mosquito-air-defence/src/detection/videoInterface.cpp > CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.i
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.s"
+	/usr/bin/aarch64-linux-gnu-g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/anton/mosquito-air-defence/src/detection/videoInterface.cpp -o CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.s
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o.requires:
+
+.PHONY : CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o.requires
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o.provides: CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o.requires
+	$(MAKE) -f CMakeFiles/mosquito-air-defence.dir/build.make CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o.provides.build
+.PHONY : CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o.provides
+
+CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o.provides.build: CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o
+
+
 # Object files for target mosquito-air-defence
 mosquito__air__defence_OBJECTS = \
 "CMakeFiles/mosquito-air-defence.dir/main.cpp.o" \
 "CMakeFiles/mosquito-air-defence.dir/src/motors/controller.cpp.o" \
 "CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driver.cpp.o" \
-"CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o"
+"CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o" \
+"CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o" \
+"CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o"
 
 # External object files for target mosquito-air-defence
 mosquito__air__defence_EXTERNAL_OBJECTS =
@@ -167,12 +217,29 @@ mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/main.cpp.o
 mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/src/motors/controller.cpp.o
 mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driver.cpp.o
 mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o
+mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o
+mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o
 mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/build.make
 mosquito-air-defence: /usr/local/lib/libJetsonGPIO.so.1.2.4
 mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libcurses.so
 mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libform.so
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_dnn.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_gapi.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_highgui.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_ml.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_objdetect.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_photo.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_stitching.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_video.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_videoio.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_imgcodecs.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_calib3d.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_features2d.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_flann.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_imgproc.so.4.1.1
+mosquito-air-defence: /usr/lib/aarch64-linux-gnu/libopencv_core.so.4.1.1
 mosquito-air-defence: CMakeFiles/mosquito-air-defence.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/anton/mosquito-air-defence/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable mosquito-air-defence"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/anton/mosquito-air-defence/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking CXX executable mosquito-air-defence"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/mosquito-air-defence.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -184,6 +251,8 @@ CMakeFiles/mosquito-air-defence.dir/requires: CMakeFiles/mosquito-air-defence.di
 CMakeFiles/mosquito-air-defence.dir/requires: CMakeFiles/mosquito-air-defence.dir/src/motors/controller.cpp.o.requires
 CMakeFiles/mosquito-air-defence.dir/requires: CMakeFiles/mosquito-air-defence.dir/src/motors/HR8825_driver.cpp.o.requires
 CMakeFiles/mosquito-air-defence.dir/requires: CMakeFiles/mosquito-air-defence.dir/src/utilities/utilities.cpp.o.requires
+CMakeFiles/mosquito-air-defence.dir/requires: CMakeFiles/mosquito-air-defence.dir/src/detection/detection.cpp.o.requires
+CMakeFiles/mosquito-air-defence.dir/requires: CMakeFiles/mosquito-air-defence.dir/src/detection/videoInterface.cpp.o.requires
 
 .PHONY : CMakeFiles/mosquito-air-defence.dir/requires
 

@@ -71,7 +71,7 @@ class ObjectDetector {
     return bounding_boxes;
   }
 
-  std::vector<std::vector<int>> detectObjects(const cv::Mat& frame) {
+  std::vector<std::vector<int>> detect_objects(const cv::Mat& frame) {
     cv::Mat subtracted_frame = bg_subtractor.subtract(frame);
     return detectBlobs(subtracted_frame);
   }

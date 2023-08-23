@@ -1,7 +1,12 @@
 {
     "files.associations": {
         "chrono": "cpp"
-    }
+    },
+    "python.analysis.typeCheckingMode": "basic",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.autopep8"
+    },
+    "python.formatting.provider": "none"
 } // {
 //     "files.associations": {
 //         "*.c": "c",
