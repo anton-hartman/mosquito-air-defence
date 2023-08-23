@@ -5,5 +5,7 @@ set(TEST_SOURCES
     motors/controller_test.cpp
 )
 
+find_package(JetsonGPIO REQUIRED)
+
 add_executable(MosquitoAirDefenceTests ${TEST_SOURCES})
 target_link_libraries(MosquitoAirDefenceTests gtest gtest_main)

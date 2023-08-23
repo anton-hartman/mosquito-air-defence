@@ -1,10 +1,10 @@
 #pragma once
 namespace stepper {
 
-#include <stdint.h>
+// #include <stdint.h>
 #include <cstdint>
-#include "../sysfs_gpio.h"
-#include "utilities/debug.hpp"
+// #include "../sysfs_gpio.h"
+// #include "utilities/debug.hpp"
 
 // Constants
 // #define FULL_REV 2048

@@ -8,3 +8,4 @@ set(SOURCES
 )
 
 add_executable(MosquitoAirDefence ${SOURCES})
+target_link_libraries(MosquitoAirDefenceTests JetsonGPIO::JetsonGPIO)
