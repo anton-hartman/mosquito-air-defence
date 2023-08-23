@@ -4,20 +4,23 @@
 class ObjectDetector {
  private:
   class BackgroundSubtractor {
-   private:
+   public:
     cv::Mat background;
     float alpha;
     cv::Mat subtracted_frame;
 
-   public:
     BackgroundSubtractor(const cv::Mat& first_frame, float alpha)
         : alpha(alpha) {
       cv::cvtColor(first_frame, background, cv::COLOR_BGR2GRAY);
       background.convertTo(background, CV_32F);
-      convertBlackToWhite(background);
+      // convertBlackToWhite(background);
       subtracted_frame = background.clone();
     }
 
+    /**
+     * @brief Used to speed up the background subtraction process in sample
+     * footages where the background is pure white.
+     */
     void convertBlackToWhite(cv::Mat& frame) {
       for (int i = 0; i < frame.rows; i++) {
         for (int j = 0; j < frame.cols; j++) {
@@ -82,12 +85,12 @@ class ObjectDetector {
   }
 };
 
-int main() {
-  // Example usage
-  cv::Mat first_frame = cv::imread("path_to_image.jpg");
-  ObjectDetector detector(first_frame);
-  cv::Mat frame = cv::imread("path_to_another_image.jpg");
-  auto detected_objects = detector.detectObjects(frame);
-  // ... further processing
-  return 0;
-}
+// int main() {
+//   // Example usage
+//   cv::Mat first_frame = cv::imread("path_to_image.jpg");
+//   ObjectDetector detector(first_frame);
+//   cv::Mat frame = cv::imread("path_to_another_image.jpg");
+//   auto detected_objects = detector.detectObjects(frame);
+//   // ... further processing
+//   return 0;
+// }
