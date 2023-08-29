@@ -46,6 +46,13 @@ void stop_motor(void) {
   GPIO::output(Motor.enable_pin, GPIO::LOW);
 }
 
+void stop_all_motors(void) {
+  select_motor(MOTOR1);
+  stop_motor();
+  select_motor(MOTOR2);
+  stop_motor();
+}
+
 /**
  * @brief Turn the motor a certain number of steps in a certain direction.
  * For now delay compensates for microstepping inside turn_motor().

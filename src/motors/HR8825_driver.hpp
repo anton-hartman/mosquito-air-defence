@@ -33,6 +33,7 @@ void driver_exit(void);
 
 void select_motor(uint8_t name);
 void stop_motor(void);
+void stop_all_motors(void);
 void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay);
 
 }  // namespace driver

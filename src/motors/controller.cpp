@@ -17,7 +17,7 @@ int16_t m2_count_angle;
 int16_t m1_current_angle;
 int16_t m2_current_angle;
 
-int8_t manual_mode = 0;
+int8_t manual_mode = 1;
 
 void single_step(uint8_t motor, uint8_t direction) {
   const uint8_t steps = 50;
@@ -42,7 +42,7 @@ void turret_control() {
     manual_mode = !manual_mode;
   } else if (ch == ERR && manual_mode) {
     // No key was pressed during the timeout period and we're in manual mode
-    driver::stop_motor();  // Assuming this function stops both motors
+    driver::stop_all_motors();
   } else if (manual_mode) {
     manual_control(ch);  // Pass the pressed key to manual control
   } else {

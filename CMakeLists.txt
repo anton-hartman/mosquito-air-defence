@@ -22,8 +22,8 @@ set(SOURCE_FILES
     src/motors/controller.cpp
     src/motors/HR8825_driver.cpp
     src/utilities/utilities.cpp
-    src/detection/detection.cpp
-    src/detection/videoInterface.cpp
+    # src/detection/detection.cpp
+    # src/detection/videoInterface.cpp
 )
 
 set(HEADER_FILES
