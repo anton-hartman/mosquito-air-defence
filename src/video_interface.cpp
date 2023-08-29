@@ -1,7 +1,7 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <vector>
-#include "detection.cpp"
+#include "detection/object_detector.hpp"
 
 // Mosquito class
 class Mosquito {
@@ -81,6 +81,8 @@ class VideoInterface {
 
     // Assuming ObjectDetector is a C++ class similar to the Python version
     cap >> frame;
+    cv::resize(frame, frame, cv::Size(), frame_resize_factor,
+               frame_resize_factor);
     ObjectDetector obj_detector(frame, 0.01);
 
     while (true) {
@@ -92,8 +94,8 @@ class VideoInterface {
       cv::resize(frame, frame, cv::Size(), frame_resize_factor,
                  frame_resize_factor);
 
-      // Assuming detect_objects returns bounding boxes for now
-      auto bounding_boxes = obj_detector.detect_objects(frame);
+      // Assuming detectObjects returns bounding boxes for now
+      auto bounding_boxes = obj_detector.detectObjects(frame);
 
       // Display the results
       //   mosquito_based(frame, tracked_mosquitoes);

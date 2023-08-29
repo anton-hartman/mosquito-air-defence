@@ -22,8 +22,9 @@ set(SOURCE_FILES
     src/motors/controller.cpp
     src/motors/HR8825_driver.cpp
     src/utilities/utilities.cpp
-    # src/detection/detection.cpp
-    # src/detection/videoInterface.cpp
+    src/detection/object_detector.cpp
+    src/detection/background_subtractor.cpp
+    src/video_interface.cpp
 )
 
 set(HEADER_FILES
@@ -31,6 +32,8 @@ set(HEADER_FILES
     src/motors/HR8825_driver.hpp
     src/utilities/debug.hpp
     src/utilities/utilities.hpp
+    src/detection/object_detector.hpp
+    src/detection/background_subtractor.hpp
 )
 
 # Add executable
