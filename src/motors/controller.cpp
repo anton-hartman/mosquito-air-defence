@@ -5,17 +5,12 @@
 namespace stepper {
 
 // Global Variables
-// Inputs
 int16_t m1_target_angle;
 int16_t m2_target_angle;
 int16_t m1_actual_angle;
 int16_t m2_actual_angle;
-// Internal variables
 int16_t m1_count_angle;
 int16_t m2_count_angle;
-// For testing
-int16_t m1_current_angle;
-int16_t m2_current_angle;
 
 int8_t manual_mode = 1;
 
@@ -27,7 +22,13 @@ void single_step(uint8_t motor, uint8_t direction) {
   // stop_motor();
 }
 
-void turret_control() {
+void turret_control(std::pair<int, int> actual_pos,
+                    std::pair<int, int> target_pos) {
+  m1_actual_angle = actual_pos.first;
+  m2_actual_angle = actual_pos.second;
+  m1_target_angle = target_pos.first;
+  m2_target_angle = target_pos.second;
+
   // Initialize ncurses mode
   initscr();
   cbreak();
@@ -38,7 +39,7 @@ void turret_control() {
 
   int ch = getch();  // Get the character pressed
 
-  if (ch == 'h') {
+  if (ch == 'h' or ch == 'H') {
     manual_mode = !manual_mode;
   } else if (ch == ERR && manual_mode) {
     // No key was pressed during the timeout period and we're in manual mode
@@ -76,30 +77,30 @@ void manual_control(int ch) {
 
 uint32_t steps;
 void auto_control() {
-  if (m1_current_angle != m1_target_angle) {
+  if (m1_actual_angle != m1_target_angle) {
     driver::select_motor(MOTOR1);
-    steps = abs(m1_target_angle - m1_current_angle) / MICROSTEP_ANGLE;
-    if (m1_current_angle < m1_target_angle) {
+    steps = abs(m1_target_angle - m1_actual_angle) / MICROSTEP_ANGLE;
+    if (m1_actual_angle < m1_target_angle) {
       driver::turn_motor(FORWARD, steps, STEP_DELAY);
       driver::stop_motor();
     } else {
       driver::turn_motor(BACKWARD, steps, STEP_DELAY);
       driver::stop_motor();
     }
-    // m1_current_angle = m1_target_angle;
+    m1_actual_angle = m1_target_angle;
   }
 
-  if (m2_current_angle != m2_target_angle) {
+  if (m2_actual_angle != m2_target_angle) {
     driver::select_motor(MOTOR2);
-    steps = abs(m2_target_angle - m2_current_angle) / MICROSTEP_ANGLE;
-    if (m2_current_angle < m2_target_angle) {
+    steps = abs(m2_target_angle - m2_actual_angle) / MICROSTEP_ANGLE;
+    if (m2_actual_angle < m2_target_angle) {
       driver::turn_motor(FORWARD, steps, STEP_DELAY);
       driver::stop_motor();
     } else {
       driver::turn_motor(BACKWARD, steps, STEP_DELAY);
       driver::stop_motor();
     }
-    // m2_current_angle = m2_target_angle;
+    m2_actual_angle = m2_target_angle;
   }
 }
 

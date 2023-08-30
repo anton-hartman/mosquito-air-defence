@@ -18,4 +18,10 @@ class ObjectDetector {
 
   // Detects objects in the given frame by first subtracting the background.
   std::vector<std::vector<int>> detectObjects(const cv::Mat& frame);
+
+  // Detects the laser point in the given frame and returns its position (x, y).
+  std::pair<int, int> detectLaser(const cv::Mat& frame,
+                                  int hue_lower,
+                                  int hue_upper,
+                                  int min_intensity);
 };

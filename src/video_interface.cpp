@@ -35,6 +35,13 @@ class VideoInterface {
   bool comparison;
 
  public:
+  /**
+   * @brief Construct a new Video Interface object
+   *
+   * @param frame_resize_factor
+   * @param darkmode
+   * @param comparison
+   */
   VideoInterface(double frame_resize_factor = 1.0,
                  bool darkmode = false,
                  bool comparison = false)
