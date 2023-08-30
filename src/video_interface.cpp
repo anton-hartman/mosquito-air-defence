@@ -1,5 +1,6 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <string>
 #include <vector>
 #include "detection/object_detector.hpp"
 
@@ -66,9 +67,16 @@ class VideoInterface {
   //   }
 
   void start_feed(const std::string& video_path) {
-    cv::VideoCapture cap(video_path);
+    // cv::VideoCapture cap(video_path);
+    cv::VideoCapture cap(
+        "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1280, height=720, "
+        "format=(string)NV12, framerate=(fraction)30/1 ! nvvidconv "
+        "flip-method=2 ! video/x-raw, width=1280, height=720, "
+        "format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR "
+        "! appsink");
+
     if (!cap.isOpened()) {
-      std::cerr << "Failed to read the video file." << std::endl;
+      // std::cerr << "Failed to read the video file." << std::endl;
       return;
     }
 

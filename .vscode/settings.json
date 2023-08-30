@@ -1,6 +1,7 @@
 {
     "files.associations": {
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "string": "cpp"
     },
     "python.analysis.typeCheckingMode": "basic",
     "[python]": {
