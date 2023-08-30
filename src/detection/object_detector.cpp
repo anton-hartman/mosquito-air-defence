@@ -45,6 +45,33 @@ std::pair<int, int> ObjectDetector::detectLaser(const cv::Mat& frame,
   cv::inRange(hsv, cv::Scalar(hue_lower, 50, min_intensity),
               cv::Scalar(hue_upper, 255, 255), mask);
 
+  // Display the mask
+  cv::imshow("Mask", mask);
+
+  // Find blobs in the mask
+  std::vector<std::vector<cv::Point>> contours;
+  cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+  // Analyze blobs to find the laser point
+  for (const auto& contour : contours) {
+    if (cv::contourArea(contour) <= 10) {  // Assuming laser point is small
+      cv::Moments moments = cv::moments(contour);
+      int cx = static_cast<int>(moments.m10 / moments.m00);
+      int cy = static_cast<int>(moments.m01 / moments.m00);
+      return {cx, cy};  // Return the centroid of the laser point
+    }
+  }
+  return {-1, -1};  // Return an invalid position if laser not found
+}
+
+std::pair<int, int> ObjectDetector::detectLaserWit(const cv::Mat& frame,
+                                                   cv::Scalar lower_threshold) {
+  cv::Mat mask;
+  cv::inRange(frame, lower_threshold, cv::Scalar(255, 255, 255), mask);
+
+  // Display the mask
+  cv::imshow("Mask", mask);
+
   // Find blobs in the mask
   std::vector<std::vector<cv::Point>> contours;
   cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);

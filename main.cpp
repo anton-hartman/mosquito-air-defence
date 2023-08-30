@@ -13,7 +13,7 @@ void Handler(int signo) {
   printf("\r\nHandler:Motor Stop\r\n");
   driver::stop_all_motors();
   driver::driver_exit();
-
+  cv::destroyAllWindows();
   exit(0);
 }
 
@@ -22,8 +22,8 @@ int main(void) {
   signal(SIGINT, Handler);
 
   // 1.System Initialization
-  if (driver::init_driver_pins())
-    exit(0);
+  // if (driver::init_driver_pins())
+  //   exit(0);
 
   cv::VideoCapture cap(
       "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1280, height=720, "
@@ -44,6 +44,9 @@ int main(void) {
 
   std::pair<int, int> laser_pos;
   std::pair<int, int> target_pos = {0, 0};
+
+  int min = 254;
+  cv::Scalar lower_threshold = cv::Scalar(min, min, min);
   while (1) {
     cap >> frame;
     if (frame.empty()) {
@@ -54,7 +57,9 @@ int main(void) {
 
     // Assuming detectObjects returns bounding boxes for now
     // auto bounding_boxes = obj_detector.detectObjects(frame);
-    laser_pos = obj_detector.detectLaser(frame, 0, 10, 50);
+    // laser_pos = obj_detector.detectLaser(frame, 0, 10, 50);
+    laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
+    printf("Laser pos: %d, %d\n", laser_pos.first, laser_pos.second);
 
     cv::imshow("Video", frame);
     char key = static_cast<char>(
@@ -63,13 +68,11 @@ int main(void) {
       break;
     }
 
-    stepper::turret_control(laser_pos, target_pos);
+    // stepper::turret_control(laser_pos, target_pos);
     // delay_ms(3000);
   }
 
   // 3.System Exit
-  driver::driver_exit();
-  cap.release();
-  cv::destroyAllWindows();
+
   return 0;
 }

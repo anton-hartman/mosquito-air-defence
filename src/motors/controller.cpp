@@ -28,6 +28,9 @@ void turret_control(std::pair<int, int> actual_pos,
   m2_actual_angle = actual_pos.second;
   m1_target_angle = target_pos.first;
   m2_target_angle = target_pos.second;
+  // print actual and target angles
+  printf("Actual: (%d, %d)\n", m1_actual_angle, m2_actual_angle);
+  printf("Target: (%d, %d)\n", m1_target_angle, m2_target_angle);
 
   // Initialize ncurses mode
   initscr();
@@ -41,9 +44,16 @@ void turret_control(std::pair<int, int> actual_pos,
 
   if (ch == 'h' or ch == 'H') {
     manual_mode = !manual_mode;
+    if (manual_mode) {
+      printw("Manual Mode\n");
+    } else {
+      printw("Auto Mode\n");
+    }
+    printf("Manual Mode: %d\n", manual_mode);
   } else if (ch == ERR && manual_mode) {
     // No key was pressed during the timeout period and we're in manual mode
     driver::stop_all_motors();
+    printw("Motors Stopped\n");
   } else if (manual_mode) {
     manual_control(ch);  // Pass the pressed key to manual control
   } else {

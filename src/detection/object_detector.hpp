@@ -24,4 +24,7 @@ class ObjectDetector {
                                   int hue_lower,
                                   int hue_upper,
                                   int min_intensity);
+
+  std::pair<int, int> detectLaserWit(const cv::Mat& frame,
+                                     cv::Scalar lower_threshold);
 };
