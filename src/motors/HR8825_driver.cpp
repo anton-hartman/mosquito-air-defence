@@ -2,7 +2,7 @@
 #include <JetsonGPIO.h>
 #include "../utilities/debug.hpp"
 #include "../utilities/utilities.hpp"
-#include "controller.hpp"
+#include "turret_controller.hpp"
 
 namespace driver {
 

@@ -19,16 +19,16 @@ include_directories(
 # List all source and header files
 set(SOURCE_FILES
     main.cpp
-    src/motors/controller.cpp
+    src/motors/turret_controller.cpp
     src/motors/HR8825_driver.cpp
     src/utilities/utilities.cpp
     src/detection/object_detector.cpp
     src/detection/background_subtractor.cpp
-    src/video_interface.cpp
+    # src/video_interface.cpp
 )
 
 set(HEADER_FILES
-    src/motors/controller.hpp
+    src/motors/turret_controller.hpp
     src/motors/HR8825_driver.hpp
     src/utilities/debug.hpp
     src/utilities/utilities.hpp

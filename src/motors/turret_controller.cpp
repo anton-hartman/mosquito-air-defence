@@ -1,8 +1,8 @@
-#include "controller.hpp"
+#include "turret_controller.hpp"
 #include <cstdlib>
 #include "../utilities/utilities.hpp"
 
-namespace stepper {
+namespace turret {
 
 // Global Variables
 int16_t m1_target_angle;
@@ -12,58 +12,26 @@ int16_t m2_actual_angle;
 int16_t m1_count_angle;
 int16_t m2_count_angle;
 
-int8_t manual_mode = 1;
+// void initialize_ncurses() {
+//   initscr();  // Initialize ncurses mode
+//   cbreak();
+//   noecho();
+//   keypad(stdscr, TRUE);    // Enables arrow key detection
+//   nodelay(stdscr, FALSE);  // TRUE = non-blocking, FALSE = blocking
+//   timeout(10);  // Set a timeout for getch(). If no key is pressed within
+//                 // timeout, getch() returns ERR
+// }
 
 void single_step(uint8_t motor, uint8_t direction) {
   const uint8_t steps = 50;
   driver::select_motor(motor);
   driver::turn_motor(direction, steps, STEP_DELAY);
-  // utilities::microstep_delay_ms(STEP_DELAY, MICROSTEPS);
-  // stop_motor();
 }
 
-void turret_control(std::pair<int, int> actual_pos,
-                    std::pair<int, int> target_pos) {
-  m1_actual_angle = actual_pos.first;
-  m2_actual_angle = actual_pos.second;
-  m1_target_angle = target_pos.first;
-  m2_target_angle = target_pos.second;
-  // print actual and target angles
-  printf("Actual: (%d, %d)\n", m1_actual_angle, m2_actual_angle);
-  printf("Target: (%d, %d)\n", m1_target_angle, m2_target_angle);
-
-  // Initialize ncurses mode
-  initscr();
-  cbreak();
-  noecho();
-  keypad(stdscr, TRUE);  // Enables arrow key detection
-  timeout(10);  // Set a timeout for getch(). If no key is pressed within
-                // 100ms, getch() returns ERR
-
-  int ch = getch();  // Get the character pressed
-
-  if (ch == 'h' or ch == 'H') {
-    manual_mode = !manual_mode;
-    if (manual_mode) {
-      printw("Manual Mode\n");
-    } else {
-      printw("Auto Mode\n");
-    }
-    printf("Manual Mode: %d\n", manual_mode);
-  } else if (ch == ERR && manual_mode) {
-    // No key was pressed during the timeout period and we're in manual mode
-    driver::stop_all_motors();
-    printw("Motors Stopped\n");
-  } else if (manual_mode) {
-    manual_control(ch);  // Pass the pressed key to manual control
-  } else {
-    auto_control();
-  }
-
-  // End ncurses mode
-  endwin();
-}
-
+#define KEY_UP 'w'
+#define KEY_DOWN 's'
+#define KEY_LEFT 'a'
+#define KEY_RIGHT 'd'
 void manual_control(int ch) {
   switch (ch) {
     case KEY_UP:
@@ -86,7 +54,13 @@ void manual_control(int ch) {
 }
 
 uint32_t steps;
-void auto_control() {
+void auto_control(std::pair<int, int> actual_pos,
+                  std::pair<int, int> target_pos) {
+  m1_actual_angle = actual_pos.first;
+  m2_actual_angle = actual_pos.second;
+  m1_target_angle = target_pos.first;
+  m2_target_angle = target_pos.second;
+
   if (m1_actual_angle != m1_target_angle) {
     driver::select_motor(MOTOR1);
     steps = abs(m1_target_angle - m1_actual_angle) / MICROSTEP_ANGLE;
@@ -114,4 +88,4 @@ void auto_control() {
   }
 }
 
-}  // namespace stepper
+}  // namespace turret
