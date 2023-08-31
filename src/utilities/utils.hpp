@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace utilities {
+namespace utils {
 
 /**
  * @brief Delays for the specified milliseconds considering microsteps.
@@ -26,4 +26,4 @@ void delay_ms(uint32_t ms);
  */
 void delay_us(uint32_t us);
 
-}  // namespace utilities
+}  // namespace utils

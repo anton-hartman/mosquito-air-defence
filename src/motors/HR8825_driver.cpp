@@ -1,7 +1,7 @@
 #include "HR8825_driver.hpp"
 #include <JetsonGPIO.h>
 #include "../utilities/debug.hpp"
-#include "../utilities/utilities.hpp"
+#include "../utilities/utils.hpp"
 #include "turret_controller.hpp"
 
 namespace driver {
@@ -77,9 +77,9 @@ void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay) {
   //   LOG_DEBUG("Turn %d steps = %d microsteps\\r\\n", steps, microsteps);
   for (uint32_t i = 0; i < steps; i++) {
     GPIO::output(Motor.step_pin, GPIO::HIGH);
-    utilities::microstep_delay_ms(stepdelay, MICROSTEPS);
+    utils::microstep_delay_ms(stepdelay, MICROSTEPS);
     GPIO::output(Motor.step_pin, GPIO::LOW);
-    utilities::microstep_delay_ms(stepdelay, MICROSTEPS);
+    utils::microstep_delay_ms(stepdelay, MICROSTEPS);
   }
 }
 

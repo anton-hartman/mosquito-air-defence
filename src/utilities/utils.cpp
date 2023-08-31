@@ -1,6 +1,6 @@
-#include "utilities.hpp"
+#include "utils.hpp"
 
-namespace utilities {
+namespace utils {
 
 void microstep_delay_ms(uint32_t ms, uint8_t microsteps) {
   int basedelay = 50000 / microsteps;
@@ -19,4 +19,4 @@ void delay_us(uint32_t us) {
     ;
 }
 
-}  // namespace utilities
+}  // namespace utils

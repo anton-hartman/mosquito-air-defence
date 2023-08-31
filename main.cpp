@@ -10,12 +10,14 @@
 #include "src/detection/object_detector.hpp"
 #include "src/motors/HR8825_driver.hpp"
 #include "src/motors/turret_controller.hpp"
+#include "src/utilities/utils.hpp"
 
 const float SCALING_FACTOR = 1.0;
 const float ALPHA = 0.01;
 
 cv::VideoCapture cap;
 int manual_mode = 1;
+int paused = 0;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -30,13 +32,16 @@ void exit_handler(int signo) {
   exit(0);
 }
 
-cv::VideoCapture init_system(void) {
-  // initscr();  // Initialize ncurses mode
-  // cbreak();
-  // noecho();
-  // keypad(stdscr, true);   // Enables arrow key detection
-  // nodelay(stdscr, true);  // TRUE = non-blocking, FALSE = blocking
+void init_ncurses(void) {
+  initscr();  // Initialize ncurses mode
+  cbreak();
+  noecho();
+  keypad(stdscr, TRUE);    // Enables arrow key detection
+  nodelay(stdscr, FALSE);  // TRUE = non-blocking, FALSE = blocking
+  timeout(10);             // Set a timeout for getch().
+}
 
+cv::VideoCapture init_system(void) {
   cv::VideoCapture cap(
       "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1280, height=720, "
       "format=(string)NV12, framerate=(fraction)30/1 ! nvvidconv "
@@ -95,6 +100,17 @@ void display_frame(cv::Mat& frame,
   char key = static_cast<char>(cv::waitKey(1));
   if (key == 'q') {
     exit(0);
+  } else if (key == 'h') {
+    manual_mode = 1;
+    std::cout << "Manual mode: ON" << std::endl;
+    init_ncurses();
+  } else if (key == ' ') {
+    paused = !paused;
+    if (paused) {
+      std::cout << "Paused" << std::endl;
+    } else {
+      std::cout << "Unpaused" << std::endl;
+    }
   }
 }
 
@@ -123,28 +139,44 @@ int main(void) {
 
   std::pair<int, int> target_pos = {500, 300};
   std::pair<int, int> laser_pos;
-  int min = 254;
+  int min = 230;
   cv::Scalar lower_threshold = cv::Scalar(min, min, min);
   cv::Mat frame;
 
-  char ch;
+  init_ncurses();
+  int ch;
   while (true) {
-    frame = process_frame(cap);
-    laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
-    display_frame(frame, laser_pos, target_pos);
+    // if (is_key_pressed()) {
+    //   char ch;
+    //   std::cin >> ch;
+    //   std::cout << "Key Pressed: " << ch << std::endl;
+    //   if (ch == 'h' or ch == 'H') {
+    //     manual_mode = !manual_mode;
+    //     std::cout << "Manual mode: " << manual_mode << std::flush;
+    //   }
+    // }
 
-    if (is_key_pressed()) {
-      std::cin >> ch;  // Read the pressed key
-      std::cout << "Key Pressed: " << ch << std::endl;
-      if (ch == 'h' or ch == 'H') {
-        manual_mode = !manual_mode;
-        std::cout << "Manual mode: " << manual_mode << std::flush;
-      }
-
-      if (manual_mode) {
-        turret::manual_control(ch);
+    if (manual_mode) {
+      ch = getch();
+      if (ch == 'h') {
+        manual_mode = 0;
+        endwin();  // End ncurses mode
+        std::cout << "Manual mode: OFF" << std::endl;
+      } else if (ch == ERR) {
+        driver::stop_all_motors();
       } else {
+        turret::manual_control(ch);
+      }
+    } else {
+      if (!paused) {
+        frame = process_frame(cap);
+        laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
+        display_frame(frame, laser_pos, target_pos);
         turret::auto_control(laser_pos, target_pos);
+      } else {
+        frame = process_frame(cap);
+        laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
+        display_frame(frame, laser_pos, target_pos);
       }
     }
   }

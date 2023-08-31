@@ -1,6 +1,6 @@
 #include "turret_controller.hpp"
 #include <cstdlib>
-#include "../utilities/utilities.hpp"
+#include "../utilities/utils.hpp"
 
 namespace turret {
 
@@ -18,10 +18,6 @@ void single_step(uint8_t motor, uint8_t direction) {
   driver::turn_motor(direction, steps, STEP_DELAY);
 }
 
-#define KEY_UP 'w'
-#define KEY_DOWN 's'
-#define KEY_LEFT 'a'
-#define KEY_RIGHT 'd'
 void manual_control(int ch) {
   switch (ch) {
     case KEY_UP:
@@ -39,6 +35,8 @@ void manual_control(int ch) {
     case KEY_RIGHT:
       // Move motor 2 backward by a predefined step
       single_step(MOTOR2, FORWARD);
+      break;
+    default:
       break;
   }
 }

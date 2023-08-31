@@ -69,7 +69,7 @@ std::pair<int, int> ObjectDetector::detectLaserWit(const cv::Mat& frame,
   cv::Mat mask;
   cv::inRange(frame, lower_threshold, cv::Scalar(255, 255, 255), mask);
 
-  // Display the mask
+  // // Display the mask
   cv::imshow("Mask", mask);
 
   // Find blobs in the mask
