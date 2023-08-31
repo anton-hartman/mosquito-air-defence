@@ -57,9 +57,7 @@ cv::VideoCapture init_system(void) {
   return cap;
 }
 
-std::pair<int, int> process_frame(cv::VideoCapture& cap,
-                                  ObjectDetector& obj_detector,
-                                  cv::Scalar& lower_threshold) {
+cv::Mat process_frame(cv::VideoCapture& cap) {
   cv::Mat frame;
   cap >> frame;
   if (frame.empty()) {
@@ -68,17 +66,36 @@ std::pair<int, int> process_frame(cv::VideoCapture& cap,
   }
   cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
 
-  std::pair<int, int> laser_pos =
-      obj_detector.detectLaserWit(frame, lower_threshold);
-  // printf("Laser pos: %d, %d\n", laser_pos.first, laser_pos.second);
+  return frame;
+}
+
+void display_frame(cv::Mat& frame,
+                   std::pair<int, int>& laser_pos,
+                   std::pair<int, int>& target_pos) {
+  // Draw laser position with a red circle
+  cv::circle(frame, cv::Point(laser_pos.first, laser_pos.second), 5,
+             cv::Scalar(0, 0, 255), -1);
+
+  // Draw target position with a blue circle
+  cv::circle(frame, cv::Point(target_pos.first, target_pos.second), 5,
+             cv::Scalar(255, 0, 0), -1);
+
+  // Display laser and target positions using text
+  std::string laserText = "Laser: (" + std::to_string(laser_pos.first) + ", " +
+                          std::to_string(laser_pos.second) + ")";
+  std::string targetText = "Target: (" + std::to_string(target_pos.first) +
+                           ", " + std::to_string(target_pos.second) + ")";
+
+  cv::putText(frame, laserText, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX,
+              0.5, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+  cv::putText(frame, targetText, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX,
+              0.5, cv::Scalar(255, 0, 0), 1, cv::LINE_AA);
 
   cv::imshow("Video", frame);
   char key = static_cast<char>(cv::waitKey(1));
   if (key == 'q') {
     exit(0);
   }
-
-  return laser_pos;
 }
 
 bool is_key_pressed() {
@@ -104,16 +121,18 @@ int main(void) {
              SCALING_FACTOR);
   ObjectDetector obj_detector(initial_frame, ALPHA);
 
-  std::pair<int, int> target_pos = {0, 0};
+  std::pair<int, int> target_pos = {500, 300};
+  std::pair<int, int> laser_pos;
   int min = 254;
   cv::Scalar lower_threshold = cv::Scalar(min, min, min);
+  cv::Mat frame;
 
   char ch;
   while (true) {
-    std::pair<int, int> laser_pos =
-        process_frame(cap, obj_detector, lower_threshold);
+    frame = process_frame(cap);
+    laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
+    display_frame(frame, laser_pos, target_pos);
 
-    // ch = getch();
     if (is_key_pressed()) {
       std::cin >> ch;  // Read the pressed key
       std::cout << "Key Pressed: " << ch << std::endl;
@@ -125,7 +144,7 @@ int main(void) {
       if (manual_mode) {
         turret::manual_control(ch);
       } else {
-        turret::auto_control(laser_pos, {0, 0});
+        turret::auto_control(laser_pos, target_pos);
       }
     }
   }

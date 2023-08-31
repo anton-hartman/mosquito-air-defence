@@ -12,16 +12,6 @@ int16_t m2_actual_angle;
 int16_t m1_count_angle;
 int16_t m2_count_angle;
 
-// void initialize_ncurses() {
-//   initscr();  // Initialize ncurses mode
-//   cbreak();
-//   noecho();
-//   keypad(stdscr, TRUE);    // Enables arrow key detection
-//   nodelay(stdscr, FALSE);  // TRUE = non-blocking, FALSE = blocking
-//   timeout(10);  // Set a timeout for getch(). If no key is pressed within
-//                 // timeout, getch() returns ERR
-// }
-
 void single_step(uint8_t motor, uint8_t direction) {
   const uint8_t steps = 50;
   driver::select_motor(motor);
