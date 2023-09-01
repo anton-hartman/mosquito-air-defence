@@ -26,7 +26,4 @@ void delay_ms(uint32_t ms);
  */
 void delay_us(uint32_t us);
 
-// void putLabel(cv::Mat& img, const std::string& label, const cv::Point&
-// origin);
-
 }  // namespace utils

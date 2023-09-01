@@ -21,15 +21,13 @@ set(SOURCE_FILES
     main.cpp
     src/turret_controller.cpp
     src/utils.cpp
-    src/object_detector.cpp
-    src/background_subtractor.cpp
+    src/detection.cpp
 )
 
 set(HEADER_FILES
     include/turret_controller.hpp
     include/utils.hpp
-    include/object_detector.hpp
-    include/background_subtractor.hpp
+    include/detection.hpp
 )
 
 # Add executable

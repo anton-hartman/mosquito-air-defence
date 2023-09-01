@@ -1,11 +1,11 @@
 
 
 #include <ncurses.h>
-#undef OK
+#undef OK  // ncurses and opencv have a macro conflict
 #include <signal.h>
 #include <opencv2/opencv.hpp>
 #include <thread>
-#include "include/object_detector.hpp"
+#include "include/detection.hpp"
 #include "include/turret_controller.hpp"
 #include "include/utils.hpp"
 
@@ -54,9 +54,8 @@ cv::VideoCapture init_system(void) {
   return cap;
 }
 
-void process_video(cv::VideoCapture& cap, ObjectDetector& obj_detector) {
+void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
-  std::pair<int, int> target_pos = {500, 300};
   std::pair<int, int> laser_pos;
 
   while (true) {
@@ -66,7 +65,7 @@ void process_video(cv::VideoCapture& cap, ObjectDetector& obj_detector) {
       exit(0);
     }
     cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
-    laser_pos = obj_detector.detectLaser(frame);
+    laser_pos = detector.detect_laser(frame);
 
     // Add delay here to adjust frame rate if necessary
     // std::this_thread::sleep_for(std::chrono::milliseconds(delayTime));
@@ -80,13 +79,16 @@ void turret_control(std::pair<int, int>& laser_pos,
   init_ncurses();
   while (true) {
     ch = getch();
-    if (ch == 'h') {
+    if (ch == 'm') {
       manual_mode = !manual_mode;
       if (manual_mode) {
         std::cout << "Manual" << std::endl;
       } else {
         std::cout << "Auto" << std::endl;
       }
+    } else if (ch == 'h') {
+      turret::home_steppers();
+      std::cout << "Stepper homed" << std::endl;
     } else if (manual_mode and ch == -1) {
       // -1 is returned when noting is pressed before the timeout period.
       turret::stop_all_motors();
@@ -108,24 +110,23 @@ int main(void) {
   cap >> initial_frame;
   cv::resize(initial_frame, initial_frame, cv::Size(), SCALING_FACTOR,
              SCALING_FACTOR);
-  ObjectDetector obj_detector(initial_frame, ALPHA);
-  obj_detector.setRedThresholds(0, 50, 190, 10, 255, 255);
-  obj_detector.setWhiteThresholds(0, 0, 245, 180, 20, 255);
-  obj_detector.createThresholdTrackbars();
+  Detection detector(initial_frame, ALPHA);
+  detector.set_red_thresholds(0, 50, 190, 10, 255, 255);
+  detector.set_white_thresholds(0, 0, 245, 180, 20, 255);
+  detector.create_threshold_trackbars();
 
   std::pair<int, int> target_pos = {500, 300};
   std::pair<int, int> laser_pos;
   cv::Mat frame;
 
   // Launch the threads
-  std::thread processingThread(process_video, std::ref(cap),
-                               std::ref(obj_detector));
-  std::thread controlThread(turret_control, std::ref(laser_pos),
+  std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
+  std::thread turret_thread(turret_control, std::ref(laser_pos),
                             std::ref(target_pos));
 
   // Join the threads (or use detach based on requirements)
-  processingThread.join();
-  controlThread.join();
+  video_thread.join();
+  turret_thread.join();
 
   return 0;
 }
