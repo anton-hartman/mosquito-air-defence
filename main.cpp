@@ -8,8 +8,8 @@
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "src/detection/object_detector.hpp"
-#include "src/motors/HR8825_driver.hpp"
-#include "src/motors/turret_controller.hpp"
+#include "src/turret/hr8825_driver.hpp"
+#include "src/turret/turret_controller.hpp"
 #include "src/utilities/utils.hpp"
 
 const float SCALING_FACTOR = 1.0;
@@ -139,7 +139,7 @@ int main(void) {
 
   std::pair<int, int> target_pos = {500, 300};
   std::pair<int, int> laser_pos;
-  int min = 230;
+  int min = 255;
   cv::Scalar lower_threshold = cv::Scalar(min, min, min);
   cv::Mat frame;
 
@@ -172,7 +172,7 @@ int main(void) {
         frame = process_frame(cap);
         laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
         display_frame(frame, laser_pos, target_pos);
-        turret::auto_control(laser_pos, target_pos);
+        // turret::auto_control(laser_pos, target_pos);
       } else {
         frame = process_frame(cap);
         laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);

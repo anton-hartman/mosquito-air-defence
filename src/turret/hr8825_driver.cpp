@@ -1,4 +1,4 @@
-#include "HR8825_driver.hpp"
+#include "hr8825_driver.hpp"
 #include <JetsonGPIO.h>
 #include "../utilities/debug.hpp"
 #include "../utilities/utils.hpp"
@@ -60,11 +60,9 @@ void stop_all_motors(void) {
 void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay) {
   Motor.direction = direction;
   if (direction == FORWARD) {
-    // LOG_DEBUG("motor %d formward\\r\\n", Motor.name);
     enable_motor();
     GPIO::output(Motor.direction_pin, GPIO::LOW);
   } else if (direction == BACKWARD) {
-    // LOG_DEBUG("motor %d backmward\\r\\n", Motor.name);
     enable_motor();
     GPIO::output(Motor.direction_pin, GPIO::HIGH);
   } else {
@@ -74,7 +72,6 @@ void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay) {
   if (steps == 0)
     return;
 
-  //   LOG_DEBUG("Turn %d steps = %d microsteps\\r\\n", steps, microsteps);
   for (uint32_t i = 0; i < steps; i++) {
     GPIO::output(Motor.step_pin, GPIO::HIGH);
     utils::microstep_delay_ms(stepdelay, MICROSTEPS);

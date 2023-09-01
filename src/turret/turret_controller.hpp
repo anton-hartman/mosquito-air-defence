@@ -3,7 +3,7 @@
 #include <ncurses.h>
 #include <cstdint>
 #include <utility>
-#include "HR8825_driver.hpp"
+#include "hr8825_driver.hpp"
 
 namespace turret {
 
