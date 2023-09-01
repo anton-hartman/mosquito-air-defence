@@ -56,7 +56,7 @@ cv::VideoCapture init_system(void) {
 
   signal(SIGINT, exit_handler);
 
-  if (driver::init_driver_pins())
+  if (driver::init())
     exit(0);
 
   return cap;
