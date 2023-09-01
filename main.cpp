@@ -96,22 +96,18 @@ void display_frame(cv::Mat& frame,
   cv::putText(frame, targetText, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX,
               0.5, cv::Scalar(255, 0, 0), 1, cv::LINE_AA);
 
-  cv::imshow("Video", frame);
-  char key = static_cast<char>(cv::waitKey(1));
-  if (key == 'q') {
-    exit(0);
-  } else if (key == 'h') {
-    manual_mode = 1;
-    std::cout << "Manual mode: ON" << std::endl;
-    init_ncurses();
-  } else if (key == ' ') {
-    paused = !paused;
-    if (paused) {
-      std::cout << "Paused" << std::endl;
-    } else {
-      std::cout << "Unpaused" << std::endl;
-    }
-  }
+  // cv::imshow("Video", frame);
+  // char key = static_cast<char>(cv::waitKey(1));
+  // if (key == 'q') {
+  //   exit(0);
+  // } else if (key == ' ') {
+  //   paused = !paused;
+  //   if (paused) {
+  //     std::cout << "Paused" << std::endl;
+  //   } else {
+  //     std::cout << "Unpaused" << std::endl;
+  //   }
+  // }
 }
 
 bool is_key_pressed() {
@@ -128,6 +124,53 @@ bool is_key_pressed() {
   return (activity > 0 && FD_ISSET(STDIN_FILENO, &readfds));
 }
 
+void frameProcessing(cv::VideoCapture& cap, ObjectDetector& obj_detector) {
+  cv::Mat frame;
+  std::pair<int, int> target_pos = {500, 300};
+  std::pair<int, int> laser_pos;
+
+  while (true) {
+    if (!paused or paused) {
+      frame = process_frame(cap);
+      laser_pos = obj_detector.detectLaser(frame);
+      display_frame(frame, laser_pos, target_pos);
+
+      // Add delay here to adjust frame rate if necessary
+      // std::this_thread::sleep_for(std::chrono::milliseconds(delayTime));
+    }
+  }
+}
+
+void turretControl(std::pair<int, int>& laser_pos,
+                   std::pair<int, int>& target_pos) {
+  int ch;
+  std::string state = manual_mode ? "ON" : "OFF";
+  init_ncurses();
+  while (true) {
+    ch = getch();
+    if (ch == 'h') {
+      manual_mode = !manual_mode;
+      if (manual_mode) {
+        std::cout << "Manual mode: ON" << std::endl;
+        // init_ncurses();
+      } else {
+        // endwin();  // End ncurses mode
+        std::cout << "Manual mode: OFF" << std::endl;
+      }
+    } else if (manual_mode and ch == ERR) {
+      driver::stop_all_motors();
+    }
+
+    if (manual_mode) {
+      turret::manual_control(ch);
+    } else {
+      // Assuming laser_pos and target_pos are global/shared variables,
+      // ensure safe access using a mutex or other synchronization mechanisms.
+      turret::auto_control(laser_pos, target_pos);
+    }
+  }
+}
+
 int main(void) {
   cv::VideoCapture cap = init_system();
 
@@ -142,43 +185,50 @@ int main(void) {
 
   std::pair<int, int> target_pos = {500, 300};
   std::pair<int, int> laser_pos;
-  int min = 255;
-  cv::Scalar lower_threshold = cv::Scalar(min, min, min);
   cv::Mat frame;
 
-  init_ncurses();
-  int ch;
-  while (true) {
-    // if (is_key_pressed()) {
-    //   char ch;
-    //   std::cin >> ch;
-    //   std::cout << "Key Pressed: " << ch << std::endl;
-    //   if (ch == 'h' or ch == 'H') {
-    //     manual_mode = !manual_mode;
-    //     std::cout << "Manual mode: " << manual_mode << std::flush;
-    //   }
-    // }
+  // Launch the threads
+  std::thread processingThread(frameProcessing, std::ref(cap),
+                               std::ref(obj_detector));
+  std::thread controlThread(turretControl, std::ref(laser_pos),
+                            std::ref(target_pos));
 
-    if (manual_mode) {
-      ch = getch();
-      if (ch == 'h') {
-        manual_mode = 0;
-        endwin();  // End ncurses mode
-        std::cout << "Manual mode: OFF" << std::endl;
-      } else if (ch == ERR) {
-        driver::stop_all_motors();
-      } else {
-        turret::manual_control(ch);
-      }
-    } else {
-      if (!paused or paused) {
-        frame = process_frame(cap);
-        // laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
-        laser_pos = obj_detector.detectLaser(frame);
-        display_frame(frame, laser_pos, target_pos);
-        // turret::auto_control(laser_pos, target_pos);
-      }
-    }
-  }
+  // Join the threads (or use detach based on requirements)
+  processingThread.join();
+  controlThread.join();
+
+  // init_ncurses();
+  // int ch;
+  // while (true) {
+  //   // if (is_key_pressed()) {
+  //   //   char ch;
+  //   //   std::cin >> ch;
+  //   //   std::cout << "Key Pressed: " << ch << std::endl;
+  //   //   if (ch == 'h' or ch == 'H') {
+  //   //     manual_mode = !manual_mode;
+  //   //     std::cout << "Manual mode: " << manual_mode << std::flush;
+  //   //   }
+  //   // }
+  //   if (manual_mode) {
+  //     ch = getch();
+  //     if (ch == 'h') {
+  //       manual_mode = 0;
+  //       endwin();  // End ncurses mode
+  //       std::cout << "Manual mode: OFF" << std::endl;
+  //     } else if (ch == ERR) {
+  //       driver::stop_all_motors();
+  //     } else {
+  //       turret::manual_control(ch);
+  //     }
+  //   } else {
+  //     if (!paused or paused) {
+  //       frame = process_frame(cap);
+  //       laser_pos = obj_detector.detectLaser(frame);
+  //       display_frame(frame, laser_pos, target_pos);
+  //       turret::auto_control(laser_pos, target_pos);
+  //     }
+  //   }
+  // }
+
   return 0;
 }

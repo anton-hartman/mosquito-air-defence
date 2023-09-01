@@ -72,14 +72,14 @@ std::pair<int, int> ObjectDetector::detectLaserWit(const cv::Mat& frame,
  * from the left and 30 pixels from the top of the image.
  */
 void putLabel(cv::Mat& img, const std::string& label, const cv::Point& origin) {
-  int fontFace = cv::FONT_HERSHEY_SIMPLEX;
-  double fontScale = 0.7;
+  int fontFace = cv::QT_FONT_NORMAL;
+  double fontScale = 1;
   int thickness = 2;
   cv::putText(img, label, origin, fontFace, fontScale, cv::Scalar(0, 255, 255),
               thickness);
 }
 
-// Setters for the threshold values
+#pragma region HSV Slider Functions
 void ObjectDetector::setRedThresholds(int hl,
                                       int sl,
                                       int vl,
@@ -202,24 +202,12 @@ void ObjectDetector::onHighVWhiteChange(int value, void* ptr) {
   ObjectDetector* objDet = static_cast<ObjectDetector*>(ptr);
   objDet->vHighWhite = value;
 }
+#pragma endregion HSV Slider Functions
 
 std::pair<int, int> ObjectDetector::detectLaser(const cv::Mat& frame) {
   // Convert to HSV
   cv::Mat hsv;
   cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
-
-  // // Threshold for red
-  // cv::Mat maskRed1, maskRed2, maskRed;
-  // cv::inRange(hsv, cv::Scalar(0, 50, 10), cv::Scalar(10, 255, 255),
-  // maskRed1); cv::inRange(hsv, cv::Scalar(170, 50, 10), cv::Scalar(180, 255,
-  // 255),
-  //             maskRed2);
-  // maskRed = maskRed1 | maskRed2;
-
-  // // Threshold for white
-  // cv::Mat maskWhite;
-  // cv::inRange(hsv, cv::Scalar(0, 0, 240), cv::Scalar(180, 55, 255),
-  // maskWhite);
 
   // Threshold for red using the class members
   cv::Mat maskRed1, maskRed2, maskRed;
@@ -240,27 +228,65 @@ std::pair<int, int> ObjectDetector::detectLaser(const cv::Mat& frame) {
                    cv::CHAIN_APPROX_SIMPLE);
   cv::findContours(maskWhite, contoursWhite, cv::RETR_EXTERNAL,
                    cv::CHAIN_APPROX_SIMPLE);
+  // Black image
+  cv::Mat cntrsImg(frame.size(), CV_8UC3, cv::Scalar(0, 0, 0));
+  // Draw red contours in red
+  cv::drawContours(cntrsImg, contoursRed, -1, cv::Scalar(0, 0, 255), 2);
+  // Draw white contours in white
+  cv::drawContours(cntrsImg, contoursWhite, -1, cv::Scalar(255, 255, 255), 2);
 
-  cv::Mat displayFrame =
-      frame.clone();  // Clone the frame for displaying purposes
+  cv::Mat displayFrame = frame.clone();
+  int proximityDistance = 10;
 
   for (std::vector<cv::Point>& contourWhite : contoursWhite) {
     cv::Rect rectWhite = cv::boundingRect(contourWhite);
 
-    for (std::vector<cv::Point>& contourRed : contoursRed) {
-      cv::Rect rectRed = cv::boundingRect(contourRed);
+    if (rectWhite.width >= 5 && rectWhite.width <= 50 &&
+        rectWhite.height >= 5 && rectWhite.height <= 50) {
+      cv::rectangle(displayFrame, rectWhite, cv::Scalar(0, 255, 0), 2);
 
-      // Check if white blob is inside red blob
-      if (rectRed.contains(rectWhite.tl()) &&
-          rectRed.contains(rectWhite.br())) {
+      bool isNearRed = false;
+
+      for (cv::Point whitePt : contourWhite) {
+        for (std::vector<cv::Point>& contourRed : contoursRed) {
+          for (cv::Point redPt : contourRed) {
+            if (cv::norm(whitePt - redPt) < proximityDistance) {
+              isNearRed = true;
+              break;
+            }
+          }
+          if (isNearRed)
+            break;
+        }
+        if (isNearRed)
+          break;
+      }
+
+      if (isNearRed) {
         cv::Point centerWhite(rectWhite.x + rectWhite.width / 2,
                               rectWhite.y + rectWhite.height / 2);
-        std::cout << "Laser detected at position: " << centerWhite << std::endl;
-
-        // Draw the detected center point
-        cv::circle(displayFrame, centerWhite, 5, cv::Scalar(0, 255, 0),
-                   -1);  // Green circle
+        cv::circle(displayFrame, centerWhite, 4, cv::Scalar(255, 0, 0), -1);
       }
+
+      // for (std::vector<cv::Point>& contourRed : contoursRed) {
+      //   cv::Rect rectRed = cv::boundingRect(contourRed);
+
+      //   if (rectRed.width >= 15 && rectRed.width <= 100 &&
+      //       rectRed.height >= 15 && rectRed.height <= 100) {
+      //     cv::rectangle(displayFrame, rectRed, cv::Scalar(0, 0, 255), 2);
+
+      //     // Check if white blob is inside red blob
+      //     if (rectRed.contains(rectWhite.tl()) &&
+      //         rectRed.contains(rectWhite.br())) {
+      //       cv::Point centerWhite(rectWhite.x + rectWhite.width / 2,
+      //                             rectWhite.y + rectWhite.height / 2);
+
+      //       // Draw the detected center point
+      //       cv::circle(displayFrame, centerWhite, 6, cv::Scalar(255, 0, 0),
+      //       -1);
+      //     }
+      //   }
+      // }
     }
   }
 
@@ -274,13 +300,15 @@ std::pair<int, int> ObjectDetector::detectLaser(const cv::Mat& frame) {
   putLabel(displayFrame, "Original", cv::Point(10, 30));
   putLabel(maskRed, "Red Mask", cv::Point(10, 30));
   putLabel(maskWhite, "White Mask", cv::Point(10, 30));
+  putLabel(cntrsImg, "Contours", cv::Point(10, 30));
 
   cv::Mat concatenatedOutput;
-  cv::hconcat(displayFrame, maskRed, concatenatedOutput);
-  cv::hconcat(concatenatedOutput, maskWhite, concatenatedOutput);
+  cv::hconcat(maskWhite, maskRed, concatenatedOutput);
+  cv::hconcat(cntrsImg, displayFrame, displayFrame);
+  cv::vconcat(concatenatedOutput, displayFrame, concatenatedOutput);
 
   // Resize the concatenated output to fit the screen if necessary
-  const int screenWidth = 1920;  // Modify this as per your screen resolution
+  const int screenWidth = 1500;  // Modify this as per your screen resolution
   if (concatenatedOutput.cols > screenWidth) {
     float scale = (float)screenWidth / concatenatedOutput.cols;
     cv::resize(concatenatedOutput, concatenatedOutput, cv::Size(), scale,
@@ -288,7 +316,10 @@ std::pair<int, int> ObjectDetector::detectLaser(const cv::Mat& frame) {
   }
 
   cv::imshow("Combined Display", concatenatedOutput);
-  // cv::waitKey(0);
+  char key = static_cast<char>(cv::waitKey(1));
+  if (key == 'q') {
+    exit(0);
+  }
 
   return {0, 0};  // Return appropriate values, placeholder for now
 }
