@@ -1,4 +1,4 @@
-#include "turret_controller.hpp"  // Include the header file you want to test
+#include "../../src/turret/turret_controller.hpp"  // Include the header file you want to test
 #include <gtest/gtest.h>
 
 // Mock driver functions for testing
@@ -34,11 +34,4 @@ TEST_F(TurretControllerTest, ManualControl) {
 TEST_F(TurretControllerTest, AutoControl) {
   // Test the auto_control function
   // Create mock expectations or assertions
-}
-
-// Add more test cases for other functions as needed
-
-int main(int argc, char** argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
 }

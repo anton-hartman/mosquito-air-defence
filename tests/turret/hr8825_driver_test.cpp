@@ -1,5 +1,5 @@
-// #include "hr8825_driver.hpp"  // Include the header file you want to test
-// #include <gtest/gtest.h>
+// #include "../../src/turret/hr8825_driver.hpp"  // Include the header file you
+// want to test #include <gtest/gtest.h>
 
 // // Mock GPIO class for testing
 // class MockGPIO {
@@ -45,11 +45,4 @@
 //   driver::select_motor(driver::MOTOR1);
 //   driver::turn_motor(driver::FORWARD, 10, 100);  // Example values
 //   // Add assertions to verify the motor behavior
-// }
-
-// // Add more test cases for other functions as needed
-
-// int main(int argc, char** argv) {
-//   ::testing::InitGoogleTest(&argc, argv);
-//   return RUN_ALL_TESTS();
 // }

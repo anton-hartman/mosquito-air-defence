@@ -136,6 +136,9 @@ int main(void) {
   cv::resize(initial_frame, initial_frame, cv::Size(), SCALING_FACTOR,
              SCALING_FACTOR);
   ObjectDetector obj_detector(initial_frame, ALPHA);
+  obj_detector.setRedThresholds(0, 50, 190, 10, 255, 255);
+  obj_detector.setWhiteThresholds(0, 0, 245, 180, 20, 255);
+  obj_detector.createThresholdTrackbars();
 
   std::pair<int, int> target_pos = {500, 300};
   std::pair<int, int> laser_pos;
@@ -168,15 +171,12 @@ int main(void) {
         turret::manual_control(ch);
       }
     } else {
-      if (!paused) {
+      if (!paused or paused) {
         frame = process_frame(cap);
-        laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
+        // laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
+        laser_pos = obj_detector.detectLaser(frame);
         display_frame(frame, laser_pos, target_pos);
         // turret::auto_control(laser_pos, target_pos);
-      } else {
-        frame = process_frame(cap);
-        laser_pos = obj_detector.detectLaserWit(frame, lower_threshold);
-        display_frame(frame, laser_pos, target_pos);
       }
     }
   }

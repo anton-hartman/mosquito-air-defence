@@ -53,6 +53,8 @@ target_link_libraries(mosquito-air-defence
 # Find Google Test and Google Mock
 find_package(GTest REQUIRED)
 
+enable_testing()
+
 # Add your unit tests target
 add_executable(unit_tests
     tests/test_main.cpp  # A main file for running all tests
@@ -62,8 +64,8 @@ add_executable(unit_tests
 
 # Link your project's code and Google Test
 target_link_libraries(unit_tests
-    PRIVATE
-    mosqutio-air-defence  # Link your project's library or source files
+    # PRIVATE
+    # build/mosqutio-air-defence  # Link your project's library or source files
     GTest::GTest
     GTest::Main
 )
