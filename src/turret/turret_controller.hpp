@@ -22,7 +22,7 @@ extern int16_t m2_actual_angle;
 extern int16_t m1_count_angle;  // Current angle of motor 1 by counting steps
 extern int16_t m2_count_angle;
 
-void single_step(uint8_t motor, uint8_t direction);
+void manual_step(uint8_t motor, uint8_t direction);
 void manual_control(int ch);
 void auto_control(std::pair<int, int> actual_pos,
                   std::pair<int, int> target_pos);

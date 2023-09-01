@@ -35,5 +35,7 @@ void select_motor(uint8_t name);
 void stop_motor(void);
 void stop_all_motors(void);
 void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay);
+void home_motors(void);
+int get_step_count(int motor);
 
 }  // namespace driver

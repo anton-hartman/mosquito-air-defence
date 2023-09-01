@@ -12,7 +12,7 @@ int16_t m2_actual_angle;
 int16_t m1_count_angle;
 int16_t m2_count_angle;
 
-void single_step(uint8_t motor, uint8_t direction) {
+void manual_step(uint8_t motor, uint8_t direction) {
   const uint8_t steps = 50;
   driver::select_motor(motor);
   driver::turn_motor(direction, steps, STEP_DELAY);
@@ -22,19 +22,19 @@ void manual_control(int ch) {
   switch (ch) {
     case KEY_UP:
       // Move motor 1 forward by a predefined step
-      single_step(MOTOR1, BACKWARD);
+      manual_step(MOTOR1, BACKWARD);
       break;
     case KEY_DOWN:
       // Move motor 1 backward by a predefined step
-      single_step(MOTOR1, FORWARD);
+      manual_step(MOTOR1, FORWARD);
       break;
     case KEY_LEFT:
       // Move motor 2 forward by a predefined step
-      single_step(MOTOR2, BACKWARD);
+      manual_step(MOTOR2, BACKWARD);
       break;
     case KEY_RIGHT:
       // Move motor 2 backward by a predefined step
-      single_step(MOTOR2, FORWARD);
+      manual_step(MOTOR2, FORWARD);
       break;
     default:
       break;

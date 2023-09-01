@@ -133,7 +133,7 @@ void frameProcessing(cv::VideoCapture& cap, ObjectDetector& obj_detector) {
     if (!paused or paused) {
       frame = process_frame(cap);
       laser_pos = obj_detector.detectLaser(frame);
-      display_frame(frame, laser_pos, target_pos);
+      // display_frame(frame, laser_pos, target_pos);
 
       // Add delay here to adjust frame rate if necessary
       // std::this_thread::sleep_for(std::chrono::milliseconds(delayTime));

@@ -65,7 +65,8 @@ add_executable(unit_tests
 # Link your project's code and Google Test
 target_link_libraries(unit_tests
     # PRIVATE
-    # build/mosqutio-air-defence  # Link your project's library or source files
+    # mosqutio-air-defence  # Link your project's library or source files
+    JetsonGPIO::JetsonGPIO
     GTest::GTest
     GTest::Main
 )

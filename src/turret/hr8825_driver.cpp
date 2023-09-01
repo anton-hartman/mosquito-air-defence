@@ -22,6 +22,8 @@ uint8_t init_driver_pins(void) {
 void driver_exit(void) {}
 
 MOTOR Motor;
+static int m1_step_count = 0;
+static int m2_step_count = 0;
 
 void select_motor(uint8_t name) {
   Motor.name = name;
@@ -77,6 +79,27 @@ void turn_motor(uint8_t direction, uint16_t steps, uint16_t stepdelay) {
     utils::microstep_delay_ms(stepdelay, MICROSTEPS);
     GPIO::output(Motor.step_pin, GPIO::LOW);
     utils::microstep_delay_ms(stepdelay, MICROSTEPS);
+  }
+
+  if (Motor.name == MOTOR1) {
+    (direction == FORWARD) ? m1_step_count += steps : m1_step_count -= steps;
+  } else if (Motor.name == MOTOR2) {
+    (direction == FORWARD) ? m2_step_count += steps : m2_step_count -= steps;
+  }
+}
+
+void home_motors(void) {
+  m1_step_count = 0;
+  m2_step_count = 0;
+}
+
+int get_step_coutn(int motor) {
+  if (motor == MOTOR1) {
+    return m1_step_count;
+  } else if (motor == MOTOR2) {
+    return m2_step_count;
+  } else {
+    throw std::invalid_argument("Invalid motor");
   }
 }
 

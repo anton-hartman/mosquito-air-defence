@@ -1,5 +1,5 @@
-// #include "../../src/turret/hr8825_driver.hpp"  // Include the header file you
-// want to test #include <gtest/gtest.h>
+#include "../../src/turret/hr8825_driver.cpp"
+#include <gtest/gtest.h>
 
 // // Mock GPIO class for testing
 // class MockGPIO {
@@ -11,8 +11,7 @@
 
 // // Replace HR8825_driver::GPIO with MockGPIO for testing
 // namespace driver {
-// using GPIO = MockGPIO;
-// MOTOR Motor;
+// // using GPIO = MockGPIO;
 // }  // namespace driver
 
 // // Define a test fixture for your tests
@@ -27,22 +26,25 @@
 //   }
 // };
 
-// // Define your test cases
-// TEST_F(HR8825DriverTest, InitDriverPins) {
-//   // Test the init_driver_pins function
-//   EXPECT_EQ(driver::init_driver_pins(), 0);
-// }
-
-// TEST_F(HR8825DriverTest, SelectMotor) {
-//   // Test the select_motor function
-//   driver::select_motor(driver::MOTOR1);
-//   EXPECT_EQ(driver::Motor.name, driver::MOTOR1);
-//   // Add more assertions as needed
-// }
+TEST(HR8825DriverTest, SelectMotor) {
+  // Test the select_motor function
+  driver::MOTOR Motor;
+  driver::select_motor(MOTOR1);
+  EXPECT_EQ(Motor.name, MOTOR1);
+  // Add more assertions as needed
+}
 
 // TEST_F(HR8825DriverTest, TurnMotor) {
 //   // Test the turn_motor function
 //   driver::select_motor(driver::MOTOR1);
 //   driver::turn_motor(driver::FORWARD, 10, 100);  // Example values
 //   // Add assertions to verify the motor behavior
+// }
+
+// TEST(HR8825DriverTest, SelectMotor) {
+//   // Test the select_motor function
+//   driver::MOTOR Motor;
+//   driver::select_motor(MOTOR1);
+//   EXPECT_EQ(Motor.name, MOTOR1);
+//   // Add more assertions as needed
 // }
