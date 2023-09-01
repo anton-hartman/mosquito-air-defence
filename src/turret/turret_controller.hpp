@@ -1,15 +1,15 @@
 
 #pragma once
 
-#include <ncurses.h>
-#include <cstdint>
-#include <utility>
+#include <utility>  // For std::pair<int, int>
 
 namespace turret {
 
+void init(void);
 void manual_control(int ch);
 void auto_control(std::pair<int, int> actual_pos,
                   std::pair<int, int> target_pos);
 void home_steppers(void);
+void stop_all_motors(void);
 
 }  // namespace turret

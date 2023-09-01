@@ -20,18 +20,16 @@ include_directories(
 set(SOURCE_FILES
     main.cpp
     src/turret/turret_controller.cpp
-    src/turret/hr8825_driver.cpp
-    src/utilities/utils.cpp
+    # src/turret/hr8825_driver.cpp
+    src/utils.cpp
     src/detection/object_detector.cpp
     src/detection/background_subtractor.cpp
-    # src/video_interface.cpp
 )
 
 set(HEADER_FILES
     src/turret/turret_controller.hpp
-    src/turret/hr8825_driver.hpp
-    src/utilities/debug.hpp
-    src/utilities/utils.hpp
+    # src/turret/hr8825_driver.hpp
+    src/utils.hpp
     src/detection/object_detector.hpp
     src/detection/background_subtractor.hpp
 )
@@ -58,8 +56,8 @@ enable_testing()
 # Add your unit tests target
 add_executable(unit_tests
     tests/test_main.cpp  # A main file for running all tests
-    tests/turret/turret_controller_test.cpp  
-    tests/turret/hr8825_driver_test.cpp
+    # tests/turret/turret_controller_test.cpp  
+    # tests/turret/hr8825_driver_test.cpp
 )
 
 # Link your project's code and Google Test

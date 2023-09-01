@@ -1,5 +1,5 @@
 #include "object_detector.hpp"
-#include "../utilities/utils.hpp"
+#include "../utils.hpp"
 
 ObjectDetector::ObjectDetector(const cv::Mat& first_frame, float alpha)
     : bg_subtractor(first_frame, alpha) {}
@@ -267,26 +267,6 @@ std::pair<int, int> ObjectDetector::detectLaser(const cv::Mat& frame) {
                               rectWhite.y + rectWhite.height / 2);
         cv::circle(displayFrame, centerWhite, 4, cv::Scalar(255, 0, 0), -1);
       }
-
-      // for (std::vector<cv::Point>& contourRed : contoursRed) {
-      //   cv::Rect rectRed = cv::boundingRect(contourRed);
-
-      //   if (rectRed.width >= 15 && rectRed.width <= 100 &&
-      //       rectRed.height >= 15 && rectRed.height <= 100) {
-      //     cv::rectangle(displayFrame, rectRed, cv::Scalar(0, 0, 255), 2);
-
-      //     // Check if white blob is inside red blob
-      //     if (rectRed.contains(rectWhite.tl()) &&
-      //         rectRed.contains(rectWhite.br())) {
-      //       cv::Point centerWhite(rectWhite.x + rectWhite.width / 2,
-      //                             rectWhite.y + rectWhite.height / 2);
-
-      //       // Draw the detected center point
-      //       cv::circle(displayFrame, centerWhite, 6, cv::Scalar(255, 0, 0),
-      //       -1);
-      //     }
-      //   }
-      // }
     }
   }
 

@@ -1,8 +1,8 @@
 
 #include "turret_controller.hpp"
 #include <JetsonGPIO.h>
-#include <cstdlib>
-#include "../utilities/utils.hpp"
+#include <ncurses.h>
+#include "../utils.hpp"
 
 namespace turret {
 
@@ -16,9 +16,9 @@ namespace turret {
 
 const int FULL_STEP_ANGLE = 0.17578125;
 const int MICROSTEPS = 16;
-const int MICROSTEP_ANGLE = FULL_STEP_ANGLE / MICROSTEPS;
+const double MICROSTEP_ANGLE = FULL_STEP_ANGLE / MICROSTEPS;
 const int STEP_DELAY = 3;
-const int MIRCOSTEP_DELAY = STEP_DELAY / MICROSTEPS;
+const double MIRCOSTEP_DELAY = STEP_DELAY / MICROSTEPS;
 
 typedef struct {
   uint8_t enable_pin;
@@ -30,7 +30,7 @@ typedef struct {
 static Stepper x_stepper;
 static Stepper y_stepper;
 
-static void init(void) {
+void init(void) {
   GPIO::setmode(GPIO::BOARD);
 
   GPIO::setup(M1_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
@@ -56,7 +56,7 @@ static void stop_motor(Stepper& stepper) {
   GPIO::output(stepper.enable_pin, GPIO::LOW);
 }
 
-static void stop_all_motors(void) {
+void stop_all_motors(void) {
   stop_motor(x_stepper);
   stop_motor(y_stepper);
 }

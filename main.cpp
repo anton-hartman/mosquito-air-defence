@@ -1,30 +1,25 @@
+
+
+#include <ncurses.h>
+#undef OK
 #include <signal.h>
-#include <sys/select.h>
-#include <unistd.h>
-#include <chrono>
-#include <cstdlib>
-#include <functional>
-#include <iostream>
 #include <opencv2/opencv.hpp>
 #include <thread>
 #include "src/detection/object_detector.hpp"
-#include "src/turret/hr8825_driver.hpp"
 #include "src/turret/turret_controller.hpp"
-#include "src/utilities/utils.hpp"
+#include "src/utils.hpp"
 
 const float SCALING_FACTOR = 1.0;
 const float ALPHA = 0.01;
 
 cv::VideoCapture cap;
 int manual_mode = 1;
-int paused = 0;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
-  // refresh();
-  // endwin();  // End ncurses mode
-  driver::stop_all_motors();
-  driver::driver_exit();
+  refresh();  // Also something with ncurses
+  endwin();   // End ncurses mode
+  turret::stop_all_motors();
   cv::destroyAllWindows();
   if (cap.isOpened()) {
     cap.release();
@@ -33,7 +28,7 @@ void exit_handler(int signo) {
 }
 
 void init_ncurses(void) {
-  initscr();  // Initialize ncurses mode
+  initscr();
   cbreak();
   noecho();
   keypad(stdscr, TRUE);    // Enables arrow key detection
@@ -55,110 +50,46 @@ cv::VideoCapture init_system(void) {
   }
 
   signal(SIGINT, exit_handler);
-
-  if (driver::init())
-    exit(0);
-
+  turret::init();
   return cap;
 }
 
-cv::Mat process_frame(cv::VideoCapture& cap) {
-  cv::Mat frame;
-  cap >> frame;
-  if (frame.empty()) {
-    std::cout << "End of video file." << std::endl;
-    exit(0);
-  }
-  cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
-
-  return frame;
-}
-
-void display_frame(cv::Mat& frame,
-                   std::pair<int, int>& laser_pos,
-                   std::pair<int, int>& target_pos) {
-  // Draw laser position with a red circle
-  cv::circle(frame, cv::Point(laser_pos.first, laser_pos.second), 5,
-             cv::Scalar(0, 0, 255), -1);
-
-  // Draw target position with a blue circle
-  cv::circle(frame, cv::Point(target_pos.first, target_pos.second), 5,
-             cv::Scalar(255, 0, 0), -1);
-
-  // Display laser and target positions using text
-  std::string laserText = "Laser: (" + std::to_string(laser_pos.first) + ", " +
-                          std::to_string(laser_pos.second) + ")";
-  std::string targetText = "Target: (" + std::to_string(target_pos.first) +
-                           ", " + std::to_string(target_pos.second) + ")";
-
-  cv::putText(frame, laserText, cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX,
-              0.5, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
-  cv::putText(frame, targetText, cv::Point(10, 60), cv::FONT_HERSHEY_SIMPLEX,
-              0.5, cv::Scalar(255, 0, 0), 1, cv::LINE_AA);
-
-  // cv::imshow("Video", frame);
-  // char key = static_cast<char>(cv::waitKey(1));
-  // if (key == 'q') {
-  //   exit(0);
-  // } else if (key == ' ') {
-  //   paused = !paused;
-  //   if (paused) {
-  //     std::cout << "Paused" << std::endl;
-  //   } else {
-  //     std::cout << "Unpaused" << std::endl;
-  //   }
-  // }
-}
-
-bool is_key_pressed() {
-  fd_set readfds;
-  FD_ZERO(&readfds);
-  FD_SET(STDIN_FILENO, &readfds);
-
-  timeval timeout;
-  timeout.tv_sec = 0;   // 0 seconds
-  timeout.tv_usec = 0;  // 0 microseconds
-
-  int activity = select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout);
-
-  return (activity > 0 && FD_ISSET(STDIN_FILENO, &readfds));
-}
-
-void frameProcessing(cv::VideoCapture& cap, ObjectDetector& obj_detector) {
+void process_video(cv::VideoCapture& cap, ObjectDetector& obj_detector) {
   cv::Mat frame;
   std::pair<int, int> target_pos = {500, 300};
   std::pair<int, int> laser_pos;
 
   while (true) {
-    if (!paused or paused) {
-      frame = process_frame(cap);
-      laser_pos = obj_detector.detectLaser(frame);
-      // display_frame(frame, laser_pos, target_pos);
-
-      // Add delay here to adjust frame rate if necessary
-      // std::this_thread::sleep_for(std::chrono::milliseconds(delayTime));
+    cap >> frame;
+    if (frame.empty()) {
+      std::cout << "frame is empty" << std::endl;
+      exit(0);
     }
+    cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
+    laser_pos = obj_detector.detectLaser(frame);
+
+    // Add delay here to adjust frame rate if necessary
+    // std::this_thread::sleep_for(std::chrono::milliseconds(delayTime));
   }
 }
 
-void turretControl(std::pair<int, int>& laser_pos,
-                   std::pair<int, int>& target_pos) {
+void turret_control(std::pair<int, int>& laser_pos,
+                    std::pair<int, int>& target_pos) {
   int ch;
-  std::string state = manual_mode ? "ON" : "OFF";
+  std::string state = manual_mode ? "Manual" : "Auto";
   init_ncurses();
   while (true) {
     ch = getch();
     if (ch == 'h') {
       manual_mode = !manual_mode;
       if (manual_mode) {
-        std::cout << "Manual mode: ON" << std::endl;
-        // init_ncurses();
+        std::cout << "Manual" << std::endl;
       } else {
-        // endwin();  // End ncurses mode
-        std::cout << "Manual mode: OFF" << std::endl;
+        std::cout << "Auto" << std::endl;
       }
-    } else if (manual_mode and ch == ERR) {
-      driver::stop_all_motors();
+    } else if (manual_mode and ch == -1) {
+      // -1 is returned when noting is pressed before the timeout period.
+      turret::stop_all_motors();
     }
 
     if (manual_mode) {
@@ -173,7 +104,6 @@ void turretControl(std::pair<int, int>& laser_pos,
 
 int main(void) {
   cv::VideoCapture cap = init_system();
-
   cv::Mat initial_frame;
   cap >> initial_frame;
   cv::resize(initial_frame, initial_frame, cv::Size(), SCALING_FACTOR,
@@ -188,47 +118,14 @@ int main(void) {
   cv::Mat frame;
 
   // Launch the threads
-  std::thread processingThread(frameProcessing, std::ref(cap),
+  std::thread processingThread(process_video, std::ref(cap),
                                std::ref(obj_detector));
-  std::thread controlThread(turretControl, std::ref(laser_pos),
+  std::thread controlThread(turret_control, std::ref(laser_pos),
                             std::ref(target_pos));
 
   // Join the threads (or use detach based on requirements)
   processingThread.join();
   controlThread.join();
-
-  // init_ncurses();
-  // int ch;
-  // while (true) {
-  //   // if (is_key_pressed()) {
-  //   //   char ch;
-  //   //   std::cin >> ch;
-  //   //   std::cout << "Key Pressed: " << ch << std::endl;
-  //   //   if (ch == 'h' or ch == 'H') {
-  //   //     manual_mode = !manual_mode;
-  //   //     std::cout << "Manual mode: " << manual_mode << std::flush;
-  //   //   }
-  //   // }
-  //   if (manual_mode) {
-  //     ch = getch();
-  //     if (ch == 'h') {
-  //       manual_mode = 0;
-  //       endwin();  // End ncurses mode
-  //       std::cout << "Manual mode: OFF" << std::endl;
-  //     } else if (ch == ERR) {
-  //       driver::stop_all_motors();
-  //     } else {
-  //       turret::manual_control(ch);
-  //     }
-  //   } else {
-  //     if (!paused or paused) {
-  //       frame = process_frame(cap);
-  //       laser_pos = obj_detector.detectLaser(frame);
-  //       display_frame(frame, laser_pos, target_pos);
-  //       turret::auto_control(laser_pos, target_pos);
-  //     }
-  //   }
-  // }
 
   return 0;
 }
