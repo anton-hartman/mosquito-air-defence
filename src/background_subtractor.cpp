@@ -1,4 +1,4 @@
-#include "background_subtractor.hpp"
+#include "../include/background_subtractor.hpp"
 
 BackgroundSubtractor::BackgroundSubtractor(const cv::Mat& first_frame,
                                            float alpha)

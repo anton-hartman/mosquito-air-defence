@@ -1,8 +1,8 @@
 
-#include "turret_controller.hpp"
+#include "../include/turret_controller.hpp"
 #include <JetsonGPIO.h>
 #include <ncurses.h>
-#include "../utils.hpp"
+#include "../include/utils.hpp"
 
 namespace turret {
 

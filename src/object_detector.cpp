@@ -1,5 +1,5 @@
-#include "object_detector.hpp"
-#include "../utils.hpp"
+#include "../include/object_detector.hpp"
+#include "../include/utils.hpp"
 
 ObjectDetector::ObjectDetector(const cv::Mat& first_frame, float alpha)
     : bg_subtractor(first_frame, alpha) {}

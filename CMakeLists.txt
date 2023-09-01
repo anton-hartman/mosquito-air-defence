@@ -19,19 +19,17 @@ include_directories(
 # List all source and header files
 set(SOURCE_FILES
     main.cpp
-    src/turret/turret_controller.cpp
-    # src/turret/hr8825_driver.cpp
+    src/turret_controller.cpp
     src/utils.cpp
-    src/detection/object_detector.cpp
-    src/detection/background_subtractor.cpp
+    src/object_detector.cpp
+    src/background_subtractor.cpp
 )
 
 set(HEADER_FILES
-    src/turret/turret_controller.hpp
-    # src/turret/hr8825_driver.hpp
-    src/utils.hpp
-    src/detection/object_detector.hpp
-    src/detection/background_subtractor.hpp
+    include/turret_controller.hpp
+    include/utils.hpp
+    include/object_detector.hpp
+    include/background_subtractor.hpp
 )
 
 # Add executable

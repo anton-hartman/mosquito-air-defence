@@ -5,9 +5,9 @@
 #include <signal.h>
 #include <opencv2/opencv.hpp>
 #include <thread>
-#include "src/detection/object_detector.hpp"
-#include "src/turret/turret_controller.hpp"
-#include "src/utils.hpp"
+#include "include/object_detector.hpp"
+#include "include/turret_controller.hpp"
+#include "include/utils.hpp"
 
 const float SCALING_FACTOR = 1.0;
 const float ALPHA = 0.01;
