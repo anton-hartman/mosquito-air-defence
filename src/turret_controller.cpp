@@ -86,16 +86,16 @@ void manual_control(int ch) {
   const int steps = 100;
   switch (ch) {
     case KEY_UP:
-      turn_motor(y_stepper, steps, STEP_DELAY);
-      break;
-    case KEY_DOWN:
       turn_motor(y_stepper, -steps, STEP_DELAY);
       break;
+    case KEY_DOWN:
+      turn_motor(y_stepper, steps, STEP_DELAY);
+      break;
     case KEY_LEFT:
-      turn_motor(x_stepper, steps, STEP_DELAY);
+      turn_motor(x_stepper, -steps, STEP_DELAY);
       break;
     case KEY_RIGHT:
-      turn_motor(x_stepper, -steps, STEP_DELAY);
+      turn_motor(x_stepper, steps, STEP_DELAY);
       break;
     default:
       break;

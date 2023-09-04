@@ -7,6 +7,10 @@ Detection::Detection(const cv::Mat& first_frame, float alpha) {
   background.convertTo(background, CV_32F);
 }
 
+/**
+ * @brief Perfroms background subtraction and updates the background model
+ * according to alpha.
+ */
 cv::Mat Detection::subtract(const cv::Mat& frame) {
   // Convert frame to grayscale
   cv::Mat gray_frame;
@@ -133,7 +137,7 @@ std::pair<int, int> Detection::detect_laser(const cv::Mat& frame) {
   cv::vconcat(concatenatedOutput, displayFrame, concatenatedOutput);
 
   // Resize the concatenated output to fit the screen if necessary
-  const int screenWidth = 1500;  // Modify this as per your screen resolution
+  const int screenWidth = 1200;  // Modify this as per your screen resolution
   if (concatenatedOutput.cols > screenWidth) {
     float scale = (float)screenWidth / concatenatedOutput.cols;
     cv::resize(concatenatedOutput, concatenatedOutput, cv::Size(), scale,
