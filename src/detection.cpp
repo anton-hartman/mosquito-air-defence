@@ -54,6 +54,8 @@ std::vector<std::vector<int>> Detection::detect_mosquitoes(
 }
 
 std::pair<int, int> Detection::detect_laser(const cv::Mat& frame) {
+  std::pair<int, int> laser_pos;
+
   // Convert to HSV
   cv::Mat hsv;
   cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
@@ -115,6 +117,8 @@ std::pair<int, int> Detection::detect_laser(const cv::Mat& frame) {
         cv::Point centerWhite(rectWhite.x + rectWhite.width / 2,
                               rectWhite.y + rectWhite.height / 2);
         cv::circle(displayFrame, centerWhite, 4, cv::Scalar(255, 0, 0), -1);
+        laser_pos.first = centerWhite.x;
+        laser_pos.second = centerWhite.y;
       }
     }
   }

@@ -1,10 +1,12 @@
-
-
 #include <ncurses.h>
 #undef OK  // ncurses and opencv have a macro conflict
 #include <signal.h>
+#include <cmath>
 #include <opencv2/opencv.hpp>
 #include <thread>
+#include <utility>
+#include <vector>
+#include "camera_calibration.cpp"
 #include "include/detection.hpp"
 #include "include/turret_controller.hpp"
 #include "include/utils.hpp"
@@ -14,6 +16,29 @@ const float ALPHA = 0.01;
 
 cv::VideoCapture cap;
 int manual_mode = 1;
+std::pair<int, int> target_angle = {500, 300};
+std::pair<int, int> laser_angle;
+
+struct {
+  const std::vector<float> matrix = {647.0756309728268,
+                                     0,
+                                     304.4404590127848,
+                                     0,
+                                     861.7363873209705,
+                                     257.5858878142162,
+                                     0,
+                                     0,
+                                     1};
+
+  const float depth = 1104;  // mm
+  cv::Mat dist_coeffs;
+  cv::Mat rotation_vec;
+  cv::Mat translation_vec;
+} camera;
+
+// cv::Mat camera_matrix = {{647.1989517973021, 0, 304.5520689814848},
+//                          {0, 646.9953899386747, 257.6655264584437},
+//                          {0, 0, 1}};
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -54,9 +79,20 @@ cv::VideoCapture init_system(void) {
   return cap;
 }
 
+std::pair<int, int> pixel_to_mm(const std::pair<float, float>& pixelPoint) {
+  float fx = camera.matrix[0];  // 0, 0
+  float fy = camera.matrix[4];  // 1, 1
+  float cx = camera.matrix[2];  // 0, 2
+  float cy = camera.matrix[5];  // 1, 2
+
+  float X = (pixelPoint.first - cx) * camera.depth / fx;
+  float Y = (pixelPoint.second - cy) * camera.depth / fy;
+
+  return {static_cast<int>(X), static_cast<int>(Y)};
+}
+
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
-  std::pair<int, int> laser_pos;
 
   while (true) {
     cap >> frame;
@@ -65,15 +101,17 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       exit(0);
     }
     cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
-    laser_pos = detector.detect_laser(frame);
+    laser_angle = detector.detect_laser(frame);
+    laser_angle = pixel_to_mm(laser_angle);
+    laser_angle = {std::atan2(laser_angle.first, camera.depth),
+                   std::atan2(laser_angle.second, camera.depth)};
 
     // Add delay here to adjust frame rate if necessary
     // std::this_thread::sleep_for(std::chrono::milliseconds(delayTime));
   }
 }
 
-void turret_control(std::pair<int, int>& laser_pos,
-                    std::pair<int, int>& target_pos) {
+void turret_control(void) {
   int ch;
   std::string state = manual_mode ? "Manual" : "Auto";
   init_ncurses();
@@ -92,14 +130,34 @@ void turret_control(std::pair<int, int>& laser_pos,
     } else if (manual_mode and ch == -1) {
       // -1 is returned when noting is pressed before the timeout period.
       turret::stop_all_motors();
-    }
-
-    if (manual_mode) {
-      turret::manual_control(ch);
     } else {
-      // Assuming laser_pos and target_pos are global/shared variables,
-      // ensure safe access using a mutex or other synchronization mechanisms.
-      turret::auto_control(laser_pos, target_pos);
+      if (manual_mode) {
+        turret::manual_control(ch);
+      } else {
+        switch (ch) {
+          case KEY_UP:
+            target_angle.second -= 100;
+            break;
+          case KEY_DOWN:
+            target_angle.second += 100;
+            break;
+          case KEY_LEFT:
+            target_angle.first -= 100;
+            break;
+          case KEY_RIGHT:
+            target_angle.first += 100;
+            break;
+          default:
+            break;
+        }
+        target_angle = pixel_to_mm(target_angle);
+        target_angle = {std::atan2(target_angle.first, camera.depth),
+                        std::atan2(target_angle.second, camera.depth)};
+        // Assuming laser_angle and target_angle are global/shared variables,
+        // ensure safe access using a mutex or other synchronization
+        // mechanisms.
+        turret::auto_control(laser_angle, target_angle);
+      }
     }
   }
 }
@@ -115,18 +173,15 @@ int main(void) {
   detector.set_white_thresholds(0, 0, 245, 180, 20, 255);
   detector.create_threshold_trackbars();
 
-  std::pair<int, int> target_pos = {500, 300};
-  std::pair<int, int> laser_pos;
-  cv::Mat frame;
-
   // Launch the threads
   std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
-  std::thread turret_thread(turret_control, std::ref(laser_pos),
-                            std::ref(target_pos));
+  std::thread turret_thread(turret_control);
 
   // Join the threads (or use detach based on requirements)
   video_thread.join();
   turret_thread.join();
+
+  // calibrate_cam();
 
   return 0;
 }

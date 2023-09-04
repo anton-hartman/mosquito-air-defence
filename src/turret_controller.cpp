@@ -2,6 +2,7 @@
 #include "../include/turret_controller.hpp"
 #include <JetsonGPIO.h>
 #include <ncurses.h>
+#include <iostream>
 #include "../include/utils.hpp"
 
 namespace turret {
@@ -24,7 +25,9 @@ typedef struct {
   uint8_t enable_pin;
   uint8_t direction_pin;
   uint8_t step_pin;
-  int step_count;
+  int step_count = 0;
+  int pos_step_limit = 1000000;
+  int neg_step_limit = -1000000;
 } Stepper;
 
 static Stepper x_stepper;
@@ -61,9 +64,25 @@ void stop_all_motors(void) {
   stop_motor(y_stepper);
 }
 
-static void turn_motor(Stepper& stepper, int steps, int step_delay) {
+static void turn_motor(Stepper& stepper,
+                       int steps,
+                       int step_delay,
+                       bool manual = false) {
   if (steps == 0)
     return;
+
+  // Check if the desired movement will surpass the positive limit
+  if (!manual) {
+    if (stepper.step_count + steps > stepper.pos_step_limit) {
+      steps = stepper.pos_step_limit - stepper.step_count;
+      std::cout << "Positive stepper limit reached" << std::endl;
+    }
+    // Check if the desired movement will surpass the negative limit
+    else if (stepper.step_count + steps < stepper.neg_step_limit) {
+      steps = stepper.neg_step_limit - stepper.step_count;
+      std::cout << "Negative stepper limit reached" << std::endl;
+    }
+  }
 
   GPIO::output(stepper.enable_pin, GPIO::HIGH);
   if (steps > 0) {
@@ -86,16 +105,36 @@ void manual_control(int ch) {
   const int steps = 100;
   switch (ch) {
     case KEY_UP:
-      turn_motor(y_stepper, -steps, STEP_DELAY);
+      turn_motor(y_stepper, -steps, STEP_DELAY, true);
       break;
     case KEY_DOWN:
-      turn_motor(y_stepper, steps, STEP_DELAY);
+      turn_motor(y_stepper, steps, STEP_DELAY, true);
       break;
     case KEY_LEFT:
-      turn_motor(x_stepper, -steps, STEP_DELAY);
+      turn_motor(x_stepper, -steps, STEP_DELAY, true);
       break;
     case KEY_RIGHT:
-      turn_motor(x_stepper, steps, STEP_DELAY);
+      turn_motor(x_stepper, steps, STEP_DELAY, true);
+      break;
+    case 'w':
+      y_stepper.neg_step_limit = y_stepper.step_count;
+      std::cout << "y_stepper.neg_step_limit: " << y_stepper.neg_step_limit
+                << std::endl;
+      break;
+    case 's':
+      y_stepper.pos_step_limit = y_stepper.step_count;
+      std::cout << "y_stepper.pos_step_limit: " << y_stepper.pos_step_limit
+                << std::endl;
+      break;
+    case 'a':
+      x_stepper.neg_step_limit = x_stepper.step_count;
+      std::cout << "x_stepper.neg_step_limit: " << x_stepper.neg_step_limit
+                << std::endl;
+      break;
+    case 'd':
+      x_stepper.pos_step_limit = x_stepper.step_count;
+      std::cout << "x_stepper.pos_step_limit: " << x_stepper.pos_step_limit
+                << std::endl;
       break;
     default:
       break;
@@ -106,6 +145,8 @@ void auto_control(std::pair<int, int> detected_angle,
                   std::pair<int, int> target_angle) {
   if (detected_angle.first == target_angle.first and
       detected_angle.second == target_angle.second) {
+    std::cout << "Auto" << detected_angle.first << " " << target_angle.second
+              << std::endl;
     return;
   }
 

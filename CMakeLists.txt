@@ -22,6 +22,7 @@ set(SOURCE_FILES
     src/turret_controller.cpp
     src/utils.cpp
     src/detection.cpp
+    # src/camera_calibration.cpp
 )
 
 set(HEADER_FILES
