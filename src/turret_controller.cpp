@@ -2,7 +2,10 @@
 #include "../include/turret_controller.hpp"
 #include <JetsonGPIO.h>
 #include <ncurses.h>
+#include <unistd.h>
+#include <chrono>
 #include <iostream>
+#include <thread>
 #include "../include/utils.hpp"
 
 namespace turret {
@@ -15,10 +18,10 @@ namespace turret {
 #define M2_DIR_PIN 18
 #define M2_STEP_PIN 12
 
-const int FULL_STEP_ANGLE = 0.17578125;
+const float FULL_STEP_ANGLE = 0.17578125;
 const int MICROSTEPS = 16;
 const double MICROSTEP_ANGLE = FULL_STEP_ANGLE / MICROSTEPS;
-const int STEP_DELAY = 3;
+const float STEP_DELAY = 3;
 const double MIRCOSTEP_DELAY = STEP_DELAY / MICROSTEPS;
 
 typedef struct {
@@ -93,7 +96,9 @@ static void turn_motor(Stepper& stepper,
 
   for (uint32_t i = 0; i < abs(steps); i++) {
     GPIO::output(stepper.step_pin, GPIO::HIGH);
-    utils::microstep_delay_ms(step_delay, MICROSTEPS);
+    std::this_thread::sleep_for(std::chrono::microseconds((step_delay)));
+    usleep(step_delay);
+    // utils::microstep_delay_ms(step_delay, MICROSTEPS);
     GPIO::output(stepper.step_pin, GPIO::LOW);
     utils::microstep_delay_ms(step_delay, MICROSTEPS);
   }

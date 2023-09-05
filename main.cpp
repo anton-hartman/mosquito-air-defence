@@ -13,6 +13,7 @@
 
 const float SCALING_FACTOR = 1.0;
 const float ALPHA = 0.01;
+const float FRAME_TIME_MS = 1000 / 30.0;
 
 cv::VideoCapture cap;
 int manual_mode = 1;
@@ -29,16 +30,8 @@ struct {
                                      0,
                                      0,
                                      1};
-
   const float depth = 1104;  // mm
-  cv::Mat dist_coeffs;
-  cv::Mat rotation_vec;
-  cv::Mat translation_vec;
 } camera;
-
-// cv::Mat camera_matrix = {{647.1989517973021, 0, 304.5520689814848},
-//                          {0, 646.9953899386747, 257.6655264584437},
-//                          {0, 0, 1}};
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -95,6 +88,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
 
   while (true) {
+    std::chrono::high_resolution_clock::time_point loop_start_time =
+        std::chrono::high_resolution_clock::now();
+
     cap >> frame;
     if (frame.empty()) {
       std::cout << "frame is empty" << std::endl;
@@ -106,8 +102,23 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     laser_angle = {std::atan2(laser_angle.first, camera.depth),
                    std::atan2(laser_angle.second, camera.depth)};
 
-    // Add delay here to adjust frame rate if necessary
-    // std::this_thread::sleep_for(std::chrono::milliseconds(delayTime));
+    std::chrono::high_resolution_clock::time_point loop_end_time =
+        std::chrono::high_resolution_clock::now();
+    long long loop_duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time -
+                                                              loop_start_time)
+            .count();
+
+    if (loop_duration < FRAME_TIME_MS) {
+      // You have additional time before the next frame is expected.
+      // This can be used as idle time or for other tasks.
+
+      // std::this_thread::sleep_for(std::chrono::milliseconds(
+      //     static_cast<int>(FRAME_TIME_MS - loop_duration)));
+    } else {
+      // Processing took longer than expected for a frame.
+      // Consider dropping frames or optimizing your processing.
+    }
   }
 }
 
