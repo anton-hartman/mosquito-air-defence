@@ -3,6 +3,7 @@
 #include <JetsonGPIO.h>
 #include <ncurses.h>
 #include <unistd.h>
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <thread>
@@ -19,22 +20,13 @@ namespace turret {
 #define M2_STEP_PIN 12
 
 const float FULL_STEP_ANGLE = 0.17578125;
-const int MICROSTEPS = 16;
+const uint8_t MICROSTEPS = 16;
 const double MICROSTEP_ANGLE = FULL_STEP_ANGLE / MICROSTEPS;
 const float STEP_DELAY = 3;
-const double MIRCOSTEP_DELAY = STEP_DELAY / MICROSTEPS;
+// const float MIRCOSTEP_DELAY = STEP_DELAY / MICROSTEPS;
 
-typedef struct {
-  uint8_t enable_pin;
-  uint8_t direction_pin;
-  uint8_t step_pin;
-  int step_count = 0;
-  int pos_step_limit = 1000000;
-  int neg_step_limit = -1000000;
-} Stepper;
-
-static Stepper x_stepper;
-static Stepper y_stepper;
+std::atomic<bool> new_target_flag(false);
+std::atomic<bool> run_flag(true);
 
 void init(void) {
   GPIO::setmode(GPIO::BOARD);
@@ -67,103 +59,69 @@ void stop_all_motors(void) {
   stop_motor(y_stepper);
 }
 
-static void turn_motor(Stepper& stepper,
-                       int steps,
-                       int step_delay,
-                       bool manual = false) {
-  if (steps == 0)
-    return;
+void update_target(const utils::Point target_px) {}
 
-  // Check if the desired movement will surpass the positive limit
-  if (!manual) {
-    if (stepper.step_count + steps > stepper.pos_step_limit) {
-      steps = stepper.pos_step_limit - stepper.step_count;
-      std::cout << "Positive stepper limit reached" << std::endl;
-    }
-    // Check if the desired movement will surpass the negative limit
-    else if (stepper.step_count + steps < stepper.neg_step_limit) {
-      steps = stepper.neg_step_limit - stepper.step_count;
-      std::cout << "Negative stepper limit reached" << std::endl;
-    }
-  }
+void update_target_steps(const int x_steps, const int y_steps) {
+  x_stepper.target_step_count += x_steps;
+  y_stepper.target_step_count += y_steps;
+  new_target_flag.store(true);
+}
 
-  GPIO::output(stepper.enable_pin, GPIO::HIGH);
+utils::Circle get_laser_belief_region(void) {
+  std::pair<uint16_t, uint16_t> pixel_point =
+      utils::angle_to_pixel({x_stepper.step_count * MICROSTEP_ANGLE,
+                             y_stepper.step_count * MICROSTEP_ANGLE});
+  utils::Circle belief_region;
+  belief_region.x = pixel_point.first;
+  belief_region.y = pixel_point.second;
+  belief_region.radius = 100;
+  new_target_flag.store(true);
+  return belief_region;
+}
+
+void correct_laser_belief_region(const utils::Point& laser_detected_px) {}
+
+static uint32_t get_steps_and_set_direction(Stepper& stepper) {
+  uint32_t steps = stepper.target_step_count - stepper.step_count;
   if (steps > 0) {
     GPIO::output(stepper.direction_pin, GPIO::LOW);
+    stepper.direction = 0;
   } else {
     GPIO::output(stepper.direction_pin, GPIO::HIGH);
+    stepper.direction = 1;
   }
-
-  for (uint32_t i = 0; i < abs(steps); i++) {
-    GPIO::output(stepper.step_pin, GPIO::HIGH);
-    std::this_thread::sleep_for(std::chrono::microseconds((step_delay)));
-    usleep(step_delay);
-    // utils::microstep_delay_ms(step_delay, MICROSTEPS);
-    GPIO::output(stepper.step_pin, GPIO::LOW);
-    utils::microstep_delay_ms(step_delay, MICROSTEPS);
-  }
-
-  stepper.step_count += steps;
+  return abs(steps);
 }
 
-void manual_control(int ch) {
-  const int steps = 100;
-  switch (ch) {
-    case KEY_UP:
-      turn_motor(y_stepper, -steps, STEP_DELAY, true);
-      break;
-    case KEY_DOWN:
-      turn_motor(y_stepper, steps, STEP_DELAY, true);
-      break;
-    case KEY_LEFT:
-      turn_motor(x_stepper, -steps, STEP_DELAY, true);
-      break;
-    case KEY_RIGHT:
-      turn_motor(x_stepper, steps, STEP_DELAY, true);
-      break;
-    case 'w':
-      y_stepper.neg_step_limit = y_stepper.step_count;
-      std::cout << "y_stepper.neg_step_limit: " << y_stepper.neg_step_limit
-                << std::endl;
-      break;
-    case 's':
-      y_stepper.pos_step_limit = y_stepper.step_count;
-      std::cout << "y_stepper.pos_step_limit: " << y_stepper.pos_step_limit
-                << std::endl;
-      break;
-    case 'a':
-      x_stepper.neg_step_limit = x_stepper.step_count;
-      std::cout << "x_stepper.neg_step_limit: " << x_stepper.neg_step_limit
-                << std::endl;
-      break;
-    case 'd':
-      x_stepper.pos_step_limit = x_stepper.step_count;
-      std::cout << "x_stepper.pos_step_limit: " << x_stepper.pos_step_limit
-                << std::endl;
-      break;
-    default:
-      break;
+void run_stepper(Stepper& stepper) {
+  const uint16_t DELAY_US = 3000 / MICROSTEPS;
+
+  while (run_flag.load()) {
+    for (uint32_t i = 0; i < get_steps_and_set_direction(stepper); i++) {
+      GPIO::output(stepper.step_pin, GPIO::HIGH);
+      std::this_thread::sleep_for(std::chrono::microseconds(DELAY_US));
+      GPIO::output(stepper.step_pin, GPIO::LOW);
+
+      std::chrono::high_resolution_clock::time_point loop_start_time =
+          std::chrono::high_resolution_clock::now();
+      if (stepper.direction) {
+        stepper.step_count += 1;
+      } else {
+        stepper.step_count -= 1;
+      }
+      if (new_target_flag.load()) {
+        new_target_flag.store(false);
+        break;
+      }
+      std::chrono::high_resolution_clock::time_point loop_end_time =
+          std::chrono::high_resolution_clock::now();
+      uint32_t loop_duration =
+          std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time -
+                                                                loop_start_time)
+              .count();
+      std::this_thread::sleep_for(std::chrono::microseconds(DELAY_US));
+    }
   }
-}
-
-void auto_control(std::pair<int, int> detected_angle,
-                  std::pair<int, int> target_angle) {
-  if (detected_angle.first == target_angle.first and
-      detected_angle.second == target_angle.second) {
-    std::cout << "Auto" << detected_angle.first << " " << target_angle.second
-              << std::endl;
-    return;
-  }
-
-  turn_motor(x_stepper,
-             ((detected_angle.first - target_angle.first) / MICROSTEP_ANGLE),
-             STEP_DELAY);
-  stop_motor(x_stepper);
-
-  turn_motor(y_stepper,
-             ((detected_angle.second - target_angle.second) / MICROSTEP_ANGLE),
-             STEP_DELAY);
-  stop_motor(y_stepper);
 }
 
 void home_steppers(void) {

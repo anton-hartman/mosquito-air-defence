@@ -11,27 +11,45 @@
 #include "include/turret_controller.hpp"
 #include "include/utils.hpp"
 
+std::mutex mtx;
+
 const float SCALING_FACTOR = 1.0;
 const float ALPHA = 0.01;
 const float FRAME_TIME_MS = 1000 / 30.0;
+const std::vector<float> CAMERA_MATRIX = {647.0756309728268,
+                                          0,
+                                          304.4404590127848,
+                                          0,
+                                          861.7363873209705,
+                                          257.5858878142162,
+                                          0,
+                                          0,
+                                          1};
+const float CAMERA_DEPTH = 1104;  // mm
 
 cv::VideoCapture cap;
 int manual_mode = 1;
-std::pair<int, int> target_angle = {500, 300};
-std::pair<int, int> laser_angle;
+// std::pair<int, int> target_angle = {500, 300};
+// std::pair<int, int> laser_angle;
 
-struct {
-  const std::vector<float> matrix = {647.0756309728268,
-                                     0,
-                                     304.4404590127848,
-                                     0,
-                                     861.7363873209705,
-                                     257.5858878142162,
-                                     0,
-                                     0,
-                                     1};
-  const float depth = 1104;  // mm
-} camera;
+// Data shared accross threads (use mutex to ensure safe access)
+// Laser co-ordinates plus uncertainty in pixels
+utils::Circle laser_belief_region_px;
+// Laser co-ordinates detected by camera in pixels
+utils::Point laser_detected_px;
+// Target co-ordinates in pixels
+utils::Point target_px;
+
+// struct SharedData {
+//   // Updated by turret thread, read by detection thread
+//   std::pair<int, int> counted_laser_position;
+//   // Updated by detection thread, read by turret thread
+//   std::pair<int, int> detected_laser_position;
+//   // Updated by detection thread, read by turret thread
+//   std::pair<int, int> target_position;
+//   // Flag to indicate when a new frame is ready for processing
+//   bool new_frame_ready = false;
+// };
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -72,18 +90,6 @@ cv::VideoCapture init_system(void) {
   return cap;
 }
 
-std::pair<int, int> pixel_to_mm(const std::pair<float, float>& pixelPoint) {
-  float fx = camera.matrix[0];  // 0, 0
-  float fy = camera.matrix[4];  // 1, 1
-  float cx = camera.matrix[2];  // 0, 2
-  float cy = camera.matrix[5];  // 1, 2
-
-  float X = (pixelPoint.first - cx) * camera.depth / fx;
-  float Y = (pixelPoint.second - cy) * camera.depth / fy;
-
-  return {static_cast<int>(X), static_cast<int>(Y)};
-}
-
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
 
@@ -92,19 +98,26 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
         std::chrono::high_resolution_clock::now();
 
     cap >> frame;
+    {
+      std::lock_guard<std::mutex> lock(mtx);
+      laser_belief_region_px = turret::get_laser_belief_region();
+    }
+
     if (frame.empty()) {
       std::cout << "frame is empty" << std::endl;
       exit(0);
     }
     cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
-    laser_angle = detector.detect_laser(frame);
-    laser_angle = pixel_to_mm(laser_angle);
-    laser_angle = {std::atan2(laser_angle.first, camera.depth),
-                   std::atan2(laser_angle.second, camera.depth)};
+
+    {
+      std::lock_guard<std::mutex> lock(mtx);
+      laser_detected_px = detector.detect_laser(frame, laser_belief_region_px);
+      turret::correct_laser_belief_region(laser_detected_px);
+    }
 
     std::chrono::high_resolution_clock::time_point loop_end_time =
         std::chrono::high_resolution_clock::now();
-    long long loop_duration =
+    uint32_t loop_duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time -
                                                               loop_start_time)
             .count();
@@ -116,6 +129,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       // std::this_thread::sleep_for(std::chrono::milliseconds(
       //     static_cast<int>(FRAME_TIME_MS - loop_duration)));
     } else {
+      std::cout << "Processing took longer than expected for a frame."
+                << std::endl;
       // Processing took longer than expected for a frame.
       // Consider dropping frames or optimizing your processing.
     }
@@ -127,6 +142,7 @@ void turret_control(void) {
   std::string state = manual_mode ? "Manual" : "Auto";
   init_ncurses();
   while (true) {
+    // std::lock_guard<std::mutex> lock(mtx);
     ch = getch();
     if (ch == 'm') {
       manual_mode = !manual_mode;
@@ -143,31 +159,33 @@ void turret_control(void) {
       turret::stop_all_motors();
     } else {
       if (manual_mode) {
-        turret::manual_control(ch);
+        // turret::manual_control(ch);
       } else {
         switch (ch) {
           case KEY_UP:
-            target_angle.second -= 100;
+            target_px.y -= 100;
             break;
           case KEY_DOWN:
-            target_angle.second += 100;
+            target_px.y += 100;
             break;
           case KEY_LEFT:
-            target_angle.first -= 100;
+            target_px.x -= 100;
             break;
           case KEY_RIGHT:
-            target_angle.first += 100;
+            target_px.x += 100;
             break;
           default:
             break;
         }
-        target_angle = pixel_to_mm(target_angle);
-        target_angle = {std::atan2(target_angle.first, camera.depth),
-                        std::atan2(target_angle.second, camera.depth)};
+        // target_px =
+        //     pixel_to_mm(target_px, CAMERA_MATRIX, CAMERA_DEPTH);
+        // target_px = {std::atan2(target_px.x, CAMERA_DEPTH),
+        //                       std::atan2(target_px.y,
+        //                       CAMERA_DEPTH)};
         // Assuming laser_angle and target_angle are global/shared variables,
         // ensure safe access using a mutex or other synchronization
         // mechanisms.
-        turret::auto_control(laser_angle, target_angle);
+        // turret::auto_control();
       }
     }
   }

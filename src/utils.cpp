@@ -2,21 +2,23 @@
 
 namespace utils {
 
-void microstep_delay_ms(uint32_t ms, uint8_t microsteps) {
-  int basedelay = 50000 / microsteps;
-  for (int j = ms; j > 0; j--)
-    for (int i = basedelay; i > 0; i--)
-      ;
+std::pair<float, float> pixel_to_mm(const Point& pixel_point,
+                                    const std::vector<float> camera_matrix,
+                                    const float camera_depth) {
+  float fx = camera_matrix[0];  // 0, 0
+  float fy = camera_matrix[4];  // 1, 1
+  float cx = camera_matrix[2];  // 0, 2
+  float cy = camera_matrix[5];  // 1, 2
+
+  float X = (pixel_point.x - cx) * camera_depth / fx;
+  float Y = (pixel_point.y - cy) * camera_depth / fy;
+
+  return {X, Y};
 }
 
-void delay_ms(uint32_t ms) {
-  microstep_delay_ms(ms, 1);
-}
-
-void delay_us(uint32_t us) {
-  int j;
-  for (j = us; j > 0; j--)
-    ;
+std::pair<uint16_t, uint16_t> angle_to_pixel(
+    const std::pair<float, float>& angle) {
+  return {69, 69};
 }
 
 }  // namespace utils
