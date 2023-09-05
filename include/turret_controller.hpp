@@ -1,25 +1,28 @@
 
 #pragma once
 
+#include <atomic>
 #include <cstdint>
-#include <mutex>
+// #include <mutex>
 #include "utils.hpp"
 
 namespace turret {
 
 struct Stepper {
-  uint8_t enable_pin;
-  uint8_t direction_pin;
-  uint8_t step_pin;
+  const uint8_t enable_pin;
+  const uint8_t direction_pin;
+  const uint8_t step_pin;
   uint8_t direction = 0;
-  int32_t step_count = 0;
-  int32_t target_step_count = 0;
   int32_t pos_step_limit = 1'000'000;
   int32_t neg_step_limit = -1'000'000;
+  std::atomic<int32_t> step_count;
+  std::atomic<int32_t> target_step_count;
+
+  Stepper(uint8_t enable_pin, uint8_t direction_pin, uint8_t step_pin);
 };
 
-Stepper x_stepper;
-Stepper y_stepper;
+// extern Stepper x_stepper;
+// extern Stepper y_stepper;
 
 void init(void);
 utils::Circle get_laser_belief_region(void);

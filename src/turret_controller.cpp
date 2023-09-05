@@ -3,7 +3,6 @@
 #include <JetsonGPIO.h>
 #include <ncurses.h>
 #include <unistd.h>
-#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <thread>
@@ -22,11 +21,19 @@ namespace turret {
 const float FULL_STEP_ANGLE = 0.17578125;
 const uint8_t MICROSTEPS = 16;
 const double MICROSTEP_ANGLE = FULL_STEP_ANGLE / MICROSTEPS;
-const float STEP_DELAY = 3;
-// const float MIRCOSTEP_DELAY = STEP_DELAY / MICROSTEPS;
+const float STEP_DELAY_MS = 3;
+// const float MIRCOSTEP_DELAY = STEP_DELAY_MS / MICROSTEPS;
 
 std::atomic<bool> new_target_flag(false);
 std::atomic<bool> run_flag(true);
+
+Stepper::Stepper(uint8_t enable_pin, uint8_t direction_pin, uint8_t step_pin)
+    : enable_pin(enable_pin),
+      direction_pin(direction_pin),
+      step_pin(step_pin) {}
+
+Stepper x_stepper(M1_ENABLE_PIN, M1_DIR_PIN, M1_STEP_PIN);
+Stepper y_stepper(M2_ENABLE_PIN, M2_DIR_PIN, M2_STEP_PIN);
 
 void init(void) {
   GPIO::setmode(GPIO::BOARD);
@@ -34,16 +41,10 @@ void init(void) {
   GPIO::setup(M1_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
   GPIO::setup(M1_DIR_PIN, GPIO::OUT, GPIO::HIGH);
   GPIO::setup(M1_STEP_PIN, GPIO::OUT, GPIO::LOW);
-  x_stepper.enable_pin = M1_ENABLE_PIN;
-  x_stepper.direction_pin = M1_DIR_PIN;
-  x_stepper.step_pin = M1_STEP_PIN;
 
   GPIO::setup(M2_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
   GPIO::setup(M2_DIR_PIN, GPIO::OUT, GPIO::HIGH);
   GPIO::setup(M2_STEP_PIN, GPIO::OUT, GPIO::LOW);
-  y_stepper.enable_pin = M2_ENABLE_PIN;
-  y_stepper.direction_pin = M2_DIR_PIN;
-  y_stepper.step_pin = M2_STEP_PIN;
 }
 
 static void enable_motor(Stepper& stepper) {
