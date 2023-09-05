@@ -98,10 +98,10 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
         std::chrono::high_resolution_clock::now();
 
     cap >> frame;
-    {
-      std::lock_guard<std::mutex> lock(mtx);
-      laser_belief_region_px = turret::get_laser_belief_region();
-    }
+    // {
+    //   std::lock_guard<std::mutex> lock(mtx);
+    //   laser_belief_region_px = turret::get_laser_belief_region();
+    // }
 
     if (frame.empty()) {
       std::cout << "frame is empty" << std::endl;
@@ -109,11 +109,12 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     }
     cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
 
-    {
-      std::lock_guard<std::mutex> lock(mtx);
-      laser_detected_px = detector.detect_laser(frame, laser_belief_region_px);
-      turret::correct_laser_belief_region(laser_detected_px);
-    }
+    // {
+    //   std::lock_guard<std::mutex> lock(mtx);
+    //   laser_detected_px = detector.detect_laser(frame,
+    //   laser_belief_region_px);
+    //   // turret::correct_laser_belief_region(laser_detected_px);
+    // }
 
     std::chrono::high_resolution_clock::time_point loop_end_time =
         std::chrono::high_resolution_clock::now();
@@ -129,20 +130,18 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       // std::this_thread::sleep_for(std::chrono::milliseconds(
       //     static_cast<int>(FRAME_TIME_MS - loop_duration)));
     } else {
-      std::cout << "Processing took longer than expected for a frame."
-                << std::endl;
+      std::cout << "Processing took longer than expected for a frame. ("
+                << loop_duration << "ms)" << std::endl;
       // Processing took longer than expected for a frame.
       // Consider dropping frames or optimizing your processing.
     }
   }
 }
 
-void turret_control(void) {
+void user_input(void) {
   int ch;
-  std::string state = manual_mode ? "Manual" : "Auto";
   init_ncurses();
   while (true) {
-    // std::lock_guard<std::mutex> lock(mtx);
     ch = getch();
     if (ch == 'm') {
       manual_mode = !manual_mode;
@@ -157,38 +156,18 @@ void turret_control(void) {
     } else if (manual_mode and ch == -1) {
       // -1 is returned when noting is pressed before the timeout period.
       turret::stop_all_motors();
-    } else {
-      if (manual_mode) {
-        // turret::manual_control(ch);
-      } else {
-        switch (ch) {
-          case KEY_UP:
-            target_px.y -= 100;
-            break;
-          case KEY_DOWN:
-            target_px.y += 100;
-            break;
-          case KEY_LEFT:
-            target_px.x -= 100;
-            break;
-          case KEY_RIGHT:
-            target_px.x += 100;
-            break;
-          default:
-            break;
-        }
-        // target_px =
-        //     pixel_to_mm(target_px, CAMERA_MATRIX, CAMERA_DEPTH);
-        // target_px = {std::atan2(target_px.x, CAMERA_DEPTH),
-        //                       std::atan2(target_px.y,
-        //                       CAMERA_DEPTH)};
-        // Assuming laser_angle and target_angle are global/shared variables,
-        // ensure safe access using a mutex or other synchronization
-        // mechanisms.
-        // turret::auto_control();
-      }
+    } else if (manual_mode) {
+      turret::manual_control(ch);
     }
   }
+}
+
+void turret_horizontal(void) {
+  turret::run_stepper(turret::x_stepper);
+}
+
+void turret_vertical(void) {
+  turret::run_stepper(turret::y_stepper);
 }
 
 int main(void) {
@@ -203,12 +182,16 @@ int main(void) {
   detector.create_threshold_trackbars();
 
   // Launch the threads
-  std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
-  std::thread turret_thread(turret_control);
+  // std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
+  std::thread turret_horizontal_thread(turret_horizontal);
+  std::thread turret_vertical_thread(turret_vertical);
+  std::thread user_input_thread(user_input);
 
   // Join the threads (or use detach based on requirements)
-  video_thread.join();
-  turret_thread.join();
+  // video_thread.join();
+  turret_horizontal_thread.join();
+  turret_vertical_thread.join();
+  user_input_thread.join();
 
   // calibrate_cam();
 

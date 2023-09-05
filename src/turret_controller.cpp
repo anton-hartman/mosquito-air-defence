@@ -21,19 +21,27 @@ namespace turret {
 const float FULL_STEP_ANGLE = 0.17578125;
 const uint8_t MICROSTEPS = 16;
 const double MICROSTEP_ANGLE = FULL_STEP_ANGLE / MICROSTEPS;
-const float STEP_DELAY_MS = 3;
-// const float MIRCOSTEP_DELAY = STEP_DELAY_MS / MICROSTEPS;
+const uint16_t STEP_DELAY_US = 3000;
+const uint16_t MICROSTEP_DELAY_US = STEP_DELAY_US / MICROSTEPS;
+const uint16_t BELIEF_REGION_UNCERTAINTY = 100;
 
 std::atomic<bool> new_target_flag(false);
+std::atomic<bool> new_belief_flag(false);
 std::atomic<bool> run_flag(true);
 
-Stepper::Stepper(uint8_t enable_pin, uint8_t direction_pin, uint8_t step_pin)
-    : enable_pin(enable_pin),
+Stepper::Stepper(std::string name,
+                 uint8_t enable_pin,
+                 uint8_t direction_pin,
+                 uint8_t step_pin)
+    : name(name),
+      enable_pin(enable_pin),
       direction_pin(direction_pin),
       step_pin(step_pin) {}
 
-Stepper x_stepper(M1_ENABLE_PIN, M1_DIR_PIN, M1_STEP_PIN);
-Stepper y_stepper(M2_ENABLE_PIN, M2_DIR_PIN, M2_STEP_PIN);
+Stepper x_stepper("x_stepper", M1_ENABLE_PIN, M1_DIR_PIN, M1_STEP_PIN);
+// x_stepper.name = "x_stepper";
+Stepper y_stepper("y_stepper", M2_ENABLE_PIN, M2_DIR_PIN, M2_STEP_PIN);
+// Stepper::y_stepper.name = "y_stepper";
 
 void init(void) {
   GPIO::setmode(GPIO::BOARD);
@@ -60,30 +68,39 @@ void stop_all_motors(void) {
   stop_motor(y_stepper);
 }
 
-void update_target(const utils::Point target_px) {}
+void home_steppers(void) {
+  x_stepper.step_count.store(0);
+  y_stepper.step_count.store(0);
+}
 
-void update_target_steps(const int x_steps, const int y_steps) {
-  x_stepper.target_step_count += x_steps;
-  y_stepper.target_step_count += y_steps;
+// void update_target(const utils::Point target_px) {}
+
+void update_target_steps(Stepper& stepper, int16_t steps) {
+  std::puts("update_target_steps");
+  std::cout << stepper.name << ": new target step count = "
+            << stepper.target_step_count.fetch_add(steps) << std::endl;
   new_target_flag.store(true);
 }
 
 utils::Circle get_laser_belief_region(void) {
   std::pair<uint16_t, uint16_t> pixel_point =
-      utils::angle_to_pixel({x_stepper.step_count * MICROSTEP_ANGLE,
-                             y_stepper.step_count * MICROSTEP_ANGLE});
+      utils::angle_to_pixel({x_stepper.step_count.load() * MICROSTEP_ANGLE,
+                             y_stepper.step_count.load() * MICROSTEP_ANGLE});
   utils::Circle belief_region;
   belief_region.x = pixel_point.first;
   belief_region.y = pixel_point.second;
-  belief_region.radius = 100;
+  belief_region.radius = BELIEF_REGION_UNCERTAINTY;
   new_target_flag.store(true);
   return belief_region;
 }
 
-void correct_laser_belief_region(const utils::Point& laser_detected_px) {}
+// void correct_laser_belief_region(const utils::Point& laser_detected_px) {}
 
 static uint32_t get_steps_and_set_direction(Stepper& stepper) {
-  uint32_t steps = stepper.target_step_count - stepper.step_count;
+  int32_t steps = stepper.target_step_count.load() - stepper.step_count.load();
+  std::cout << "get_steps_and_dir - " << stepper.name
+            << ": target_steps = " << stepper.target_step_count
+            << ", steps = " << steps << std::endl;
   if (steps > 0) {
     GPIO::output(stepper.direction_pin, GPIO::LOW);
     stepper.direction = 0;
@@ -95,39 +112,70 @@ static uint32_t get_steps_and_set_direction(Stepper& stepper) {
 }
 
 void run_stepper(Stepper& stepper) {
-  const uint16_t DELAY_US = 3000 / MICROSTEPS;
-
+  uint32_t steps;
   while (run_flag.load()) {
-    for (uint32_t i = 0; i < get_steps_and_set_direction(stepper); i++) {
+    steps = get_steps_and_set_direction(stepper);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    for (uint32_t i = 0; i < steps; i++) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       GPIO::output(stepper.step_pin, GPIO::HIGH);
-      std::this_thread::sleep_for(std::chrono::microseconds(DELAY_US));
+      std::this_thread::sleep_for(
+          std::chrono::microseconds(MICROSTEP_DELAY_US));
       GPIO::output(stepper.step_pin, GPIO::LOW);
-
-      std::chrono::high_resolution_clock::time_point loop_start_time =
-          std::chrono::high_resolution_clock::now();
-      if (stepper.direction) {
-        stepper.step_count += 1;
-      } else {
-        stepper.step_count -= 1;
-      }
-      if (new_target_flag.load()) {
+      if (new_target_flag.load() or new_belief_flag.load()) {
         new_target_flag.store(false);
+        new_belief_flag.store(false);
+        if (stepper.direction) {
+          stepper.target_step_count.fetch_sub(i);
+        } else {
+          stepper.target_step_count.fetch_add(i);
+        }
         break;
       }
-      std::chrono::high_resolution_clock::time_point loop_end_time =
-          std::chrono::high_resolution_clock::now();
-      uint32_t loop_duration =
-          std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time -
-                                                                loop_start_time)
-              .count();
-      std::this_thread::sleep_for(std::chrono::microseconds(DELAY_US));
+      std::this_thread::sleep_for(
+          std::chrono::microseconds(MICROSTEP_DELAY_US));
     }
   }
 }
 
-void home_steppers(void) {
-  x_stepper.step_count = 0;
-  y_stepper.step_count = 0;
+void manual_control(int ch) {
+  const int steps = 100;
+  switch (ch) {
+    case KEY_UP:
+      update_target_steps(y_stepper, -steps);
+      break;
+    case KEY_DOWN:
+      update_target_steps(y_stepper, steps);
+      break;
+    case KEY_LEFT:
+      update_target_steps(x_stepper, -steps);
+      break;
+    case KEY_RIGHT:
+      update_target_steps(x_stepper, steps);
+      break;
+    /*case 'w':
+      y_stepper.neg_step_limit = y_stepper.step_count;
+      std::cout << "y_stepper.neg_step_limit: " << y_stepper.neg_step_limit
+                << std::endl;
+      break;
+    case 's':
+      y_stepper.pos_step_limit = y_stepper.step_count;
+      std::cout << "y_stepper.pos_step_limit: " << y_stepper.pos_step_limit
+                << std::endl;
+      break;
+    case 'a':
+      x_stepper.neg_step_limit = x_stepper.step_count;
+      std::cout << "x_stepper.neg_step_limit: " << x_stepper.neg_step_limit
+                << std::endl;
+      break;
+    case 'd':
+      x_stepper.pos_step_limit = x_stepper.step_count;
+      std::cout << "x_stepper.pos_step_limit: " << x_stepper.pos_step_limit
+                << std::endl;
+      break;*/
+    default:
+      break;
+  }
 }
 
 }  // namespace turret
