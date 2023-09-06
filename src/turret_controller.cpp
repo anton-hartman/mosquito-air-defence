@@ -97,9 +97,9 @@ utils::Circle get_laser_belief_region(void) {
 
 static uint32_t get_steps_and_set_direction(Stepper& stepper) {
   int32_t steps = stepper.target_step_count.load() - stepper.step_count.load();
-  std::cout << "[" << stepper.name
-            << ": target_steps = " << stepper.target_step_count
-            << ", step_count = " << stepper.step_count << "]" << std::endl;
+  // std::cout << "[" << stepper.name
+  //           << ": target_steps = " << stepper.target_step_count
+  //           << ", step_count = " << stepper.step_count << "]" << std::endl;
   if (steps > 0) {
     GPIO::output(stepper.direction_pin, GPIO::LOW);
     stepper.direction = 0;
@@ -111,15 +111,14 @@ static uint32_t get_steps_and_set_direction(Stepper& stepper) {
 }
 
 void run_stepper(Stepper& stepper) {
-  uint32_t steps;
+  uint32_t steps = 0;
+  uint16_t delay_us = 300;
   enable_motor(stepper);
   while (run_flag.load()) {
     steps = get_steps_and_set_direction(stepper);
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     for (uint32_t i = 0; i < steps; i++) {
       GPIO::output(stepper.step_pin, GPIO::HIGH);
-      std::this_thread::sleep_for(
-          std::chrono::microseconds(MICROSTEP_DELAY_US));
+      std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
       GPIO::output(stepper.step_pin, GPIO::LOW);
       // if (new_target_flag.load() or new_belief_flag.load()) {
       //   new_target_flag.store(false);
@@ -131,8 +130,7 @@ void run_stepper(Stepper& stepper) {
       //   }
       //   break;
       // }
-      std::this_thread::sleep_for(
-          std::chrono::microseconds(MICROSTEP_DELAY_US));
+      std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
     }
     if (stepper.direction) {
       stepper.step_count.fetch_sub(steps);

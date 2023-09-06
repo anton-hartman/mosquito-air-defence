@@ -187,16 +187,16 @@ int main(void) {
   detector.create_threshold_trackbars();
 
   // Launch the threads
-  // std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
-  std::thread turret_horizontal_thread(turret_horizontal);
-  // std::thread turret_vertical_thread(turret_vertical);
   std::thread user_input_thread(user_input);
+  std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
+  std::thread turret_horizontal_thread(turret_horizontal);
+  std::thread turret_vertical_thread(turret_vertical);
 
   // Join the threads (or use detach based on requirements)
-  // video_thread.join();
-  turret_horizontal_thread.join();
-  // turret_vertical_thread.join();
   user_input_thread.join();
+  video_thread.detach();
+  turret_horizontal_thread.detach();
+  turret_vertical_thread.detach();
 
   // calibrate_cam();
 
