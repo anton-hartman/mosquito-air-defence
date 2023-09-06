@@ -21,8 +21,8 @@ namespace turret {
 const float FULL_STEP_ANGLE = 0.17578125;
 const uint8_t MICROSTEPS = 16;
 const double MICROSTEP_ANGLE = FULL_STEP_ANGLE / MICROSTEPS;
-const uint16_t STEP_DELAY_US = 3000;
-const uint16_t MICROSTEP_DELAY_US = STEP_DELAY_US / MICROSTEPS;
+const uint32_t STEP_DELAY_US = 300'000;
+const uint32_t MICROSTEP_DELAY_US = STEP_DELAY_US / MICROSTEPS;
 const uint16_t BELIEF_REGION_UNCERTAINTY = 100;
 
 std::atomic<bool> new_target_flag(false);
@@ -76,9 +76,8 @@ void home_steppers(void) {
 // void update_target(const utils::Point target_px) {}
 
 void update_target_steps(Stepper& stepper, int16_t steps) {
-  std::puts("update_target_steps");
-  std::cout << stepper.name << ": new target step count = "
-            << stepper.target_step_count.fetch_add(steps) << std::endl;
+  std::cout << "[" << stepper.name << ": new target step count = "
+            << stepper.target_step_count.fetch_add(steps) << "]" << std::endl;
   new_target_flag.store(true);
 }
 
@@ -98,9 +97,9 @@ utils::Circle get_laser_belief_region(void) {
 
 static uint32_t get_steps_and_set_direction(Stepper& stepper) {
   int32_t steps = stepper.target_step_count.load() - stepper.step_count.load();
-  std::cout << "get_steps_and_dir - " << stepper.name
+  std::cout << "[" << stepper.name
             << ": target_steps = " << stepper.target_step_count
-            << ", steps = " << steps << std::endl;
+            << ", step_count = " << stepper.step_count << "]" << std::endl;
   if (steps > 0) {
     GPIO::output(stepper.direction_pin, GPIO::LOW);
     stepper.direction = 0;
@@ -113,27 +112,32 @@ static uint32_t get_steps_and_set_direction(Stepper& stepper) {
 
 void run_stepper(Stepper& stepper) {
   uint32_t steps;
+  enable_motor(stepper);
   while (run_flag.load()) {
     steps = get_steps_and_set_direction(stepper);
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     for (uint32_t i = 0; i < steps; i++) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       GPIO::output(stepper.step_pin, GPIO::HIGH);
       std::this_thread::sleep_for(
           std::chrono::microseconds(MICROSTEP_DELAY_US));
       GPIO::output(stepper.step_pin, GPIO::LOW);
-      if (new_target_flag.load() or new_belief_flag.load()) {
-        new_target_flag.store(false);
-        new_belief_flag.store(false);
-        if (stepper.direction) {
-          stepper.target_step_count.fetch_sub(i);
-        } else {
-          stepper.target_step_count.fetch_add(i);
-        }
-        break;
-      }
+      // if (new_target_flag.load() or new_belief_flag.load()) {
+      //   new_target_flag.store(false);
+      //   new_belief_flag.store(false);
+      //   if (stepper.direction) {
+      //     stepper.step_count.fetch_sub(i);
+      //   } else {
+      //     stepper.step_count.fetch_add(i);
+      //   }
+      //   break;
+      // }
       std::this_thread::sleep_for(
           std::chrono::microseconds(MICROSTEP_DELAY_US));
+    }
+    if (stepper.direction) {
+      stepper.step_count.fetch_sub(steps);
+    } else {
+      stepper.step_count.fetch_add(steps);
     }
   }
 }

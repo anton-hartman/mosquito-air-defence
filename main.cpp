@@ -64,12 +64,17 @@ void exit_handler(int signo) {
 }
 
 void init_ncurses(void) {
-  initscr();
-  cbreak();
-  noecho();
-  keypad(stdscr, TRUE);    // Enables arrow key detection
-  nodelay(stdscr, FALSE);  // TRUE = non-blocking, FALSE = blocking
-  timeout(10);             // Set a timeout for getch().
+  // initscr();
+  // cbreak();
+  // noecho();
+  // keypad(stdscr, TRUE);    // Enables arrow key detection
+  // nodelay(stdscr, FALSE);  // TRUE = non-blocking, FALSE = blocking
+  // timeout(10);             // Set a timeout for getch().
+
+  initscr();             // Initialize the ncurses mode
+  cbreak();              // Disable line buffering
+  noecho();              // Don't display the pressed key
+  keypad(stdscr, TRUE);  // Enable arrow keys
 }
 
 cv::VideoCapture init_system(void) {
@@ -184,13 +189,13 @@ int main(void) {
   // Launch the threads
   // std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
   std::thread turret_horizontal_thread(turret_horizontal);
-  std::thread turret_vertical_thread(turret_vertical);
+  // std::thread turret_vertical_thread(turret_vertical);
   std::thread user_input_thread(user_input);
 
   // Join the threads (or use detach based on requirements)
   // video_thread.join();
   turret_horizontal_thread.join();
-  turret_vertical_thread.join();
+  // turret_vertical_thread.join();
   user_input_thread.join();
 
   // calibrate_cam();
