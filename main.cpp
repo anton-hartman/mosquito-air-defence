@@ -11,8 +11,6 @@
 #include "include/turret_controller.hpp"
 #include "include/utils.hpp"
 
-std::mutex mtx;
-
 const float SCALING_FACTOR = 1.0;
 const float ALPHA = 0.01;
 const float FRAME_TIME_MS = 1000 / 30.0;
@@ -29,27 +27,14 @@ const float CAMERA_DEPTH = 1104;  // mm
 
 cv::VideoCapture cap;
 int manual_mode = 1;
-// std::pair<int, int> target_angle = {500, 300};
-// std::pair<int, int> laser_angle;
 
 // Data shared accross threads (use mutex to ensure safe access)
 // Laser co-ordinates plus uncertainty in pixels
 utils::Circle laser_belief_region_px;
 // Laser co-ordinates detected by camera in pixels
-utils::Point laser_detected_px;
+std::pair<uint16_t, uint16_t> laser_detected_px;
 // Target co-ordinates in pixels
-utils::Point target_px;
-
-// struct SharedData {
-//   // Updated by turret thread, read by detection thread
-//   std::pair<int, int> counted_laser_position;
-//   // Updated by detection thread, read by turret thread
-//   std::pair<int, int> detected_laser_position;
-//   // Updated by detection thread, read by turret thread
-//   std::pair<int, int> target_position;
-//   // Flag to indicate when a new frame is ready for processing
-//   bool new_frame_ready = false;
-// };
+std::pair<uint16_t, uint16_t> target_px;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -103,10 +88,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
         std::chrono::high_resolution_clock::now();
 
     cap >> frame;
-    // {
-    //   std::lock_guard<std::mutex> lock(mtx);
-    //   laser_belief_region_px = turret::get_laser_belief_region();
-    // }
+    laser_belief_region_px = turret::get_laser_belief_region();
 
     if (frame.empty()) {
       std::cout << "frame is empty" << std::endl;
@@ -114,12 +96,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     }
     cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
 
-    // {
-    //   std::lock_guard<std::mutex> lock(mtx);
-    //   laser_detected_px = detector.detect_laser(frame,
-    //   laser_belief_region_px);
-    //   // turret::correct_laser_belief_region(laser_detected_px);
-    // }
+    laser_detected_px = detector.detect_laser(frame, laser_belief_region_px);
+    turret::correct_laser_belief(laser_detected_px);
 
     std::chrono::high_resolution_clock::time_point loop_end_time =
         std::chrono::high_resolution_clock::now();
@@ -137,8 +115,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     } else {
       std::cout << "Processing took longer than expected for a frame. ("
                 << loop_duration << "ms)" << std::endl;
-      // Processing took longer than expected for a frame.
-      // Consider dropping frames or optimizing your processing.
+      cap >> frame;  // Drop a frame
     }
   }
 }
@@ -162,7 +139,9 @@ void user_input(void) {
       // -1 is returned when noting is pressed before the timeout period.
       turret::stop_all_motors();
     } else if (manual_mode) {
-      turret::manual_control(ch);
+      turret::keyboard_manual(ch);
+    } else {
+      turret::keyboard_auto(ch);
     }
   }
 }

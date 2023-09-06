@@ -53,10 +53,10 @@ std::vector<std::vector<int>> Detection::detect_mosquitoes(
   return bounding_boxes;
 }
 
-utils::Point Detection::detect_laser(
+std::pair<uint16_t, uint16_t> Detection::detect_laser(
     const cv::Mat& frame,
     const utils::Circle& laser_belief_region_px) {
-    utils::Point laser_pos;
+  std::pair<uint16_t, uint16_t> laser_pos;
 
   // Convert to HSV
   cv::Mat hsv;
@@ -119,8 +119,8 @@ utils::Point Detection::detect_laser(
         cv::Point centerWhite(rectWhite.x + rectWhite.width / 2,
                               rectWhite.y + rectWhite.height / 2);
         cv::circle(displayFrame, centerWhite, 4, cv::Scalar(255, 0, 0), -1);
-        laser_pos.x = centerWhite.x;
-        laser_pos.y = centerWhite.y;
+        laser_pos.first = centerWhite.x;
+        laser_pos.second = centerWhite.y;
       }
     }
   }

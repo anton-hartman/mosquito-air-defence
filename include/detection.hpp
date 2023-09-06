@@ -25,8 +25,9 @@ class Detection {
   // boxes.
   std::vector<std::vector<int>> detect_mosquitoes(const cv::Mat& frame);
 
-  utils::Point detect_laser(const cv::Mat& frame,
-                            const utils::Circle& laser_belief_region_px);
+  std::pair<uint16_t, uint16_t> detect_laser(
+      const cv::Mat& frame,
+      const utils::Circle& laser_belief_region_px);
 
   void set_red_thresholds(int hl, int sl, int vl, int hh, int sh, int vh);
   void set_white_thresholds(int hl, int sl, int vl, int hh, int sh, int vh);

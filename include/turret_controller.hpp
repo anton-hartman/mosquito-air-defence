@@ -13,9 +13,10 @@ struct Stepper {
   const uint8_t enable_pin;
   const uint8_t direction_pin;
   const uint8_t step_pin;
-  uint8_t direction = 0;
+  int8_t direction = 1;
   int32_t pos_step_limit = 1'000'000;
   int32_t neg_step_limit = -1'000'000;
+  std::atomic<int32_t> prev_step_count{0};
   std::atomic<int32_t> step_count{0};
   std::atomic<int32_t> target_step_count{0};
 
@@ -33,9 +34,10 @@ void home_steppers(void);
 void run_stepper(Stepper& stepper);
 void stop_all_motors(void);
 utils::Circle get_laser_belief_region(void);
-void correct_laser_belief_region(const utils::Point& laser_detected_px);
-void update_target(const utils::Point& target_px);
-void update_target_steps(const int x_steps, const int y_steps);
-void manual_control(int ch);
+void correct_laser_belief(
+    const std::pair<uint16_t, uint16_t>& laser_detected_px);
+void update_target(const std::pair<uint16_t, uint16_t>& target_px);
+void keyboard_manual(int ch);
+void keyboard_auto(int ch);
 
 }  // namespace turret

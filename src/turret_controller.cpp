@@ -2,6 +2,7 @@
 #include "../include/turret_controller.hpp"
 #include <JetsonGPIO.h>
 #include <ncurses.h>
+#undef OK  // ncurses and opencv have a macro conflict
 #include <unistd.h>
 #include <chrono>
 #include <iostream>
@@ -18,6 +19,8 @@ namespace turret {
 #define M2_DIR_PIN 18
 #define M2_STEP_PIN 12
 
+const int8_t CLOCKWISE = 1;
+const int8_t ANTI_CLOCKWISE = -1;
 const float FULL_STEP_ANGLE = 0.17578125;
 const uint8_t MICROSTEPS = 16;
 const double MICROSTEP_ANGLE = FULL_STEP_ANGLE / MICROSTEPS;
@@ -39,9 +42,7 @@ Stepper::Stepper(std::string name,
       step_pin(step_pin) {}
 
 Stepper x_stepper("x_stepper", M1_ENABLE_PIN, M1_DIR_PIN, M1_STEP_PIN);
-// x_stepper.name = "x_stepper";
 Stepper y_stepper("y_stepper", M2_ENABLE_PIN, M2_DIR_PIN, M2_STEP_PIN);
-// Stepper::y_stepper.name = "y_stepper";
 
 void init(void) {
   GPIO::setmode(GPIO::BOARD);
@@ -73,27 +74,55 @@ void home_steppers(void) {
   y_stepper.step_count.store(0);
 }
 
-// void update_target(const utils::Point target_px) {}
+void update_target(const std::pair<uint16_t, uint16_t>& target_pixels) {
+  std::pair<float, float> mm = utils::pixel_to_mm(
+      target_pixels.first, target_pixels.second, utils::CAMERA_DEPTH);
 
-void update_target_steps(Stepper& stepper, int16_t steps) {
-  std::cout << "[" << stepper.name << ": new target step count = "
-            << stepper.target_step_count.fetch_add(steps) << "]" << std::endl;
-  new_target_flag.store(true);
+  auto correct_step_count = [](Stepper& stepper, float mm) -> void {
+    float angle = utils::mm_to_angle(mm, utils::TURRET_DEPTH);
+    int32_t step_error =
+        angle / MICROSTEP_ANGLE - stepper.prev_step_count.load();
+    stepper.step_count.fetch_add(step_error);
+    stepper.prev_step_count.store(stepper.step_count);
+  };
+
+  correct_step_count(x_stepper, mm.first);
+  correct_step_count(y_stepper, mm.second);
 }
 
+/**
+ * @return The a circle with centre the pixel co-ordinates of the laser and
+ * radius the uncertainty.
+ */
 utils::Circle get_laser_belief_region(void) {
-  std::pair<uint16_t, uint16_t> pixel_point =
-      utils::angle_to_pixel({x_stepper.step_count.load() * MICROSTEP_ANGLE,
-                             y_stepper.step_count.load() * MICROSTEP_ANGLE});
-  utils::Circle belief_region;
-  belief_region.x = pixel_point.first;
-  belief_region.y = pixel_point.second;
-  belief_region.radius = BELIEF_REGION_UNCERTAINTY;
-  new_target_flag.store(true);
+  float x_angle = x_stepper.step_count.load() * MICROSTEP_ANGLE;
+  float y_angle = y_stepper.step_count.load() * MICROSTEP_ANGLE;
+
+  double X = utils::angle_to_mm(x_angle, utils::TURRET_DEPTH);
+  double Y = utils::angle_to_mm(y_angle, utils::TURRET_DEPTH);
+
+  utils::Circle belief_region(utils::mm_to_pixel(X, Y, utils::CAMERA_DEPTH));
+  belief_region.radius = 100;
   return belief_region;
 }
 
-// void correct_laser_belief_region(const utils::Point& laser_detected_px) {}
+// void correct_laser_belief(const utils::Point<uint16_t>& laser_detected_px) {
+void correct_laser_belief(
+    const std::pair<uint16_t, uint16_t>& laser_detected_px) {
+  std::pair<float, float> mm = utils::pixel_to_mm(
+      laser_detected_px.first, laser_detected_px.second, utils::CAMERA_DEPTH);
+
+  auto correct_step_count = [](Stepper& stepper, float mm) -> void {
+    float angle = utils::mm_to_angle(mm, utils::TURRET_DEPTH);
+    int32_t step_error =
+        angle / MICROSTEP_ANGLE - stepper.prev_step_count.load();
+    stepper.step_count.fetch_add(step_error);
+    stepper.prev_step_count.store(stepper.step_count);
+  };
+
+  correct_step_count(x_stepper, mm.first);
+  correct_step_count(y_stepper, mm.second);
+}
 
 static uint32_t get_steps_and_set_direction(Stepper& stepper) {
   int32_t steps = stepper.target_step_count.load() - stepper.step_count.load();
@@ -102,16 +131,16 @@ static uint32_t get_steps_and_set_direction(Stepper& stepper) {
   //           << ", step_count = " << stepper.step_count << "]" << std::endl;
   if (steps > 0) {
     GPIO::output(stepper.direction_pin, GPIO::LOW);
-    stepper.direction = 0;
+    stepper.direction = CLOCKWISE;
   } else {
     GPIO::output(stepper.direction_pin, GPIO::HIGH);
-    stepper.direction = 1;
+    stepper.direction = ANTI_CLOCKWISE;
   }
   return abs(steps);
 }
 
 void run_stepper(Stepper& stepper) {
-  uint32_t steps = 0;
+  uint32_t steps;
   uint16_t delay_us = 300;
   enable_motor(stepper);
   while (run_flag.load()) {
@@ -123,24 +152,25 @@ void run_stepper(Stepper& stepper) {
       // if (new_target_flag.load() or new_belief_flag.load()) {
       //   new_target_flag.store(false);
       //   new_belief_flag.store(false);
-      //   if (stepper.direction) {
-      //     stepper.step_count.fetch_sub(i);
-      //   } else {
-      //     stepper.step_count.fetch_add(i);
-      //   }
       //   break;
       // }
       std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
     }
-    if (stepper.direction) {
-      stepper.step_count.fetch_sub(steps);
-    } else {
+    if (stepper.direction == CLOCKWISE) {
       stepper.step_count.fetch_add(steps);
+    } else {
+      stepper.step_count.fetch_sub(steps);
     }
   }
 }
 
-void manual_control(int ch) {
+static void update_target_steps(Stepper& stepper, int16_t steps) {
+  std::cout << "[" << stepper.name << ": new target step count = "
+            << stepper.target_step_count.fetch_add(steps) << "]" << std::endl;
+  new_target_flag.store(true);
+}
+
+void keyboard_manual(int ch) {
   const int steps = 100;
   switch (ch) {
     case KEY_UP:
@@ -175,6 +205,26 @@ void manual_control(int ch) {
       std::cout << "x_stepper.pos_step_limit: " << x_stepper.pos_step_limit
                 << std::endl;
       break;*/
+    default:
+      break;
+  }
+}
+
+void keyboard_auto(int ch) {
+  const int steps = 100;
+  switch (ch) {
+    case KEY_UP:
+      update_target(std::pair<uint16_t, uint16_t>(0, -200));
+      break;
+    case KEY_DOWN:
+      update_target(std::pair<uint16_t, uint16_t>(0, 200));
+      break;
+    case KEY_LEFT:
+      update_target(std::pair<uint16_t, uint16_t>(-200, 0));
+      break;
+    case KEY_RIGHT:
+      update_target(std::pair<uint16_t, uint16_t>(200, 0));
+      break;
     default:
       break;
   }
