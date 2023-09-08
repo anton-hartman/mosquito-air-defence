@@ -28,13 +28,12 @@ const float CAMERA_DEPTH = 1104;  // mm
 cv::VideoCapture cap;
 int manual_mode = 1;
 
-// Data shared accross threads (use mutex to ensure safe access)
 // Laser co-ordinates plus uncertainty in pixels
 utils::Circle laser_belief_region_px;
-// Laser co-ordinates detected by camera in pixels
-std::pair<uint16_t, uint16_t> laser_detected_px;
-// Target co-ordinates in pixels
-std::pair<uint16_t, uint16_t> target_px;
+// // Laser co-ordinates detected by camera in pixels
+// std::pair<uint16_t, uint16_t> laser_detected_px;
+// // Target co-ordinates in pixels
+// std::pair<uint16_t, uint16_t> target_px;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -88,7 +87,10 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
         std::chrono::high_resolution_clock::now();
 
     cap >> frame;
-    laser_belief_region_px = turret::get_laser_belief_region();
+    // Directly after capturing a new frame so that it is the belief state at
+    // the instance of capturing the frame. Esure frame size remains constant
+    // otherwise the belief state will be for the wrong frame size.
+    // laser_belief_region_px = turret::get_turret_belief_region();
 
     if (frame.empty()) {
       std::cout << "frame is empty" << std::endl;
@@ -96,8 +98,11 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     }
     cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
 
-    laser_detected_px = detector.detect_laser(frame, laser_belief_region_px);
-    turret::correct_laser_belief(laser_detected_px);
+    // turret::detected_laser_px.store(
+    // detector.detect_laser(frame, laser_belief_region_px));
+    // turret::new_feedback.store(true);
+
+    // turret::correct_laser_belief(turret::detected_laser_px);
 
     std::chrono::high_resolution_clock::time_point loop_end_time =
         std::chrono::high_resolution_clock::now();
@@ -132,9 +137,6 @@ void user_input(void) {
       } else {
         std::cout << "Auto" << std::endl;
       }
-    } else if (ch == 'h') {
-      turret::home_steppers();
-      std::cout << "Stepper homed" << std::endl;
     } else if (manual_mode and ch == -1) {
       // -1 is returned when noting is pressed before the timeout period.
       turret::stop_all_motors();

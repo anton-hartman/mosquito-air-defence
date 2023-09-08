@@ -8,35 +8,48 @@
 
 namespace turret {
 
+std::atomic<bool> run_flag(true);
+
 struct Stepper {
-  std::string name;
+  const std::string name;
   const uint8_t enable_pin;
   const uint8_t direction_pin;
   const uint8_t step_pin;
-  int8_t direction = 1;
-  int32_t pos_step_limit = 1'000'000;
-  int32_t neg_step_limit = -1'000'000;
-  std::atomic<int32_t> prev_step_count{0};
-  std::atomic<int32_t> step_count{0};
-  std::atomic<int32_t> target_step_count{0};
+
+  // Camera intrinsic parameters
+  const double principal_point;  // principal point (usually the image center).
+  const double focal_length;     // focal lengths in pixel units.
+
+  int32_t pos_step_limit;
+  int32_t neg_step_limit;
+
+  std::atomic<uint16_t> setpoint_px;
+  std::atomic<uint16_t> detected_laser_px;
+  std::atomic<bool> new_setpoint;
+  std::atomic<bool> new_feedback;
+
+  std::atomic<int8_t> direction;
+  std::atomic<int32_t> prev_step_count;
+  std::atomic<int32_t> step_count;
+  std::atomic<int32_t> target_step_count;
 
   Stepper(std::string name,
           uint8_t enable_pin,
           uint8_t direction_pin,
-          uint8_t step_pin);
+          uint8_t step_pin,
+          double c,
+          double f);
+
+  float get_belief_angle(void);
 };
 
 extern Stepper x_stepper;
 extern Stepper y_stepper;
 
 void init(void);
-void home_steppers(void);
 void run_stepper(Stepper& stepper);
 void stop_all_motors(void);
-utils::Circle get_laser_belief_region(void);
-void correct_laser_belief(
-    const std::pair<uint16_t, uint16_t>& laser_detected_px);
-void update_target(const std::pair<uint16_t, uint16_t>& target_px);
+utils::Circle get_turret_belief_region(void);
 void keyboard_manual(int ch);
 void keyboard_auto(int ch);
 
