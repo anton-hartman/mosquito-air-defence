@@ -6,7 +6,6 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include "../include/utils.hpp"
 
 namespace turret {
 
@@ -32,9 +31,11 @@ const uint16_t CAMERA_DEPTH = 780 + TANK_DEPTH;  // mm
 const uint16_t BELIEF_REGION_UNCERTAINTY = 100;
 
 const double f_x = 647.0756309728268;
-const double f_y = 0;
-const double c_x = 0;
-const double c_y = 0;
+const double f_y = 861.7363873209705;
+const double c_x = 304.4404590127848;
+const double c_y = 257.5858878142162;
+
+std::atomic<bool> run_flag(true);
 
 Stepper::Stepper(std::string name,
                  uint8_t enable_pin,

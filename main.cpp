@@ -141,9 +141,9 @@ void user_input(void) {
       // -1 is returned when noting is pressed before the timeout period.
       turret::stop_all_motors();
     } else if (manual_mode) {
-      turret::keyboard_manual(ch);
+      // turret::keyboard_manual(ch);
     } else {
-      turret::keyboard_auto(ch);
+      // turret::keyboard_auto(ch);
     }
   }
 }

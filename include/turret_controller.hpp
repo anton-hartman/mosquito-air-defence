@@ -8,7 +8,7 @@
 
 namespace turret {
 
-std::atomic<bool> run_flag(true);
+extern std::atomic<bool> run_flag;
 
 struct Stepper {
   const std::string name;

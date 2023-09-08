@@ -1,7 +1,12 @@
 #pragma once
 
 #include <cstdint>
-#include "turret_controller.hpp"
+#include <utility>
+
+// Forward declaration to break the circular dependency
+namespace turret {
+struct Stepper;
+}
 
 namespace utils {
 
@@ -52,7 +57,7 @@ float mm_to_angle(float mm, float depth);
  * values extend downward from the optical center, and negative Y values extend
  * upward.
  */
-float pixel_to_mm(turret::Stepper& stepper,
+float pixel_to_mm(const turret::Stepper& stepper,
                   const uint16_t px,
                   const uint16_t depth);
 
@@ -71,7 +76,7 @@ float pixel_to_mm(turret::Stepper& stepper,
  * @note - The returned pixel coordinate has its origin at the top-left corner
  * of the image.
  */
-uint16_t mm_to_pixel(turret::Stepper& stepper,
+uint16_t mm_to_pixel(const turret::Stepper& stepper,
                      const uint16_t mm,
                      const uint16_t depth);
 
