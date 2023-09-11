@@ -32,12 +32,12 @@ struct Circle {
 /**
  * @return depth * tan(theta)
  */
-float angle_to_mm(float theta, float depth);
+float angle_to_mm(const float& theta, const float& depth);
 
 /**
  * @return arctan(mm / depth)
  */
-float mm_to_angle(float mm, float depth);
+float mm_to_angle(const float& mm, const float& depth);
 
 /**
  * Convert a pixel coordinate to a real-world coordinate in millimeters.
@@ -58,8 +58,8 @@ float mm_to_angle(float mm, float depth);
  * upward.
  */
 float pixel_to_mm(const turret::Stepper& stepper,
-                  const uint16_t px,
-                  const uint16_t depth);
+                  const uint16_t& px,
+                  const uint16_t& depth);
 
 /**
  * Convert real-world a coordinate in millimeters to a pixel coordinate. All
@@ -77,7 +77,7 @@ float pixel_to_mm(const turret::Stepper& stepper,
  * of the image.
  */
 uint16_t mm_to_pixel(const turret::Stepper& stepper,
-                     const uint16_t mm,
-                     const uint16_t depth);
+                     const uint16_t& mm,
+                     const uint16_t& depth);
 
 }  // namespace utils

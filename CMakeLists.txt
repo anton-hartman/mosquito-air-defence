@@ -18,19 +18,19 @@ include_directories(
 
 # List all source and header files
 set(SOURCE_FILES
-    # main.cpp
-    # src/turret_controller.cpp
-    # src/utils.cpp
-    # src/detection.cpp
-    # src/image_processing.cpp
-    src/camera_calibration.cpp
+    main.cpp
+    src/turret_controller.cpp
+    src/utils.cpp
+    src/detection.cpp
+    src/image_processing.cpp
+    # src/camera_calibration.cpp
 )
 
 set(HEADER_FILES
-    # include/turret_controller.hpp
-    # include/utils.hpp
-    # include/detection.hpp
-    # include/image_processing.hpp
+    include/turret_controller.hpp
+    include/utils.hpp
+    include/detection.hpp
+    include/image_processing.hpp
 )
 
 # Add executable

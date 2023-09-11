@@ -1,8 +1,6 @@
 
 #include "../include/turret_controller.hpp"
 #include <JetsonGPIO.h>
-#include <ncurses.h>
-#undef OK  // ncurses and opencv have a macro conflict
 #include <chrono>
 #include <iostream>
 #include <thread>
@@ -16,6 +14,8 @@ namespace turret {
 #define M2_ENABLE_PIN 7
 #define M2_DIR_PIN 18
 #define M2_STEP_PIN 12
+
+const double PI = 3.14159265359;
 
 const int8_t CLOCKWISE = 1;
 const int8_t ANTI_CLOCKWISE = -1;
@@ -60,7 +60,7 @@ Stepper::Stepper(std::string name,
       step_count(0),
       target_step_count(0) {}
 
-float Stepper::get_belief_angle(void) {
+float Stepper::get_belief_angle(void) const {
   return step_count.load() * MICROSTEP_ANGLE;
 }
 
@@ -87,13 +87,12 @@ static void stop_motor(Stepper& stepper) {
 
 static float pixel_to_angle(const Stepper& stepper, const uint16_t& px) {
   float mm = utils::pixel_to_mm(stepper, px, CAMERA_DEPTH);
-  return utils::mm_to_angle(mm, TURRET_DEPTH);
+  return utils::mm_to_angle(mm, TURRET_DEPTH) * 360.0 / PI;
 }
 
-uint16_t belief_angle_to_pixel(const Stepper& stepper) {
-  // float mm = utils::angle_to_mm(stepper.get_belief_angle(), TURRET_DEPTH);
-  float mm = utils::angle_to_mm(stepper.step_count.load() * MICROSTEP_ANGLE,
-                                TURRET_DEPTH);
+static uint16_t belief_angle_to_pixel(const Stepper& stepper) {
+  float mm =
+      utils::angle_to_mm(stepper.get_belief_angle() * PI / 360.0, TURRET_DEPTH);
   return utils::mm_to_pixel(stepper, mm, CAMERA_DEPTH);
 }
 
@@ -105,22 +104,13 @@ static void correct_belief(Stepper& stepper) {
   stepper.prev_step_count.store(stepper.step_count);
 }
 
-static void update_setpoint(Stepper& stepper) {
+static void setpoint_to_steps(Stepper& stepper) {
   float angle = pixel_to_angle(stepper, stepper.setpoint_px);
   stepper.target_step_count.store(angle / MICROSTEP_ANGLE);
 }
 
-// Should only be used for testing
-static void increment_setpoint_in_steps(Stepper& stepper, int16_t steps) {
-  std::cout << "[" << stepper.name << ": new target step count = "
-            << stepper.target_step_count.fetch_add(steps) << "]" << std::endl;
-}
-
 static uint32_t get_steps_and_set_direction(Stepper& stepper) {
   int32_t steps = stepper.target_step_count.load() - stepper.step_count.load();
-  // std::cout << "[" << stepper.name
-  //           << ": target_steps = " << stepper.target_step_count
-  //           << ", step_count = " << stepper.step_count << "]" << std::endl;
   if (steps > 0) {
     GPIO::output(stepper.direction_pin, GPIO::LOW);
     stepper.direction.store(CLOCKWISE);
@@ -159,93 +149,120 @@ utils::Circle get_turret_belief_region(void) {
   return utils::Circle(x_px, y_px, BELIEF_REGION_UNCERTAINTY);
 }
 
+// Should only be used for testing
+void increment_setpoint_in_steps(Stepper& stepper, int16_t steps) {
+  stepper.target_step_count.fetch_add(steps);
+  std::cout << "[" << stepper.name
+            << ": new target step count = " << stepper.target_step_count.load()
+            << "]" << std::endl;
+  // stepper.new_setpoint.store(true); // must not calculate steps with angle
+  // but should brake loop so another flag is needed for this to work properly
+}
+
+void update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {
+  x_stepper.setpoint_px.store(setpoint_px.first);
+  y_stepper.setpoint_px.store(setpoint_px.second);
+  x_stepper.new_setpoint.store(true);
+  y_stepper.new_setpoint.store(true);
+}
+
+void update_belief(const std::pair<uint16_t, uint16_t> detected_laser_px) {
+  x_stepper.detected_laser_px.store(detected_laser_px.first);
+  y_stepper.detected_laser_px.store(detected_laser_px.second);
+  x_stepper.new_feedback.store(true);
+  y_stepper.new_feedback.store(true);
+}
+
 void run_stepper(Stepper& stepper) {
+  bool manual_mode = false;
+  char ch;
   uint32_t steps;
+  uint32_t i;
   uint16_t delay_us = 300;
   enable_motor(stepper);
   while (run_flag.load()) {
     steps = get_steps_and_set_direction(stepper);
-    for (uint32_t i = 0; i < steps; i++) {
+    for (i = 0; i < steps; i++) {
       GPIO::output(stepper.step_pin, GPIO::HIGH);
       std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
       GPIO::output(stepper.step_pin, GPIO::LOW);
-      if (stepper.new_setpoint.load() and stepper.new_feedback.load()) {
-        if (stepper.direction == CLOCKWISE) {
-          stepper.step_count.fetch_add(steps);
-        } else {
-          stepper.step_count.fetch_sub(steps);
-        }
-        correct_belief(stepper);
-        update_setpoint(stepper);
-        stepper.new_setpoint.store(false);
-        stepper.new_feedback.store(false);
+      if (stepper.new_setpoint.load() or stepper.new_feedback.load()) {
         break;
       }
       std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
+    }
+    if (stepper.direction == CLOCKWISE) {
+      stepper.step_count.fetch_add(i);
+    } else {
+      stepper.step_count.fetch_sub(i);
+    }
+
+    std::cout << "Input = ";
+    std::cin >> ch;
+
+    if (ch == 'm') {
+      manual_mode = !manual_mode;
+      if (manual_mode) {
+        std::cout << "Manual" << std::endl;
+      } else {
+        std::cout << "Auto" << std::endl;
+      }
+    } else if (manual_mode) {
+      keyboard_manual(ch);
+    } else {
+      keyboard_auto(ch);
+    }
+
+    if (stepper.new_feedback.load()) {
+      correct_belief(stepper);
+      stepper.new_feedback.store(false);
+    }
+    if (stepper.new_setpoint.load()) {
+      setpoint_to_steps(stepper);
+      stepper.new_setpoint.store(false);
     }
   }
   stop_motor(stepper);
 }
 
-// Must set flags after changing setpint and move ncurses to one file
-// void keyboard_manual(int ch) {
-//   const int steps = 100;
-//   switch (ch) {
-//     case KEY_UP:
-//       increment_setpoint_in_steps(y_stepper, -steps);
-//       break;
-//     case KEY_DOWN:
-//       increment_setpoint_in_steps(y_stepper, steps);
-//       break;
-//     case KEY_LEFT:
-//       increment_setpoint_in_steps(x_stepper, -steps);
-//       break;
-//     case KEY_RIGHT:
-//       increment_setpoint_in_steps(x_stepper, steps);
-//       break;
-//     /*case 'w':
-//       y_stepper.neg_step_limit = y_stepper.step_count;
-//       std::cout << "y_stepper.neg_step_limit: " << y_stepper.neg_step_limit
-//                 << std::endl;
-//       break;
-//     case 's':
-//       y_stepper.pos_step_limit = y_stepper.step_count;
-//       std::cout << "y_stepper.pos_step_limit: " << y_stepper.pos_step_limit
-//                 << std::endl;
-//       break;
-//     case 'a':
-//       x_stepper.neg_step_limit = x_stepper.step_count;
-//       std::cout << "x_stepper.neg_step_limit: " << x_stepper.neg_step_limit
-//                 << std::endl;
-//       break;
-//     case 'd':
-//       x_stepper.pos_step_limit = x_stepper.step_count;
-//       std::cout << "x_stepper.pos_step_limit: " << x_stepper.pos_step_limit
-//                 << std::endl;
-//       break;*/
-//     default:
-//       break;
-//   }
-// }
+void keyboard_auto(int ch) {
+  const unsigned int px = 500;
+  switch (ch) {
+    case 'w':
+      turret::update_setpoint(std::pair<uint16_t, uint16_t>(0, 0));
+      break;
+    case 's':
+      turret::update_setpoint(std::pair<uint16_t, uint16_t>(0, px));
+      break;
+    case 'a':
+      turret::update_setpoint(std::pair<uint16_t, uint16_t>(0, 0));
+      break;
+    case 'd':
+      turret::update_setpoint(std::pair<uint16_t, uint16_t>(px, 0));
+      break;
+    default:
+      break;
+  }
+}
 
-// void keyboard_auto(int ch) {
-//   const int steps = 100;
-//   switch (ch) {
-//     case KEY_UP:
-//       increment_setpoint_in_steps(y_stepper, -200);
-//       break;
-//     case KEY_DOWN:
-//       increment_setpoint_in_steps(y_stepper, 200);
-//       break;
-//     case KEY_LEFT:
-//       increment_setpoint_in_steps(x_stepper, -200);
-//       break;
-//     case KEY_RIGHT:
-//       increment_setpoint_in_steps(x_stepper, 200);
-//       break;
-//     default:
-//       break;
-//   }
-// }
+void keyboard_manual(int ch) {
+  const int steps = 200;
+  switch (ch) {
+    case 'w':
+      turret::increment_setpoint_in_steps(turret::y_stepper, -steps);
+      break;
+    case 's':
+      turret::increment_setpoint_in_steps(turret::y_stepper, steps);
+      break;
+    case 'a':
+      turret::increment_setpoint_in_steps(turret::x_stepper, -steps);
+      break;
+    case 'd':
+      turret::increment_setpoint_in_steps(turret::x_stepper, steps);
+      break;
+    default:
+      break;
+  }
+}
 
 }  // namespace turret
