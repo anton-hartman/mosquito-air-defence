@@ -7,9 +7,12 @@
 #include <utility>
 #include <vector>
 // #include "camera_calibration.cpp"
+#include <atomic>
 #include "include/detection.hpp"
 #include "include/turret_controller.hpp"
 #include "include/utils.hpp"
+
+std::atomic<bool> utils::exit_flag(false);
 
 const float SCALING_FACTOR = 1.0;
 const float ALPHA = 0.01;
@@ -38,7 +41,7 @@ void exit_handler(int signo) {
   if (cap.isOpened()) {
     cap.release();
   }
-  exit(0);
+  utils::exit_flag.store(true);
 }
 
 cv::VideoCapture init_system(void) {
@@ -127,7 +130,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 
 void user_input(void) {
   char ch;
-  while (true) {
+  while (!utils::exit_flag.load()) {
+    std::cout << "Enter a character: ";
     std::cin >> ch;  // Read a character from standard input
 
     if (ch == 'm') {
@@ -164,21 +168,23 @@ int main(void) {
   detector.set_white_thresholds(0, 0, 245, 180, 20, 255);
   detector.create_threshold_trackbars();
 
-  turret_horizontal();
+  // turret_horizontal();
 
   // Launch the threads
-  // std::thread user_input_thread(user_input);
+  std::thread user_input_thread(user_input);
   // std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
-  // std::thread turret_horizontal_thread(turret_horizontal);
-  // std::thread turret_vertical_thread(turret_vertical);
+  std::thread turret_horizontal_thread(turret_horizontal);
+  std::thread turret_vertical_thread(turret_vertical);
 
   // Join the threads (or use detach based on requirements)
-  // user_input_thread.join();
   // video_thread.detach();
-  // turret_horizontal_thread.join();
-  // turret_vertical_thread.detach();
+  turret_horizontal_thread.join();
+  turret_vertical_thread.join();
+  user_input_thread.detach();
 
   // calibrate_cam();
+
+  exit(0);
 
   return 0;
 }

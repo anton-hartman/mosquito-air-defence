@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <utility>
 
@@ -9,6 +10,8 @@ struct Stepper;
 }
 
 namespace utils {
+
+extern std::atomic<bool> exit_flag;
 
 /**
  * @param x uint16_t

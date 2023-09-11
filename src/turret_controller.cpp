@@ -174,13 +174,13 @@ void update_belief(const std::pair<uint16_t, uint16_t> detected_laser_px) {
 }
 
 void run_stepper(Stepper& stepper) {
-  bool manual_mode = false;
-  char ch;
+  // bool manual_mode = false;
+  // char ch;
   uint32_t steps;
   uint32_t i;
   uint16_t delay_us = 300;
   enable_motor(stepper);
-  while (run_flag.load()) {
+  while (run_flag.load() and !utils::exit_flag.load()) {
     steps = get_steps_and_set_direction(stepper);
     for (i = 0; i < steps; i++) {
       GPIO::output(stepper.step_pin, GPIO::HIGH);
@@ -197,21 +197,21 @@ void run_stepper(Stepper& stepper) {
       stepper.step_count.fetch_sub(i);
     }
 
-    std::cout << "Input = ";
-    std::cin >> ch;
+    // std::cout << "Input = ";
+    // std::cin >> ch;
 
-    if (ch == 'm') {
-      manual_mode = !manual_mode;
-      if (manual_mode) {
-        std::cout << "Manual" << std::endl;
-      } else {
-        std::cout << "Auto" << std::endl;
-      }
-    } else if (manual_mode) {
-      keyboard_manual(ch);
-    } else {
-      keyboard_auto(ch);
-    }
+    // if (ch == 'm') {
+    //   manual_mode = !manual_mode;
+    //   if (manual_mode) {
+    //     std::cout << "Manual" << std::endl;
+    //   } else {
+    //     std::cout << "Auto" << std::endl;
+    //   }
+    // } else if (manual_mode) {
+    //   keyboard_manual(ch);
+    // } else {
+    //   keyboard_auto(ch);
+    // }
 
     if (stepper.new_feedback.load()) {
       correct_belief(stepper);
@@ -226,7 +226,7 @@ void run_stepper(Stepper& stepper) {
 }
 
 void keyboard_auto(int ch) {
-  const unsigned int px = 500;
+  const unsigned int px = 250;
   switch (ch) {
     case 'w':
       turret::update_setpoint(std::pair<uint16_t, uint16_t>(0, 0));
@@ -246,7 +246,7 @@ void keyboard_auto(int ch) {
 }
 
 void keyboard_manual(int ch) {
-  const int steps = 200;
+  const int steps = 400;
   switch (ch) {
     case 'w':
       turret::increment_setpoint_in_steps(turret::y_stepper, -steps);
