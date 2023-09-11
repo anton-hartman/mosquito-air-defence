@@ -13,9 +13,6 @@ class Detection {
   int h_white_high, s_white_high, v_white_high;
 
   cv::Mat subtract(const cv::Mat& frame);
-  void put_label(cv::Mat& img,
-                 const std::string& label,
-                 const cv::Point& origin);
 
  public:
   // Constructor: Initializes the bg_subtractor with the first frame.

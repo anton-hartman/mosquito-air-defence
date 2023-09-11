@@ -1,5 +1,3 @@
-// #include <ncurses.h>
-// #undef OK  // ncurses and opencv have a macro conflict
 #include <signal.h>
 #include <cmath>
 #include <opencv2/opencv.hpp>
@@ -13,6 +11,7 @@
 #include "include/utils.hpp"
 
 std::atomic<bool> utils::exit_flag(false);
+std::atomic<bool> feedback_flag(false);
 
 const float SCALING_FACTOR = 1.0;
 const float ALPHA = 0.01;
@@ -64,6 +63,7 @@ cv::VideoCapture init_system(void) {
 
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
+  std::pair<uint16_t, uint16_t> laser_pos;
 
   while (true) {
     std::chrono::high_resolution_clock::time_point loop_start_time =
@@ -73,16 +73,26 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // Directly after capturing a new frame so that it is the belief state at
     // the instance of capturing the frame. Esure frame size remains constant
     // otherwise the belief state will be for the wrong frame size.
-    // laser_belief_region_px = turret::get_turret_belief_region();
+    // laser_belief_region_px = turret::get_belief_region();
 
     if (frame.empty()) {
-      std::cout << "frame is empty" << std::endl;
+      std::cout << "Frame is empty, exiting." << std::endl;
       exit(0);
     }
     // cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
+    laser_pos = detector.detect_laser(frame, laser_belief_region_px);
+    if (feedback_flag.load()) {
+      turret::update_belief(laser_pos);
+    }
 
-    // turret::update_belief(detector.detect_laser(frame,
-    // laser_belief_region_px));
+    utils::draw_target(frame, laser_pos, cv::Scalar(0, 0, 255));
+    utils::put_label(frame, "Detected laser", laser_pos, 0.5);
+    utils::draw_target(frame, turret::get_setpoint_px(), cv::Scalar(255, 0, 0));
+    utils::put_label(frame, "Setpoint", turret::get_setpoint_px(), 0.5);
+    utils::draw_target(frame, turret::get_belief_px(), cv::Scalar(255, 0, 255));
+    utils::put_label(frame, "Belief", turret::get_belief_px(), 0.5);
+    utils::draw_target(frame, turret::get_target_px(), cv::Scalar(0, 255, 0));
+    utils::put_label(frame, "Target", turret::get_target_px(), 0.5);
 
     std::chrono::high_resolution_clock::time_point loop_end_time =
         std::chrono::high_resolution_clock::now();
@@ -91,6 +101,12 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                                                               loop_start_time)
             .count();
 
+    cv::imshow("frame", frame);
+    char key = static_cast<char>(cv::waitKey(1));
+    if (key == 'q') {
+      utils::exit_flag.store(true);
+    }
+
     if (loop_duration < FRAME_TIME_MS) {
       // You have additional time before the next frame is expected.
       // This can be used as idle time or for other tasks.
@@ -98,35 +114,12 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       // std::this_thread::sleep_for(std::chrono::milliseconds(
       //     static_cast<int>(FRAME_TIME_MS - loop_duration)));
     } else {
-      std::cout << "Processing took longer than expected for a frame. ("
-                << loop_duration << "ms)" << std::endl;
+      // std::cout << "Processing took longer than expected for a frame. ("
+      //           << loop_duration << "ms)" << std::endl;
       cap >> frame;  // Drop a frame
     }
   }
 }
-
-// void user_input(void) {
-//   int ch;
-//   init_ncurses();
-//   while (true) {
-//     ch = getch();
-//     if (ch == 'm') {
-//       manual_mode = !manual_mode;
-//       if (manual_mode) {
-//         std::cout << "Manual" << std::endl;
-//       } else {
-//         std::cout << "Auto" << std::endl;
-//       }
-//     } else if (manual_mode and ch == -1) {
-//       // -1 is returned when noting is pressed before the timeout period.
-//       turret::stop_all_motors();
-//     } else if (manual_mode) {
-//       keyboard_manual(ch);
-//     } else {
-//       keyboard_auto(ch);
-//     }
-//   }
-// }
 
 void user_input(void) {
   char ch;
@@ -140,6 +133,13 @@ void user_input(void) {
         std::cout << "Manual" << std::endl;
       } else {
         std::cout << "Auto" << std::endl;
+      }
+    } else if (ch == 'f') {
+      feedback_flag.store(!feedback_flag.load());
+      if (feedback_flag.load()) {
+        std::cout << "Feedback on" << std::endl;
+      } else {
+        std::cout << "Feedback off" << std::endl;
       }
     } else if (manual_mode) {
       turret::keyboard_manual(ch);
@@ -172,12 +172,12 @@ int main(void) {
 
   // Launch the threads
   std::thread user_input_thread(user_input);
-  // std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
+  std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
   std::thread turret_horizontal_thread(turret_horizontal);
   std::thread turret_vertical_thread(turret_vertical);
 
   // Join the threads (or use detach based on requirements)
-  // video_thread.detach();
+  video_thread.detach();
   turret_horizontal_thread.join();
   turret_vertical_thread.join();
   user_input_thread.detach();

@@ -26,8 +26,8 @@ const uint32_t STEP_DELAY_US = 300'000;
 const uint32_t MICROSTEP_DELAY_US = STEP_DELAY_US / MICROSTEPS;
 
 const uint16_t TANK_DEPTH = 318;                 // mm
-const uint16_t TURRET_DEPTH = 575 + TANK_DEPTH;  // mm
-const uint16_t CAMERA_DEPTH = 780 + TANK_DEPTH;  // mm
+const uint16_t TURRET_DEPTH = 550 + TANK_DEPTH;  // mm
+const uint16_t CAMERA_DEPTH = 765 + TANK_DEPTH;  // mm
 const uint16_t BELIEF_REGION_UNCERTAINTY = 100;
 
 const double f_x = 647.0756309728268;
@@ -121,6 +121,14 @@ static uint32_t get_steps_and_set_direction(Stepper& stepper) {
   return abs(steps);
 }
 
+// Should only be used for testing
+static void increment_setpoint_in_steps(Stepper& stepper, int16_t steps) {
+  stepper.target_step_count.fetch_add(steps);
+  std::cout << "[" << stepper.name
+            << ": new target step count = " << stepper.target_step_count.load()
+            << "]" << std::endl;
+}
+
 void init(void) {
   GPIO::setmode(GPIO::BOARD);
 
@@ -142,21 +150,27 @@ void stop_all_motors(void) {
  * @return The a circle with centre the pixel co-ordinates of the laser and
  * radius the uncertainty.
  */
-utils::Circle get_turret_belief_region(void) {
+utils::Circle get_belief_region(void) {
   uint16_t x_px = belief_angle_to_pixel(x_stepper);
   uint16_t y_px = belief_angle_to_pixel(y_stepper);
 
   return utils::Circle(x_px, y_px, BELIEF_REGION_UNCERTAINTY);
 }
 
-// Should only be used for testing
-void increment_setpoint_in_steps(Stepper& stepper, int16_t steps) {
-  stepper.target_step_count.fetch_add(steps);
-  std::cout << "[" << stepper.name
-            << ": new target step count = " << stepper.target_step_count.load()
-            << "]" << std::endl;
-  // stepper.new_setpoint.store(true); // must not calculate steps with angle
-  // but should brake loop so another flag is needed for this to work properly
+std::pair<uint16_t, uint16_t> get_belief_px(void) {
+  return std::pair<uint16_t, uint16_t>(belief_angle_to_pixel(x_stepper),
+                                       belief_angle_to_pixel(y_stepper));
+}
+
+std::pair<uint16_t, uint16_t> get_setpoint_px(void) {
+  return std::pair<uint16_t, uint16_t>(x_stepper.setpoint_px.load(),
+                                       y_stepper.setpoint_px.load());
+}
+
+std::pair<uint16_t, uint16_t> get_target_px(void) {
+  return std::pair<uint16_t, uint16_t>(
+      pixel_to_angle(x_stepper, x_stepper.target_step_count.load()),
+      pixel_to_angle(y_stepper, y_stepper.target_step_count.load()));
 }
 
 void update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {
@@ -174,8 +188,6 @@ void update_belief(const std::pair<uint16_t, uint16_t> detected_laser_px) {
 }
 
 void run_stepper(Stepper& stepper) {
-  // bool manual_mode = false;
-  // char ch;
   uint32_t steps;
   uint32_t i;
   uint16_t delay_us = 300;
@@ -197,22 +209,6 @@ void run_stepper(Stepper& stepper) {
       stepper.step_count.fetch_sub(i);
     }
 
-    // std::cout << "Input = ";
-    // std::cin >> ch;
-
-    // if (ch == 'm') {
-    //   manual_mode = !manual_mode;
-    //   if (manual_mode) {
-    //     std::cout << "Manual" << std::endl;
-    //   } else {
-    //     std::cout << "Auto" << std::endl;
-    //   }
-    // } else if (manual_mode) {
-    //   keyboard_manual(ch);
-    // } else {
-    //   keyboard_auto(ch);
-    // }
-
     if (stepper.new_feedback.load()) {
       correct_belief(stepper);
       stepper.new_feedback.store(false);
@@ -226,19 +222,23 @@ void run_stepper(Stepper& stepper) {
 }
 
 void keyboard_auto(int ch) {
-  const unsigned int px = 250;
+  const unsigned int px = 100;
   switch (ch) {
     case 'w':
-      turret::update_setpoint(std::pair<uint16_t, uint16_t>(0, 0));
+      turret::update_setpoint(std::pair<uint16_t, uint16_t>(
+          x_stepper.setpoint_px.load(), y_stepper.setpoint_px.load() - px));
       break;
     case 's':
-      turret::update_setpoint(std::pair<uint16_t, uint16_t>(0, px));
+      turret::update_setpoint(std::pair<uint16_t, uint16_t>(
+          x_stepper.setpoint_px.load(), y_stepper.setpoint_px.load() + px));
       break;
     case 'a':
-      turret::update_setpoint(std::pair<uint16_t, uint16_t>(0, 0));
+      turret::update_setpoint(std::pair<uint16_t, uint16_t>(
+          x_stepper.setpoint_px.load() - px, y_stepper.setpoint_px.load()));
       break;
     case 'd':
-      turret::update_setpoint(std::pair<uint16_t, uint16_t>(px, 0));
+      turret::update_setpoint(std::pair<uint16_t, uint16_t>(
+          x_stepper.setpoint_px.load() + px, y_stepper.setpoint_px.load()));
       break;
     default:
       break;
@@ -246,7 +246,7 @@ void keyboard_auto(int ch) {
 }
 
 void keyboard_manual(int ch) {
-  const int steps = 400;
+  const int steps = 1000;
   switch (ch) {
     case 'w':
       turret::increment_setpoint_in_steps(turret::y_stepper, -steps);

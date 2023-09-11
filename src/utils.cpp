@@ -11,6 +11,29 @@ namespace utils {
 //   c_y = camera_matrix.at<double>(1, 2);
 // }
 
+void draw_target(cv::Mat& frame,
+                 const std::pair<uint16_t, uint16_t>& target,
+                 const cv::Scalar& colour) {
+  // Length of the perpendicular lines for target and setpoint
+  int line_length = 50;
+  // Draw a horizontal line passing through the target point
+  cv::line(frame, cv::Point(target.first - line_length, target.second),
+           cv::Point(target.first + line_length, target.second), colour, 2);
+  // Draw a vertical line passing through the target point
+  cv::line(frame, cv::Point(target.first, target.second - line_length),
+           cv::Point(target.first, target.second + line_length), colour, 2);
+}
+
+void put_label(cv::Mat& img,
+               const std::string& label,
+               const std::pair<uint16_t, uint16_t>& origin,
+               const double& font_scale) {
+  int font_face = cv::FONT_HERSHEY_DUPLEX;
+  int thickness = 2;
+  cv::putText(img, label, cv::Point(origin.first, origin.second), font_face,
+              font_scale, cv::Scalar(0, 255, 255), thickness);
+}
+
 float angle_to_mm(const float& theta, const float& depth) {
   return depth * std::tan(theta);
 }

@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <opencv2/opencv.hpp>
 #include <utility>
 
 // Forward declaration to break the circular dependency
@@ -31,6 +32,28 @@ struct Circle {
   Circle(std::pair<uint16_t, uint16_t> center)
       : x(center.first), y(center.second) {}
 };
+
+void draw_target(cv::Mat& frame,
+                 const std::pair<uint16_t, uint16_t>& target,
+                 const cv::Scalar& colour);
+
+/**
+ * @brief Puts a text label on an image.
+ *
+ * This function places a given text label on a specified image at the given
+ * origin point. The label is typically used for marking and identification
+ * purposes on image displays.
+ *
+ * @param img The image on which the label will be placed.
+ * @param label The text string to be placed on the image.
+ * @param origin The top-left corner of the text string in the image.
+ *               For example, a point (10,30) means the text starts 10 pixels
+ * from the left and 30 pixels from the top of the image.
+ */
+void put_label(cv::Mat& img,
+               const std::string& label,
+               const std::pair<uint16_t, uint16_t>& origin,
+               const double& font_scale = 1);
 
 /**
  * @return depth * tan(theta)

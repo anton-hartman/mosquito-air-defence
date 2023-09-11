@@ -132,10 +132,12 @@ std::pair<uint16_t, uint16_t> Detection::detect_laser(
   cv::cvtColor(maskWhite, maskWhite, cv::COLOR_GRAY2BGR);
 
   // Add Labels
-  put_label(displayFrame, "Original", cv::Point(10, 30));
-  put_label(maskRed, "Red Mask", cv::Point(10, 30));
-  put_label(maskWhite, "White Mask", cv::Point(10, 30));
-  put_label(cntrsImg, "Contours", cv::Point(10, 30));
+  utils::put_label(displayFrame, "Original",
+                   std::pair<uint16_t, uint16_t>(10, 30));
+  utils::put_label(maskRed, "Red Mask", std::pair<uint16_t, uint16_t>(10, 30));
+  utils::put_label(maskWhite, "White Mask",
+                   std::pair<uint16_t, uint16_t>(10, 30));
+  utils::put_label(cntrsImg, "Contours", std::pair<uint16_t, uint16_t>(10, 30));
 
   cv::Mat concatenatedOutput;
   cv::hconcat(maskWhite, maskRed, concatenatedOutput);
@@ -157,29 +159,6 @@ std::pair<uint16_t, uint16_t> Detection::detect_laser(
   }
 
   return laser_pos;  // Return appropriate values, placeholder for now
-}
-
-/**
- * @brief Puts a text label on an image.
- *
- * This function places a given text label on a specified image at the given
- * origin point. The label is typically used for marking and identification
- * purposes on image displays.
- *
- * @param img The image on which the label will be placed.
- * @param label The text string to be placed on the image.
- * @param origin The top-left corner of the text string in the image.
- *               For example, a point (10,30) means the text starts 10 pixels
- * from the left and 30 pixels from the top of the image.
- */
-void Detection::put_label(cv::Mat& img,
-                          const std::string& label,
-                          const cv::Point& origin) {
-  int fontFace = cv::QT_FONT_NORMAL;
-  double fontScale = 1;
-  int thickness = 2;
-  cv::putText(img, label, origin, fontFace, fontScale, cv::Scalar(0, 255, 255),
-              thickness);
 }
 
 #pragma region HSV Slider Functions
