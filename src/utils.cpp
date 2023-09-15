@@ -34,24 +34,20 @@ void put_label(cv::Mat& img,
               font_scale, cv::Scalar(0, 255, 255), thickness);
 }
 
-float angle_to_mm(const float& theta, const float& depth) {
-  return depth * std::tan(theta);
+float turret_angle_to_mm(const float& theta_deg) {
+  return TURRET_DEPTH * std::tan(theta_deg * M_PI / 180);
 }
 
-float mm_to_angle(const float& mm, const float& depth) {
-  return std::atan2(mm, depth);
+float mm_to_turret_angle(const float& mm) {
+  return std::atan2(mm, TURRET_DEPTH) * 180 / M_PI;
 }
 
-float pixel_to_mm(const turret::Stepper& stepper,
-                  const uint16_t& px,
-                  const uint16_t& depth) {
-  return (px - stepper.principal_point) * depth / stepper.focal_length;
+float pixel_to_mm(const turret::Stepper& stepper, const uint16_t& px) {
+  return (px - stepper.principal_point) * CAMERA_DEPTH / stepper.focal_length;
 }
 
-uint16_t mm_to_pixel(const turret::Stepper& stepper,
-                     const uint16_t& mm,
-                     const uint16_t& depth) {
-  return (mm * stepper.focal_length / depth) + stepper.principal_point;
+uint16_t mm_to_pixel(const turret::Stepper& stepper, const uint16_t& mm) {
+  return (mm * stepper.focal_length / CAMERA_DEPTH) + stepper.principal_point;
 }
 
 }  // namespace utils

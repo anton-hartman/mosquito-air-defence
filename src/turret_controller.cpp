@@ -15,8 +15,6 @@ namespace turret {
 #define M2_DIR_PIN 18
 #define M2_STEP_PIN 12
 
-const double PI = 3.14159265359;
-
 const int8_t CLOCKWISE = 1;
 const int8_t ANTI_CLOCKWISE = -1;
 const float FULL_STEP_ANGLE = 0.17578125;
@@ -24,11 +22,6 @@ const uint8_t MICROSTEPS = 16;
 const double MICROSTEP_ANGLE = FULL_STEP_ANGLE / MICROSTEPS;
 const uint32_t STEP_DELAY_US = 300'000;
 const uint32_t MICROSTEP_DELAY_US = STEP_DELAY_US / MICROSTEPS;
-
-const uint16_t TANK_DEPTH = 318;                 // mm
-const uint16_t TURRET_DEPTH = 550 + TANK_DEPTH;  // mm
-const uint16_t CAMERA_DEPTH = 765 + TANK_DEPTH;  // mm
-const uint16_t BELIEF_REGION_UNCERTAINTY = 100;
 
 const double f_x = 647.0756309728268;
 const double f_y = 861.7363873209705;
@@ -56,7 +49,6 @@ Stepper::Stepper(std::string name,
       new_setpoint(false),
       new_feedback(false),
       direction(CLOCKWISE),
-      prev_step_count(0),
       step_count(0),
       target_step_count(0) {}
 
@@ -85,27 +77,30 @@ static void stop_motor(Stepper& stepper) {
   GPIO::output(stepper.enable_pin, GPIO::LOW);
 }
 
-static float pixel_to_angle(const Stepper& stepper, const uint16_t& px) {
-  float mm = utils::pixel_to_mm(stepper, px, CAMERA_DEPTH);
-  return utils::mm_to_angle(mm, TURRET_DEPTH) * 360.0 / PI;
+static float pixel_to_turret_angle(const Stepper& stepper, const uint16_t& px) {
+  float mm = utils::pixel_to_mm(stepper, px);
+  return utils::mm_to_turret_angle(mm);
 }
 
 static uint16_t belief_angle_to_pixel(const Stepper& stepper) {
-  float mm =
-      utils::angle_to_mm(stepper.get_belief_angle() * PI / 360.0, TURRET_DEPTH);
-  return utils::mm_to_pixel(stepper, mm, CAMERA_DEPTH);
+  float mm = utils::turret_angle_to_mm(stepper.get_belief_angle());
+  return utils::mm_to_pixel(stepper, mm);
+}
+
+static uint16_t target_steps_to_pixel(const Stepper& stepper) {
+  float mm = utils::turret_angle_to_mm(stepper.target_step_count.load() *
+                                       MICROSTEP_ANGLE);
+  return utils::mm_to_pixel(stepper, mm);
 }
 
 static void correct_belief(Stepper& stepper) {
-  float angle = pixel_to_angle(stepper, stepper.detected_laser_px);
-  int32_t step_error =
-      (angle / MICROSTEP_ANGLE) - stepper.prev_step_count.load();
+  float angle = pixel_to_turret_angle(stepper, stepper.detected_laser_px);
+  int32_t step_error = (angle / MICROSTEP_ANGLE) - stepper.step_count.load();
   stepper.step_count.fetch_add(step_error);
-  stepper.prev_step_count.store(stepper.step_count);
 }
 
 static void setpoint_to_steps(Stepper& stepper) {
-  float angle = pixel_to_angle(stepper, stepper.setpoint_px);
+  float angle = pixel_to_turret_angle(stepper, stepper.setpoint_px);
   stepper.target_step_count.store(angle / MICROSTEP_ANGLE);
 }
 
@@ -146,17 +141,6 @@ void stop_all_motors(void) {
   stop_motor(y_stepper);
 }
 
-/**
- * @return The a circle with centre the pixel co-ordinates of the laser and
- * radius the uncertainty.
- */
-utils::Circle get_belief_region(void) {
-  uint16_t x_px = belief_angle_to_pixel(x_stepper);
-  uint16_t y_px = belief_angle_to_pixel(y_stepper);
-
-  return utils::Circle(x_px, y_px, BELIEF_REGION_UNCERTAINTY);
-}
-
 std::pair<uint16_t, uint16_t> get_belief_px(void) {
   return std::pair<uint16_t, uint16_t>(belief_angle_to_pixel(x_stepper),
                                        belief_angle_to_pixel(y_stepper));
@@ -168,9 +152,18 @@ std::pair<uint16_t, uint16_t> get_setpoint_px(void) {
 }
 
 std::pair<uint16_t, uint16_t> get_target_px(void) {
-  return std::pair<uint16_t, uint16_t>(
-      pixel_to_angle(x_stepper, x_stepper.target_step_count.load()),
-      pixel_to_angle(y_stepper, y_stepper.target_step_count.load()));
+  return std::pair<uint16_t, uint16_t>(target_steps_to_pixel(x_stepper),
+                                       target_steps_to_pixel(y_stepper));
+}
+
+std::pair<int32_t, int32_t> get_step_count(void) {
+  return std::pair<int32_t, int32_t>(x_stepper.step_count.load(),
+                                     y_stepper.step_count.load());
+}
+
+std::pair<int32_t, int32_t> get_target_step_count(void) {
+  return std::pair<int32_t, int32_t>(x_stepper.target_step_count.load(),
+                                     y_stepper.target_step_count.load());
 }
 
 void update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {

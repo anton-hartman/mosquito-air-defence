@@ -53,6 +53,44 @@ std::vector<std::vector<int>> Detection::detect_mosquitoes(
   return bounding_boxes;
 }
 
+static void laser_display(cv::Mat& maskRed,
+                          cv::Mat& maskWhite,
+                          cv::Mat& cntrsImg,
+                          cv::Mat& displayFrame) {
+  // Prepare for display
+  // cv::resize(maskRed, maskRed, frame.size());
+  // cv::resize(maskWhite, maskWhite, frame.size());
+  cv::cvtColor(maskRed, maskRed, cv::COLOR_GRAY2BGR);
+  cv::cvtColor(maskWhite, maskWhite, cv::COLOR_GRAY2BGR);
+
+  // Add Labels
+  utils::put_label(displayFrame, "Original",
+                   std::pair<uint16_t, uint16_t>(10, 30));
+  utils::put_label(maskRed, "Red Mask", std::pair<uint16_t, uint16_t>(10, 30));
+  utils::put_label(maskWhite, "White Mask",
+                   std::pair<uint16_t, uint16_t>(10, 30));
+  utils::put_label(cntrsImg, "Contours", std::pair<uint16_t, uint16_t>(10, 30));
+
+  cv::Mat concatenatedOutput;
+  cv::hconcat(maskWhite, maskRed, concatenatedOutput);
+  cv::hconcat(cntrsImg, displayFrame, displayFrame);
+  cv::vconcat(concatenatedOutput, displayFrame, concatenatedOutput);
+
+  // Resize the concatenated output to fit the screen if necessary
+  const int screenWidth = 1200;  // Modify this as per your screen resolution
+  if (concatenatedOutput.cols > screenWidth) {
+    float scale = (float)screenWidth / concatenatedOutput.cols;
+    cv::resize(concatenatedOutput, concatenatedOutput, cv::Size(), scale,
+               scale);
+  }
+
+  cv::imshow("Combined Display", concatenatedOutput);
+  char key = static_cast<char>(cv::waitKey(1));
+  if (key == 'q') {
+    exit(0);
+  }
+}
+
 std::pair<uint16_t, uint16_t> Detection::detect_laser(
     const cv::Mat& frame,
     const utils::Circle& laser_belief_region_px) {
@@ -64,10 +102,10 @@ std::pair<uint16_t, uint16_t> Detection::detect_laser(
 
   // Threshold for red using the class members
   cv::Mat maskRed1, maskRed2, maskRed;
-  cv::inRange(hsv, cv::Scalar(h_red_low, s_red_low, v_red_low),
-              cv::Scalar(h_red_high, s_red_high, v_red_high), maskRed1);
-  cv::inRange(hsv, cv::Scalar(170, s_red_low, v_red_low),
-              cv::Scalar(180, s_red_high, v_red_high), maskRed2);
+  cv::inRange(hsv, cv::Scalar(h_red_low_1, s_red_low, v_red_low),
+              cv::Scalar(h_red_high_1, s_red_high, v_red_high), maskRed1);
+  cv::inRange(hsv, cv::Scalar(h_red_low_2, s_red_low, v_red_low),
+              cv::Scalar(h_red_low_2, s_red_high, v_red_high), maskRed2);
   maskRed = maskRed1 | maskRed2;
 
   // Threshold for white using the class members
@@ -125,53 +163,26 @@ std::pair<uint16_t, uint16_t> Detection::detect_laser(
     }
   }
 
-  // Prepare for display
-  cv::resize(maskRed, maskRed, frame.size());
-  cv::resize(maskWhite, maskWhite, frame.size());
-  cv::cvtColor(maskRed, maskRed, cv::COLOR_GRAY2BGR);
-  cv::cvtColor(maskWhite, maskWhite, cv::COLOR_GRAY2BGR);
-
-  // Add Labels
-  utils::put_label(displayFrame, "Original",
-                   std::pair<uint16_t, uint16_t>(10, 30));
-  utils::put_label(maskRed, "Red Mask", std::pair<uint16_t, uint16_t>(10, 30));
-  utils::put_label(maskWhite, "White Mask",
-                   std::pair<uint16_t, uint16_t>(10, 30));
-  utils::put_label(cntrsImg, "Contours", std::pair<uint16_t, uint16_t>(10, 30));
-
-  cv::Mat concatenatedOutput;
-  cv::hconcat(maskWhite, maskRed, concatenatedOutput);
-  cv::hconcat(cntrsImg, displayFrame, displayFrame);
-  cv::vconcat(concatenatedOutput, displayFrame, concatenatedOutput);
-
-  // Resize the concatenated output to fit the screen if necessary
-  const int screenWidth = 1200;  // Modify this as per your screen resolution
-  if (concatenatedOutput.cols > screenWidth) {
-    float scale = (float)screenWidth / concatenatedOutput.cols;
-    cv::resize(concatenatedOutput, concatenatedOutput, cv::Size(), scale,
-               scale);
-  }
-
-  cv::imshow("Combined Display", concatenatedOutput);
-  char key = static_cast<char>(cv::waitKey(1));
-  if (key == 'q') {
-    exit(0);
-  }
+  laser_display(maskRed, maskWhite, cntrsImg, displayFrame);
 
   return laser_pos;  // Return appropriate values, placeholder for now
 }
 
 #pragma region HSV Slider Functions
-void Detection::set_red_thresholds(int hl,
+void Detection::set_red_thresholds(int hl_1,
+                                   int hl_2,
                                    int sl,
                                    int vl,
-                                   int hh,
+                                   int hh_1,
+                                   int hh_2,
                                    int sh,
                                    int vh) {
-  h_red_low = hl;
+  h_red_low_1 = hl_1;
+  h_red_low_2 = hl_2;
   s_red_low = sl;
   v_red_low = vl;
-  h_red_high = hh;
+  h_red_high_1 = hh_1;
+  h_red_high_2 = hh_2;
   s_red_high = sh;
   v_red_high = vh;
 }
@@ -195,10 +206,14 @@ void Detection::create_threshold_trackbars() {
   cv::namedWindow("White Thresholds", cv::WINDOW_NORMAL);
 
   // Red Mask
-  cv::createTrackbar("Low H", "Red Thresholds", &h_red_low, 179,
-                     on_h_red_low_change, this);
-  cv::createTrackbar("High H", "Red Thresholds", &h_red_high, 180,
-                     on_h_red_high_change, this);
+  cv::createTrackbar("Low H1", "Red Thresholds", &h_red_low_1, 179,
+                     on_h_1_red_low_change, this);
+  cv::createTrackbar("High H1", "Red Thresholds", &h_red_high_1, 180,
+                     on_h_1_red_high_change, this);
+  cv::createTrackbar("Low H2", "Red Thresholds", &h_red_low_2, 179,
+                     on_h_2_red_low_change, this);
+  cv::createTrackbar("High H2", "Red Thresholds", &h_red_high_2, 180,
+                     on_h_2_red_high_change, this);
   cv::createTrackbar("Low S", "Red Thresholds", &s_red_low, 255,
                      on_s_red_low_change, this);
   cv::createTrackbar("High S", "Red Thresholds", &s_red_high, 255,
@@ -223,14 +238,24 @@ void Detection::create_threshold_trackbars() {
                      on_v_white_high_change, this);
 }
 
-void Detection::on_h_red_low_change(int value, void* ptr) {
+void Detection::on_h_1_red_low_change(int value, void* ptr) {
   Detection* objDet = static_cast<Detection*>(ptr);
-  objDet->h_red_low = value;
+  objDet->h_red_low_1 = value;
 }
 
-void Detection::on_h_red_high_change(int value, void* ptr) {
+void Detection::on_h_1_red_high_change(int value, void* ptr) {
   Detection* objDet = static_cast<Detection*>(ptr);
-  objDet->h_red_high = value;
+  objDet->h_red_high_1 = value;
+}
+
+void Detection::on_h_2_red_low_change(int value, void* ptr) {
+  Detection* objDet = static_cast<Detection*>(ptr);
+  objDet->h_red_low_2 = value;
+}
+
+void Detection::on_h_2_red_high_change(int value, void* ptr) {
+  Detection* objDet = static_cast<Detection*>(ptr);
+  objDet->h_red_high_2 = value;
 }
 
 // Callback functions for Red Mask

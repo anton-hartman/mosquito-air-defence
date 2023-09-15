@@ -14,6 +14,10 @@ namespace utils {
 
 extern std::atomic<bool> exit_flag;
 
+const uint16_t TANK_DEPTH = 318;                 // mm
+const uint16_t TURRET_DEPTH = 550 + TANK_DEPTH;  // mm
+const uint16_t CAMERA_DEPTH = 765 + TANK_DEPTH;  // mm
+
 /**
  * @param x uint16_t
  * @param y uint16_t
@@ -56,20 +60,21 @@ void put_label(cv::Mat& img,
                const double& font_scale = 1);
 
 /**
- * @return depth * tan(theta)
+ * @return TURRET_DEPTH * tan(theta)
  */
-float angle_to_mm(const float& theta, const float& depth);
+float turret_angle_to_mm(const float& theta_deg);
 
 /**
- * @return arctan(mm / depth)
+ * Returns the angle in degrees.
+ *
+ * @return arctan(mm / TURRET_DEPTH)
  */
-float mm_to_angle(const float& mm, const float& depth);
+float mm_to_turret_angle(const float& mm);
 
 /**
  * Convert a pixel coordinate to a real-world coordinate in millimeters.
  *
  * @param px Pixel coordinate with origin at top-left of the image.
- * @param depth Known distance from the camera to the plane in millimeters.
  *
  * @return A float containing the distance from the priciple point in
  * millimeters.
@@ -83,9 +88,7 @@ float mm_to_angle(const float& mm, const float& depth);
  * values extend downward from the optical center, and negative Y values extend
  * upward.
  */
-float pixel_to_mm(const turret::Stepper& stepper,
-                  const uint16_t& px,
-                  const uint16_t& depth);
+float pixel_to_mm(const turret::Stepper& stepper, const uint16_t& px);
 
 /**
  * Convert real-world a coordinate in millimeters to a pixel coordinate. All
@@ -93,7 +96,6 @@ float pixel_to_mm(const turret::Stepper& stepper,
  *
  * @param mm Real-world coordinate with origin at the optical center of the
  * camera.
- * @param depth Known distance from the camera to the plane in millimeters.
  *
  * @return A uint16_t containing the coordinate in pixels.
  *
@@ -102,8 +104,6 @@ float pixel_to_mm(const turret::Stepper& stepper,
  * @note - The returned pixel coordinate has its origin at the top-left corner
  * of the image.
  */
-uint16_t mm_to_pixel(const turret::Stepper& stepper,
-                     const uint16_t& mm,
-                     const uint16_t& depth);
+uint16_t mm_to_pixel(const turret::Stepper& stepper, const uint16_t& mm);
 
 }  // namespace utils

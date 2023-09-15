@@ -7,8 +7,8 @@ class Detection {
   float alpha;         // Weight for updating the background model.
 
   // Thresholding values for red and white masks for laser detection.
-  int h_red_low, s_red_low, v_red_low;
-  int h_red_high, s_red_high, v_red_high;
+  int h_red_low_1, h_red_low_2, s_red_low, v_red_low;
+  int h_red_high_1, h_red_high_2, s_red_high, v_red_high;
   int h_white_low, s_white_low, v_white_low;
   int h_white_high, s_white_high, v_white_high;
 
@@ -26,13 +26,22 @@ class Detection {
       const cv::Mat& frame,
       const utils::Circle& laser_belief_region_px);
 
-  void set_red_thresholds(int hl, int sl, int vl, int hh, int sh, int vh);
+  void set_red_thresholds(int hl_1,
+                          int hl_2,
+                          int sl,
+                          int vl,
+                          int hh_1,
+                          int hh_2,
+                          int sh,
+                          int vh);
   void set_white_thresholds(int hl, int sl, int vl, int hh, int sh, int vh);
 
   void create_threshold_trackbars();
   // Callbacks for trackbars
-  static void on_h_red_low_change(int, void* ptr);
-  static void on_h_red_high_change(int, void* ptr);
+  static void on_h_1_red_low_change(int, void* ptr);
+  static void on_h_1_red_high_change(int, void* ptr);
+  static void on_h_2_red_low_change(int, void* ptr);
+  static void on_h_2_red_high_change(int, void* ptr);
   static void on_s_red_low_change(int, void* ptr);
   static void on_s_red_high_change(int, void* ptr);
   static void on_v_red_low_change(int, void* ptr);

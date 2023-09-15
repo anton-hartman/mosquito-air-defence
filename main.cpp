@@ -83,6 +83,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     laser_pos = detector.detect_laser(frame, laser_belief_region_px);
     if (feedback_flag.load()) {
       turret::update_belief(laser_pos);
+      // feedback_flag.store(false);
+      // std::cout << "Feedback off" << std::endl;
     }
 
     utils::draw_target(frame, laser_pos, cv::Scalar(0, 0, 255));
@@ -92,7 +94,21 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     utils::draw_target(frame, turret::get_belief_px(), cv::Scalar(255, 0, 255));
     utils::put_label(frame, "Belief", turret::get_belief_px(), 0.5);
     utils::draw_target(frame, turret::get_target_px(), cv::Scalar(0, 255, 0));
-    utils::put_label(frame, "Target", turret::get_target_px(), 0.5);
+    utils::put_label(
+        frame, "Target",
+        std::pair<uint16_t, uint16_t>(turret::get_target_px().first,
+                                      turret::get_target_px().second + 20),
+        0.5);
+    std::pair<int32_t, int32_t> step_count = turret::get_step_count();
+    utils::put_label(frame,
+                     "Belief steps (" + std::to_string(step_count.first) +
+                         ", " + std::to_string(step_count.second) + ")",
+                     std::pair<uint16_t, uint16_t>(10, 30), 0.5);
+    std::pair<int32_t, int32_t> target_steps = turret::get_target_step_count();
+    utils::put_label(frame,
+                     "Target steps (" + std::to_string(target_steps.first) +
+                         ", " + std::to_string(target_steps.second) + ")",
+                     std::pair<uint16_t, uint16_t>(10, 60), 0.5);
 
     std::chrono::high_resolution_clock::time_point loop_end_time =
         std::chrono::high_resolution_clock::now();
@@ -164,11 +180,9 @@ int main(void) {
   // cv::resize(initial_frame, initial_frame, cv::Size(), SCALING_FACTOR,
   //            SCALING_FACTOR);
   Detection detector(initial_frame, ALPHA);
-  detector.set_red_thresholds(0, 50, 190, 10, 255, 255);
+  detector.set_red_thresholds(0, 170, 50, 190, 10, 180, 255, 255);
   detector.set_white_thresholds(0, 0, 245, 180, 20, 255);
   detector.create_threshold_trackbars();
-
-  // turret_horizontal();
 
   // Launch the threads
   std::thread user_input_thread(user_input);

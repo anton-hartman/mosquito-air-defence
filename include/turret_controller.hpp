@@ -29,7 +29,6 @@ struct Stepper {
   std::atomic<bool> new_feedback;
 
   std::atomic<int8_t> direction;
-  std::atomic<int32_t> prev_step_count;
   std::atomic<int32_t> step_count;
   std::atomic<int32_t> target_step_count;
 
@@ -40,6 +39,9 @@ struct Stepper {
           double c,
           double f);
 
+  /**
+   * @return step_count.load() * MICROSTEP_ANGLE
+   */
   float get_belief_angle(void) const;
 };
 
@@ -50,11 +52,12 @@ void init(void);
 std::pair<uint16_t, uint16_t> get_belief_px(void);
 std::pair<uint16_t, uint16_t> get_setpoint_px(void);
 std::pair<uint16_t, uint16_t> get_target_px(void);
+std::pair<int32_t, int32_t> get_step_count(void);
+std::pair<int32_t, int32_t> get_target_step_count(void);
 void update_belief(const std::pair<uint16_t, uint16_t> detected_laser_px);
 void update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px);
 void run_stepper(Stepper& stepper);
 void stop_all_motors(void);
-utils::Circle get_belief_region(void);
 void keyboard_auto(int ch);
 void keyboard_manual(int ch);
 
