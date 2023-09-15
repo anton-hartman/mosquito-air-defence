@@ -19,6 +19,7 @@ include_directories(
 # List all source and header files
 set(SOURCE_FILES
     main.cpp
+    src/stepper.cpp
     src/turret_controller.cpp
     src/utils.cpp
     src/detection.cpp
@@ -27,6 +28,7 @@ set(SOURCE_FILES
 )
 
 set(HEADER_FILES
+include/stepper.hpp
     include/turret_controller.hpp
     include/utils.hpp
     include/detection.hpp

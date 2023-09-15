@@ -10,6 +10,8 @@
 #include "include/turret_controller.hpp"
 #include "include/utils.hpp"
 
+Turret turret;
+
 std::atomic<bool> utils::exit_flag(false);
 std::atomic<bool> feedback_flag(false);
 
@@ -35,7 +37,7 @@ utils::Circle laser_belief_region_px;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
-  turret::stop_all_motors();
+  turret.stop_all_motors();
   cv::destroyAllWindows();
   if (cap.isOpened()) {
     cap.release();
@@ -57,7 +59,6 @@ cv::VideoCapture init_system(void) {
   }
 
   signal(SIGINT, exit_handler);
-  turret::init();
   return cap;
 }
 
@@ -73,7 +74,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // Directly after capturing a new frame so that it is the belief state at
     // the instance of capturing the frame. Esure frame size remains constant
     // otherwise the belief state will be for the wrong frame size.
-    // laser_belief_region_px = turret::get_belief_region();
+    // laser_belief_region_px = turret.get_belief_region();
 
     if (frame.empty()) {
       std::cout << "Frame is empty, exiting." << std::endl;
@@ -82,29 +83,23 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
     laser_pos = detector.detect_laser(frame, laser_belief_region_px);
     if (feedback_flag.load()) {
-      turret::update_belief(laser_pos);
+      turret.update_belief(laser_pos);
       // feedback_flag.store(false);
       // std::cout << "Feedback off" << std::endl;
     }
 
     utils::draw_target(frame, laser_pos, cv::Scalar(0, 0, 255));
     utils::put_label(frame, "Detected laser", laser_pos, 0.5);
-    utils::draw_target(frame, turret::get_setpoint_px(), cv::Scalar(255, 0, 0));
-    utils::put_label(frame, "Setpoint", turret::get_setpoint_px(), 0.5);
-    utils::draw_target(frame, turret::get_belief_px(), cv::Scalar(255, 0, 255));
-    utils::put_label(frame, "Belief", turret::get_belief_px(), 0.5);
-    utils::draw_target(frame, turret::get_target_px(), cv::Scalar(0, 255, 0));
-    utils::put_label(
-        frame, "Target",
-        std::pair<uint16_t, uint16_t>(turret::get_target_px().first,
-                                      turret::get_target_px().second + 20),
-        0.5);
-    std::pair<int32_t, int32_t> step_count = turret::get_step_count();
+    utils::draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
+    utils::put_label(frame, "Setpoint", turret.get_setpoint_px(), 0.5);
+    utils::draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
+    utils::put_label(frame, "Belief", turret.get_belief_px(), 0.5);
+    std::pair<int32_t, int32_t> current_steps = turret.get_belief_steps();
     utils::put_label(frame,
-                     "Belief steps (" + std::to_string(step_count.first) +
-                         ", " + std::to_string(step_count.second) + ")",
+                     "Belief steps (" + std::to_string(current_steps.first) +
+                         ", " + std::to_string(current_steps.second) + ")",
                      std::pair<uint16_t, uint16_t>(10, 30), 0.5);
-    std::pair<int32_t, int32_t> target_steps = turret::get_target_step_count();
+    std::pair<int32_t, int32_t> target_steps = turret.get_setpoint_steps();
     utils::put_label(frame,
                      "Target steps (" + std::to_string(target_steps.first) +
                          ", " + std::to_string(target_steps.second) + ")",
@@ -138,6 +133,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 }
 
 void user_input(void) {
+  bool motors_stopped = false;
+  bool adjust_steps = false;
+  uint32_t steps = 1030;
   char ch;
   while (!utils::exit_flag.load()) {
     std::cout << "Enter a character: ";
@@ -157,20 +155,29 @@ void user_input(void) {
       } else {
         std::cout << "Feedback off" << std::endl;
       }
+    } else if (manual_mode and adjust_steps) {
+      if (ch == 'w') {
+        steps += 100;
+      } else if (ch == 's') {
+        steps -= 100;
+      }
+      std::cout << "Steps: " << steps << std::endl;
+    } else if (manual_mode and ch == 'c') {
+      adjust_steps = !adjust_steps;
     } else if (manual_mode) {
-      turret::keyboard_manual(ch);
+      turret.keyboard_manual(ch, steps);
     } else {
-      turret::keyboard_auto(ch);
+      turret.keyboard_auto(ch);
     }
   }
 }
 
 void turret_horizontal(void) {
-  turret::run_stepper(turret::x_stepper);
+  turret.run_x_stepper();
 }
 
 void turret_vertical(void) {
-  turret::run_stepper(turret::y_stepper);
+  turret.run_y_stepper();
 }
 
 int main(void) {

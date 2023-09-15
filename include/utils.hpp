@@ -5,17 +5,11 @@
 #include <opencv2/opencv.hpp>
 #include <utility>
 
-// Forward declaration to break the circular dependency
-namespace turret {
-struct Stepper;
-}
-
 namespace utils {
 
 extern std::atomic<bool> exit_flag;
 
 const uint16_t TANK_DEPTH = 318;                 // mm
-const uint16_t TURRET_DEPTH = 550 + TANK_DEPTH;  // mm
 const uint16_t CAMERA_DEPTH = 765 + TANK_DEPTH;  // mm
 
 /**
@@ -60,18 +54,6 @@ void put_label(cv::Mat& img,
                const double& font_scale = 1);
 
 /**
- * @return TURRET_DEPTH * tan(theta)
- */
-float turret_angle_to_mm(const float& theta_deg);
-
-/**
- * Returns the angle in degrees.
- *
- * @return arctan(mm / TURRET_DEPTH)
- */
-float mm_to_turret_angle(const float& mm);
-
-/**
  * Convert a pixel coordinate to a real-world coordinate in millimeters.
  *
  * @param px Pixel coordinate with origin at top-left of the image.
@@ -88,7 +70,9 @@ float mm_to_turret_angle(const float& mm);
  * values extend downward from the optical center, and negative Y values extend
  * upward.
  */
-float pixel_to_mm(const turret::Stepper& stepper, const uint16_t& px);
+double pixel_to_mm(const double principal_point,
+                   const double focal_length,
+                   const uint16_t& px);
 
 /**
  * Convert real-world a coordinate in millimeters to a pixel coordinate. All
@@ -104,6 +88,8 @@ float pixel_to_mm(const turret::Stepper& stepper, const uint16_t& px);
  * @note - The returned pixel coordinate has its origin at the top-left corner
  * of the image.
  */
-uint16_t mm_to_pixel(const turret::Stepper& stepper, const uint16_t& mm);
+uint16_t mm_to_pixel(const double principal_point,
+                     const double focal_length,
+                     const double& mm);
 
 }  // namespace utils
