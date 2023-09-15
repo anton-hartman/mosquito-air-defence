@@ -1,5 +1,5 @@
 
-#include "../include/turret_controller.hpp"
+#include "../include/turret.hpp"
 #include <JetsonGPIO.h>
 #include "../include/stepper.hpp"
 #include "../include/utils.hpp"
@@ -12,15 +12,16 @@
 #define M2_DIR_PIN 18
 #define M2_STEP_PIN 12
 
-const double f_x = 647.0756309728268;
-const double f_y = 861.7363873209705;
-const double c_x = 304.4404590127848;
-const double c_y = 257.5858878142162;
+const double F_X = 647.0756309728268;
+const double F_Y = 861.7363873209705;
+const double C_X = 304.4404590127848;
+const double C_Y = 257.5858878142162;
 
-const uint8_t VERTICAL_DISTANCE_BETWEEN_MIRRORS = 50;  // mm
-const uint16_t X_STEPPER_DEPTH =
-    550 + VERTICAL_DISTANCE_BETWEEN_MIRRORS + utils::TANK_DEPTH;  // mm
-const uint16_t Y_STEPPER_DEPTH = 550 + utils::TANK_DEPTH;         // mm
+const int TURRET_DEPTH = 550;                      // mm
+const int VERTICAL_DISTANCE_BETWEEN_MIRRORS = 50;  // mm
+const int X_STEPPER_DEPTH =
+    TURRET_DEPTH + VERTICAL_DISTANCE_BETWEEN_MIRRORS + utils::TANK_DEPTH;  // mm
+const int Y_STEPPER_DEPTH = TURRET_DEPTH + utils::TANK_DEPTH;              // mm
 
 Turret::Turret(void)
     : run_flag(true),
@@ -29,21 +30,19 @@ Turret::Turret(void)
                 M1_DIR_PIN,
                 M1_STEP_PIN,
                 X_STEPPER_DEPTH,
-                c_x,
-                f_x),
+                C_X,
+                F_X),
       y_stepper("y_stepper",
                 M2_ENABLE_PIN,
                 M2_DIR_PIN,
                 M2_STEP_PIN,
                 Y_STEPPER_DEPTH,
-                c_y,
-                f_y) {
+                C_Y,
+                F_Y) {
   GPIO::setmode(GPIO::BOARD);
-
   GPIO::setup(M1_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
   GPIO::setup(M1_DIR_PIN, GPIO::OUT, GPIO::HIGH);
   GPIO::setup(M1_STEP_PIN, GPIO::OUT, GPIO::LOW);
-
   GPIO::setup(M2_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
   GPIO::setup(M2_DIR_PIN, GPIO::OUT, GPIO::HIGH);
   GPIO::setup(M2_STEP_PIN, GPIO::OUT, GPIO::LOW);
@@ -57,15 +56,14 @@ void Turret::run_y_stepper(void) {
   y_stepper.run_stepper();
 }
 
-void Turret::stop_all_motors(void) {
-  x_stepper.stop_motor();
-  y_stepper.stop_motor();
+void Turret::stop_turret(void) {
+  x_stepper.stop_stepper();
+  y_stepper.stop_stepper();
 }
 
 std::pair<uint16_t, uint16_t> Turret::get_belief_px(void) {
-  return std::pair<uint16_t, uint16_t>(
-      x_stepper.steps_to_pixel(x_stepper.get_current_steps()),
-      y_stepper.steps_to_pixel(y_stepper.get_current_steps()));
+  return std::pair<uint16_t, uint16_t>(x_stepper.get_current_px(),
+                                       y_stepper.get_current_px());
 }
 
 std::pair<uint16_t, uint16_t> Turret::get_setpoint_px(void) {
@@ -94,8 +92,7 @@ void Turret::update_belief(
   y_stepper.set_detected_laser_px(detected_laser_px.second);
 }
 
-void Turret::keyboard_auto(int ch) {
-  const unsigned int px = 100;
+void Turret::keyboard_auto(int ch, int px) {
   switch (ch) {
     case 'w':
       update_setpoint(std::pair<uint16_t, uint16_t>(

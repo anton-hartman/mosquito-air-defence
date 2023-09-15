@@ -7,27 +7,27 @@
 // #include "camera_calibration.cpp"
 #include <atomic>
 #include "include/detection.hpp"
-#include "include/turret_controller.hpp"
+#include "include/turret.hpp"
 #include "include/utils.hpp"
 
 Turret turret;
 
 std::atomic<bool> utils::exit_flag(false);
-std::atomic<bool> feedback_flag(false);
+std::atomic<bool> enable_feedback_flag(false);
 
 const float SCALING_FACTOR = 1.0;
 const float ALPHA = 0.01;
 const float FRAME_TIME_MS = 1000 / 24.0;
-const std::vector<float> CAMERA_MATRIX = {647.0756309728268,
-                                          0,
-                                          304.4404590127848,
-                                          0,
-                                          861.7363873209705,
-                                          257.5858878142162,
-                                          0,
-                                          0,
-                                          1};
-const float CAMERA_DEPTH = 1104;  // mm
+// const std::vector<float> CAMERA_MATRIX = {647.0756309728268,
+//                                           0,
+//                                           304.4404590127848,
+//                                           0,
+//                                           861.7363873209705,
+//                                           257.5858878142162,
+//                                           0,
+//                                           0,
+//                                           1};
+// const float CAMERA_DEPTH = 1104;  // mm
 
 cv::VideoCapture cap;
 int manual_mode = 1;
@@ -37,7 +37,7 @@ utils::Circle laser_belief_region_px;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
-  turret.stop_all_motors();
+  turret.stop_turret();
   cv::destroyAllWindows();
   if (cap.isOpened()) {
     cap.release();
@@ -82,9 +82,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     }
     // cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
     laser_pos = detector.detect_laser(frame, laser_belief_region_px);
-    if (feedback_flag.load()) {
+    if (enable_feedback_flag.load()) {
       turret.update_belief(laser_pos);
-      // feedback_flag.store(false);
+      // enable_feedback_flag.store(false);
       // std::cout << "Feedback off" << std::endl;
     }
 
@@ -134,8 +134,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 
 void user_input(void) {
   bool motors_stopped = false;
-  bool adjust_steps = false;
-  uint32_t steps = 1030;
+  bool adjust_size = false;
+  int steps = 1030;
+  int px = 110;
   char ch;
   while (!utils::exit_flag.load()) {
     std::cout << "Enter a character: ";
@@ -149,25 +150,32 @@ void user_input(void) {
         std::cout << "Auto" << std::endl;
       }
     } else if (ch == 'f') {
-      feedback_flag.store(!feedback_flag.load());
-      if (feedback_flag.load()) {
+      enable_feedback_flag.store(!enable_feedback_flag.load());
+      if (enable_feedback_flag.load()) {
         std::cout << "Feedback on" << std::endl;
       } else {
         std::cout << "Feedback off" << std::endl;
       }
-    } else if (manual_mode and adjust_steps) {
+    } else if (ch == 'c') {
+      adjust_size = !adjust_size;
+    } else if (manual_mode and adjust_size) {
       if (ch == 'w') {
         steps += 100;
       } else if (ch == 's') {
         steps -= 100;
       }
-      std::cout << "Steps: " << steps << std::endl;
-    } else if (manual_mode and ch == 'c') {
-      adjust_steps = !adjust_steps;
+      std::cout << "Steps per click: " << steps << std::endl;
+    } else if (!manual_mode and adjust_size) {
+      if (ch == 'w') {
+        px += 100;
+      } else if (ch == 's') {
+        px -= 100;
+      }
+      std::cout << "Pixels per click: " << steps << std::endl;
     } else if (manual_mode) {
       turret.keyboard_manual(ch, steps);
     } else {
-      turret.keyboard_auto(ch);
+      turret.keyboard_auto(ch, px);
     }
   }
 }

@@ -4,9 +4,8 @@
 #include <atomic>
 #include <cstdint>
 #include <utility>
-// #include "stepper.hpp"
+#include "stepper.hpp"
 
-class Stepper;
 class Turret {
  private:
   std::atomic<bool> run_flag;
@@ -27,8 +26,8 @@ class Turret {
 
   void run_x_stepper(void);
   void run_y_stepper(void);
-  void stop_all_motors(void);
+  void stop_turret(void);
 
-  void keyboard_auto(int ch);
+  void keyboard_auto(int ch, int px);
   void keyboard_manual(int ch, int steps);
 };

@@ -3,13 +3,6 @@
 
 namespace utils {
 
-// void set_camera_intrinsics(cv::Mat& camera_matrix) {
-//   f_x = camera_matrix.at<double>(0, 0);
-//   f_y = camera_matrix.at<double>(1, 1);
-//   c_x = camera_matrix.at<double>(0, 2);
-//   c_y = camera_matrix.at<double>(1, 2);
-// }
-
 void draw_target(cv::Mat& frame,
                  const std::pair<uint16_t, uint16_t>& target,
                  const cv::Scalar& colour) {

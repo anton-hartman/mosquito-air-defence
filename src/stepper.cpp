@@ -8,9 +8,9 @@
 const int8_t CLOCKWISE = 1;
 const int8_t ANTI_CLOCKWISE = -1;
 
-const double FULL_STEP_ANGLE = 0.17578125;
+const double FULL_STEP_ANGLE_DEG = 0.17578125;
 const uint8_t MICROSTEPS = 16;
-const double MICROSTEP_ANGLE_DEG = FULL_STEP_ANGLE / MICROSTEPS;
+const double MICROSTEP_ANGLE_DEG = FULL_STEP_ANGLE_DEG / MICROSTEPS;
 const double MICROSTEP_ANGLE_RAD = MICROSTEP_ANGLE_DEG * M_PI / 180;
 
 std::atomic<bool> run_flag(true);
@@ -39,11 +39,11 @@ Stepper::Stepper(std::string name,
       current_steps(0),
       target_steps(0) {}
 
-void Stepper::enable_motor(void) {
+void Stepper::enable_stepper(void) {
   GPIO::output(enable_pin, GPIO::HIGH);
 }
 
-void Stepper::stop_motor(void) {
+void Stepper::stop_stepper(void) {
   GPIO::output(enable_pin, GPIO::LOW);
 }
 
@@ -63,7 +63,7 @@ void Stepper::correct_belief() {
   current_steps.fetch_add(step_error);
 }
 
-void Stepper::setpoint_to_steps() {
+void Stepper::update_target_steps() {
   target_steps.store(pixel_to_steps(target_px.load()));
 }
 
@@ -87,7 +87,7 @@ void Stepper::run_stepper() {
   uint32_t steps;
   uint32_t i;
   uint16_t delay_us = 300;
-  enable_motor();
+  enable_stepper();
   while (run_flag.load() and !utils::exit_flag.load()) {
     steps = get_steps_and_set_direction();
     for (i = 0; i < steps; i++) {
@@ -110,11 +110,11 @@ void Stepper::run_stepper() {
       new_feedback.store(false);
     }
     if (new_setpoint.load()) {
-      setpoint_to_steps();
+      update_target_steps();
       new_setpoint.store(false);
     }
   }
-  stop_motor();
+  stop_stepper();
 }
 
 void Stepper::set_target_px(const uint16_t px) {
@@ -127,18 +127,22 @@ void Stepper::set_detected_laser_px(const uint16_t px) {
   new_feedback.store(true);
 }
 
-uint16_t Stepper::get_target_px(void) {
+uint16_t Stepper::get_target_px(void) const {
   return target_px.load();
 }
 
-uint16_t Stepper::get_detected_laser_px(void) {
+uint16_t Stepper::get_detected_laser_px(void) const {
   return detected_laser_px.load();
 }
 
-int32_t Stepper::get_current_steps(void) {
+uint16_t Stepper::get_current_px(void) const {
+  return steps_to_pixel(current_steps.load());
+}
+
+int32_t Stepper::get_current_steps(void) const {
   return current_steps.load();
 }
 
-int32_t Stepper::get_target_steps(void) {
+int32_t Stepper::get_target_steps(void) const {
   return target_steps.load();
 }

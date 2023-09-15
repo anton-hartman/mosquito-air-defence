@@ -3,9 +3,6 @@
 #include <atomic>
 #include <cstdint>
 #include <string>
-#include "turret_controller.hpp"
-
-// class Turret;
 
 class Stepper {
  private:
@@ -32,8 +29,7 @@ class Stepper {
   std::atomic<int32_t> current_steps;
   std::atomic<int32_t> target_steps;
 
-  void enable_motor();
-  void stop_motor();
+  void enable_stepper(void);
 
   int32_t pixel_to_steps(const uint16_t& px) const;
   uint16_t steps_to_pixel(const int32_t& steps) const;
@@ -42,6 +38,9 @@ class Stepper {
    * @return The absolute value of the steps to take and sets the direction
    */
   uint32_t get_steps_and_set_direction();
+
+  void correct_belief();
+  void update_target_steps();
 
  public:
   Stepper(std::string name,
@@ -52,23 +51,21 @@ class Stepper {
           double c,
           double f);
 
-  void correct_belief();
-  void setpoint_to_steps();
+  void run_stepper(void);
+  void stop_stepper(void);
 
   /**
    * @note Should only be used for testing
    */
   void increment_setpoint_in_steps(const int32_t steps);
 
-  void run_stepper(void);
-
   void set_target_px(const uint16_t px);
   void set_detected_laser_px(const uint16_t px);
 
-  uint16_t get_target_px(void);
-  uint16_t get_detected_laser_px(void);
-  int32_t get_current_steps(void);
-  int32_t get_target_steps(void);
+  uint16_t get_target_px(void) const;
+  uint16_t get_detected_laser_px(void) const;
+  uint16_t get_current_px(void) const;
 
-  friend void Turret::stop_all_motors(void);
+  int32_t get_current_steps(void) const;
+  int32_t get_target_steps(void) const;
 };

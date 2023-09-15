@@ -20,7 +20,7 @@ include_directories(
 set(SOURCE_FILES
     main.cpp
     src/stepper.cpp
-    src/turret_controller.cpp
+    src/turret.cpp
     src/utils.cpp
     src/detection.cpp
     src/image_processing.cpp
@@ -28,8 +28,8 @@ set(SOURCE_FILES
 )
 
 set(HEADER_FILES
-include/stepper.hpp
-    include/turret_controller.hpp
+    include/stepper.hpp
+    include/turret.hpp
     include/utils.hpp
     include/detection.hpp
     include/image_processing.hpp
