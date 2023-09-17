@@ -11,7 +11,8 @@ class Stepper {
   const uint8_t direction_pin;
   const uint8_t step_pin;
 
-  const double depth;  // mm
+  const double depth;               // mm
+  std::atomic<uint16_t> origin_px;  // The origin of the turret in pixels
 
   // Camera intrinsic parameters
   const double principal_point;  // principal point (usually the image center).
@@ -48,6 +49,7 @@ class Stepper {
           uint8_t direction_pin,
           uint8_t step_pin,
           float depth,
+          uint16_t origin_px,
           double c,
           double f);
 
@@ -59,9 +61,11 @@ class Stepper {
    */
   void increment_setpoint_in_steps(const int32_t steps);
 
+  void set_origin_px(const uint16_t px);
   void set_target_px(const uint16_t px);
   void set_detected_laser_px(const uint16_t px);
 
+  uint16_t get_origin_px(void) const;
   uint16_t get_target_px(void) const;
   uint16_t get_detected_laser_px(void) const;
   uint16_t get_current_px(void) const;

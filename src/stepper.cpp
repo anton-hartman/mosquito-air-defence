@@ -13,6 +13,8 @@ const uint8_t MICROSTEPS = 16;
 const double MICROSTEP_ANGLE_DEG = FULL_STEP_ANGLE_DEG / MICROSTEPS;
 const double MICROSTEP_ANGLE_RAD = MICROSTEP_ANGLE_DEG * M_PI / 180;
 
+const uint16_t CAMERA_DEPTH = 765 + utils::TANK_DEPTH;  // mm
+
 std::atomic<bool> run_flag(true);
 
 Stepper::Stepper(std::string name,
@@ -20,6 +22,7 @@ Stepper::Stepper(std::string name,
                  uint8_t direction_pin,
                  uint8_t step_pin,
                  float depth,
+                 uint16_t origin_px,
                  double c,
                  double f)
     : name(name),
@@ -27,6 +30,7 @@ Stepper::Stepper(std::string name,
       direction_pin(direction_pin),
       step_pin(step_pin),
       depth(depth),
+      origin_px(origin_px),
       principal_point(c),
       focal_length(f),
       pos_step_limit(1'000'000),
@@ -48,13 +52,15 @@ void Stepper::stop_stepper(void) {
 }
 
 int32_t Stepper::pixel_to_steps(const uint16_t& px) const {
-  double mm = utils::pixel_to_mm(principal_point, focal_length, px);
+  // double mm = utils::pixel_to_mm(principal_point, focal_length, px);
+  double mm = (px - origin_px) * CAMERA_DEPTH / focal_length;
   return std::atan2(mm, depth) / MICROSTEP_ANGLE_RAD;
 }
 
 uint16_t Stepper::steps_to_pixel(const int32_t& steps) const {
   double mm = depth * std::tan(steps * MICROSTEP_ANGLE_RAD);
-  return utils::mm_to_pixel(principal_point, focal_length, mm);
+  // return utils::mm_to_pixel(principal_point, focal_length, mm);
+  return (mm * focal_length / CAMERA_DEPTH) + origin_px;
 }
 
 void Stepper::correct_belief() {
@@ -117,6 +123,10 @@ void Stepper::run_stepper() {
   stop_stepper();
 }
 
+void Stepper::set_origin_px(const uint16_t px) {
+  origin_px.store(px);
+}
+
 void Stepper::set_target_px(const uint16_t px) {
   target_px.store(px);
   new_setpoint.store(true);
@@ -125,6 +135,10 @@ void Stepper::set_target_px(const uint16_t px) {
 void Stepper::set_detected_laser_px(const uint16_t px) {
   detected_laser_px.store(px);
   new_feedback.store(true);
+}
+
+uint16_t Stepper::get_origin_px(void) const {
+  return origin_px.load();
 }
 
 uint16_t Stepper::get_target_px(void) const {

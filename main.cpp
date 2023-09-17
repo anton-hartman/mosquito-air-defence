@@ -34,6 +34,7 @@ int manual_mode = 1;
 
 // Laser co-ordinates plus uncertainty in pixels
 utils::Circle laser_belief_region_px;
+std::pair<uint16_t, uint16_t> laser_pos;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -64,7 +65,6 @@ cv::VideoCapture init_system(void) {
 
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
-  std::pair<uint16_t, uint16_t> laser_pos;
 
   while (true) {
     std::chrono::high_resolution_clock::time_point loop_start_time =
@@ -88,6 +88,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       // std::cout << "Feedback off" << std::endl;
     }
 
+    utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
+    utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
     utils::draw_target(frame, laser_pos, cv::Scalar(0, 0, 255));
     utils::put_label(frame, "Detected laser", laser_pos, 0.5);
     utils::draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
@@ -142,7 +144,11 @@ void user_input(void) {
     std::cout << "Enter a character: ";
     std::cin >> ch;  // Read a character from standard input
 
-    if (ch == 'm') {
+    if (ch == 'o') {
+      turret.set_origin(laser_pos);
+      std::cout << "Origin set to: " << laser_pos.first << ", "
+                << laser_pos.second << std::endl;
+    } else if (ch == 'm') {
       manual_mode = !manual_mode;
       if (manual_mode) {
         std::cout << "Manual" << std::endl;

@@ -9,8 +9,7 @@ namespace utils {
 
 extern std::atomic<bool> exit_flag;
 
-const uint16_t TANK_DEPTH = 318;                 // mm
-const uint16_t CAMERA_DEPTH = 765 + TANK_DEPTH;  // mm
+const uint16_t TANK_DEPTH = 318;  // mm
 
 /**
  * @param x uint16_t

@@ -26,16 +26,16 @@ void put_label(cv::Mat& img,
               font_scale, cv::Scalar(0, 255, 255), thickness);
 }
 
-double pixel_to_mm(const double principal_point,
-                   const double focal_length,
-                   const uint16_t& px) {
-  return (px - principal_point) * CAMERA_DEPTH / focal_length;
-}
+// double pixel_to_mm(const double principal_point,
+//                    const double focal_length,
+//                    const uint16_t& px) {
+//   return (px - principal_point) * CAMERA_DEPTH / focal_length;
+// }
 
-uint16_t mm_to_pixel(const double principal_point,
-                     const double focal_length,
-                     const double& mm) {
-  return (mm * focal_length / CAMERA_DEPTH) + principal_point;
-}
+// uint16_t mm_to_pixel(const double principal_point,
+//                      const double focal_length,
+//                      const double& mm) {
+//   return (mm * focal_length / CAMERA_DEPTH) + principal_point;
+// }
 
 }  // namespace utils
