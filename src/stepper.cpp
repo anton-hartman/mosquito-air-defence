@@ -68,6 +68,7 @@ void Stepper::update_target_steps() {
 }
 
 void Stepper::increment_setpoint_in_steps(const int32_t steps) {
+  target_px.fetch_add(steps_to_pixel(steps));
   target_steps.fetch_add(steps);
 }
 
