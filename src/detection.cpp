@@ -94,7 +94,7 @@ static void laser_display(cv::Mat& maskRed,
 std::pair<uint16_t, uint16_t> Detection::detect_laser(
     const cv::Mat& frame,
     const utils::Circle& laser_belief_region_px) {
-  std::pair<uint16_t, uint16_t> laser_pos;
+  std::pair<uint16_t, uint16_t> laser_pos(0, 0);
 
   // Convert to HSV
   cv::Mat hsv;

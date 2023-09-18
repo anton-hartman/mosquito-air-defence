@@ -135,24 +135,39 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 }
 
 void user_input(void) {
-  bool motors_stopped = false;
+  bool turret_stopped = false;
   bool adjust_size = false;
-  int steps = 1030;
+  int steps = 105;
   int px = 110;
   char ch;
   while (!utils::exit_flag.load()) {
     std::cout << "Enter a character: ";
     std::cin >> ch;  // Read a character from standard input
 
-    if (ch == 'o') {
+    if (ch == 'e') {
+      if (turret_stopped) {
+        turret_stopped = false;
+        turret.start_turret();
+        std::cout << "Turret started" << std::endl;
+      } else {
+        turret_stopped = true;
+        turret.stop_turret();
+        std::cout << "Turret stopped" << std::endl;
+      }
+    } else if (ch == 'o') {
       turret.set_origin(laser_pos);
       std::cout << "Origin set to: " << laser_pos.first << ", "
                 << laser_pos.second << std::endl;
     } else if (ch == 'm') {
       manual_mode = !manual_mode;
       if (manual_mode) {
+        turret.set_manual_mode(true);
         std::cout << "Manual" << std::endl;
+        enable_feedback_flag.store(false);
+        std::cout << "Feedback off" << std::endl;
+
       } else {
+        turret.set_manual_mode(false);
         std::cout << "Auto" << std::endl;
       }
     } else if (ch == 'f') {
@@ -166,9 +181,9 @@ void user_input(void) {
       adjust_size = !adjust_size;
     } else if (manual_mode and adjust_size) {
       if (ch == 'w') {
-        steps += 100;
+        steps += 20;
       } else if (ch == 's') {
-        steps -= 100;
+        steps -= 20;
       }
       std::cout << "Steps per click: " << steps << std::endl;
     } else if (!manual_mode and adjust_size) {

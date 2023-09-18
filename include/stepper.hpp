@@ -1,8 +1,14 @@
 #pragma once
 
 #include <atomic>
+#include <cmath>  // For M_PI
 #include <cstdint>
 #include <string>
+
+const double FULL_STEP_ANGLE_DEG = 0.17578125;
+const uint8_t MICROSTEPS = 1;
+const double MICROSTEP_ANGLE_DEG = FULL_STEP_ANGLE_DEG / MICROSTEPS;
+const double MICROSTEP_ANGLE_RAD = MICROSTEP_ANGLE_DEG * M_PI / 180;
 
 class Stepper {
  private:
@@ -25,12 +31,11 @@ class Stepper {
   std::atomic<uint16_t> detected_laser_px;
   std::atomic<bool> new_setpoint;
   std::atomic<bool> new_feedback;
+  std::atomic<bool> manual;
 
   std::atomic<int8_t> direction;
   std::atomic<int32_t> current_steps;
   std::atomic<int32_t> target_steps;
-
-  void enable_stepper(void);
 
   int32_t pixel_to_steps(const uint16_t& px) const;
   uint16_t steps_to_pixel(const int32_t& steps) const;
@@ -55,12 +60,14 @@ class Stepper {
 
   void run_stepper(void);
   void stop_stepper(void);
+  void enable_stepper(void);
 
   /**
    * @note Should only be used for testing
    */
   void increment_setpoint_in_steps(const int32_t steps);
 
+  void set_manual(const bool manual);
   void set_origin_px(const uint16_t px);
   void set_target_px(const uint16_t px);
   void set_detected_laser_px(const uint16_t px);

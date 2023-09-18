@@ -17,14 +17,8 @@ const double F_Y = 861.7363873209705;
 const double C_X = 304.4404590127848;
 const double C_Y = 257.5858878142162;
 
-const uint16_t X_ORIGIN_PX = 320;
-const uint16_t Y_ORIGIN_PX = 240;
-
-const int TURRET_DEPTH = 550;                      // mm
-const int VERTICAL_DISTANCE_BETWEEN_MIRRORS = 50;  // mm
-const int X_STEPPER_DEPTH =
-    TURRET_DEPTH + VERTICAL_DISTANCE_BETWEEN_MIRRORS + utils::TANK_DEPTH;  // mm
-const int Y_STEPPER_DEPTH = TURRET_DEPTH + utils::TANK_DEPTH;              // mm
+const uint16_t X_ORIGIN_PX = 592;
+const uint16_t Y_ORIGIN_PX = 591;
 
 Turret::Turret(void)
     : run_flag(true),
@@ -53,9 +47,16 @@ Turret::Turret(void)
   GPIO::setup(M2_STEP_PIN, GPIO::OUT, GPIO::LOW);
 }
 
+void Turret::set_manual_mode(const bool manual_mode) {
+  x_stepper.set_manual(manual_mode);
+  y_stepper.set_manual(manual_mode);
+}
+
 void Turret::set_origin(const std::pair<uint16_t, uint16_t> turret_origin_px) {
   x_stepper.set_origin_px(turret_origin_px.first);
   y_stepper.set_origin_px(turret_origin_px.second);
+  update_belief(turret_origin_px);
+  update_setpoint(turret_origin_px);
 }
 
 void Turret::run_x_stepper(void) {
@@ -69,6 +70,11 @@ void Turret::run_y_stepper(void) {
 void Turret::stop_turret(void) {
   x_stepper.stop_stepper();
   y_stepper.stop_stepper();
+}
+
+void Turret::start_turret(void) {
+  x_stepper.enable_stepper();
+  y_stepper.enable_stepper();
 }
 
 std::pair<uint16_t, uint16_t> Turret::get_origin_px(void) const {
@@ -103,6 +109,9 @@ void Turret::update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {
 
 void Turret::update_belief(
     const std::pair<uint16_t, uint16_t> detected_laser_px) {
+  if (detected_laser_px.first == 0 && detected_laser_px.second == 0) {
+    return;
+  }
   x_stepper.set_detected_laser_px(detected_laser_px.first);
   y_stepper.set_detected_laser_px(detected_laser_px.second);
 }

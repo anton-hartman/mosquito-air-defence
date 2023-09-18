@@ -1,19 +1,12 @@
 #include "../include/stepper.hpp"
 #include <JetsonGPIO.h>
 #include <chrono>
-#include <cmath>  // For M_PI
 #include <thread>
+#include "../include/turret.hpp"
 #include "../include/utils.hpp"
 
 const int8_t CLOCKWISE = 1;
 const int8_t ANTI_CLOCKWISE = -1;
-
-const double FULL_STEP_ANGLE_DEG = 0.17578125;
-const uint8_t MICROSTEPS = 16;
-const double MICROSTEP_ANGLE_DEG = FULL_STEP_ANGLE_DEG / MICROSTEPS;
-const double MICROSTEP_ANGLE_RAD = MICROSTEP_ANGLE_DEG * M_PI / 180;
-
-const uint16_t CAMERA_DEPTH = 765 + utils::TANK_DEPTH;  // mm
 
 std::atomic<bool> run_flag(true);
 
@@ -41,7 +34,8 @@ Stepper::Stepper(std::string name,
       new_feedback(false),
       direction(CLOCKWISE),
       current_steps(0),
-      target_steps(0) {}
+      target_steps(0),
+      manual(false) {}
 
 void Stepper::enable_stepper(void) {
   GPIO::output(enable_pin, GPIO::HIGH);
@@ -53,14 +47,14 @@ void Stepper::stop_stepper(void) {
 
 int32_t Stepper::pixel_to_steps(const uint16_t& px) const {
   // double mm = utils::pixel_to_mm(principal_point, focal_length, px);
-  double mm = (px - origin_px) * CAMERA_DEPTH / focal_length;
+  double mm = (px - origin_px) * Turret::CAMERA_DEPTH / focal_length;
   return std::atan2(mm, depth) / MICROSTEP_ANGLE_RAD;
 }
 
 uint16_t Stepper::steps_to_pixel(const int32_t& steps) const {
   double mm = depth * std::tan(steps * MICROSTEP_ANGLE_RAD);
   // return utils::mm_to_pixel(principal_point, focal_length, mm);
-  return (mm * focal_length / CAMERA_DEPTH) + origin_px;
+  return (mm * focal_length / Turret::CAMERA_DEPTH) + origin_px;
 }
 
 void Stepper::correct_belief() {
@@ -92,7 +86,9 @@ uint32_t Stepper::get_steps_and_set_direction() {
 void Stepper::run_stepper() {
   uint32_t steps;
   uint32_t i;
-  uint16_t delay_us = 300;
+  uint32_t auto_delay = 100000;
+  uint32_t manual_delay = 1000;
+  uint32_t delay_us = auto_delay / MICROSTEPS;
   enable_stepper();
   while (run_flag.load() and !utils::exit_flag.load()) {
     steps = get_steps_and_set_direction();
@@ -119,8 +115,18 @@ void Stepper::run_stepper() {
       update_target_steps();
       new_setpoint.store(false);
     }
+
+    if (manual.load()) {
+      delay_us = manual_delay / MICROSTEPS;
+    } else {
+      delay_us = auto_delay / MICROSTEPS;
+    }
   }
   stop_stepper();
+}
+
+void Stepper::set_manual(const bool manual) {
+  this->manual.store(manual);
 }
 
 void Stepper::set_origin_px(const uint16_t px) {
