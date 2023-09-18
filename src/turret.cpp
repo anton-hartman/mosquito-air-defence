@@ -52,6 +52,11 @@ void Turret::set_manual_mode(const bool manual_mode) {
   y_stepper.set_manual(manual_mode);
 }
 
+void Turret::save_steps_at_frame() {
+  x_stepper.save_steps();
+  y_stepper.save_steps();
+}
+
 void Turret::set_origin(const std::pair<uint16_t, uint16_t> turret_origin_px) {
   x_stepper.set_origin_px(turret_origin_px.first);
   y_stepper.set_origin_px(turret_origin_px.second);

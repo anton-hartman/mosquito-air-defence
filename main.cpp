@@ -71,6 +71,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
         std::chrono::high_resolution_clock::now();
 
     cap >> frame;
+    turret.save_steps_at_frame();
     // Directly after capturing a new frame so that it is the belief state at
     // the instance of capturing the frame. Esure frame size remains constant
     // otherwise the belief state will be for the wrong frame size.
