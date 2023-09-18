@@ -61,7 +61,11 @@
         "random": "cpp",
         "numbers": "cpp",
         "semaphore": "cpp",
-        "stop_token": "cpp"
+        "stop_token": "cpp",
+        "bitset": "cpp",
+        "codecvt": "cpp",
+        "filesystem": "cpp",
+        "__nullptr": "cpp"
     },
     "python.analysis.typeCheckingMode": "basic",
     "[python]": {

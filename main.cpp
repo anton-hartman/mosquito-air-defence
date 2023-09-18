@@ -6,6 +6,7 @@
 #include <vector>
 // #include "camera_calibration.cpp"
 #include <atomic>
+#include <string>
 #include "include/detection.hpp"
 #include "include/turret.hpp"
 #include "include/utils.hpp"
@@ -47,12 +48,32 @@ void exit_handler(int signo) {
 }
 
 cv::VideoCapture init_system(void) {
-  cv::VideoCapture cap(
-      "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=1280, height=720, "
-      "format=(string)NV12, framerate=(fraction)24/1 ! nvvidconv "
-      "flip-method=2 ! video/x-raw, width=1280, height=720, "
-      "format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR "
-      "! appsink");
+  std::string width = "1640";
+  std::string height = "1232";
+
+  std::string left = "40";
+  std::string top = "280";  // top = bottom because of flip
+  std::string right = "1560";
+  std::string bottom = "920";
+  // std::string left = "0";
+  // std::string top = "0";
+  // std::string right = "1640";
+  // std::string bottom = "1232";
+  std::string croppped_width =
+      std::to_string(std::stoi(right) - std::stoi(left));
+  std::string cropped_height =
+      std::to_string(std::stoi(bottom) - std::stoi(top));
+
+  std::string pipeline =
+      "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=" + width +
+      ", height=" + height + ", format=(string)NV12 ! nvvidconv left=" + left +
+      " top=" + top + " right=" + right + " bottom=" + bottom +
+      " flip-method=2 ! video/x-raw, format=(string)BGRx, width=" +
+      croppped_width + ", height=" + cropped_height +
+      " ! videoconvert ! video/x-raw, format=(string)BGR ! appsink";
+
+  std::cout << "Using pipeline: \n\t" << pipeline << std::endl;
+  cv::VideoCapture cap(pipeline);
 
   if (!cap.isOpened()) {
     std::cerr << "Error opening cv video capture" << std::endl;
@@ -115,7 +136,22 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                                                               loop_start_time)
             .count();
 
+    // // 2. Split the image into its individual channels
+    // std::vector<cv::Mat> channels;
+    // cv::split(frame, channels);
+
+    // // 3. Set the green and blue channels to zero
+    // channels[0] =
+    //     cv::Mat::zeros(frame.rows, frame.cols, CV_8UC1);  // Blue channel
+    // channels[1] =
+    //     cv::Mat::zeros(frame.rows, frame.cols, CV_8UC1);  // Green channel
+
+    // // 4. Merge the channels back together
+    // cv::Mat redOnly;
+    // cv::merge(channels, redOnly);
+
     cv::imshow("frame", frame);
+    // cv::imshow("Red Channel", redOnly);
     char key = static_cast<char>(cv::waitKey(1));
     if (key == 'q') {
       utils::exit_flag.store(true);
