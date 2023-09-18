@@ -1,0 +1,48 @@
+
+#pragma once
+
+#include <atomic>
+#include <cstdint>
+#include <utility>
+#include "stepper.hpp"
+
+class Turret {
+ public:
+  // static const uint16_t TANK_DEPTH = 318;
+  static const int TANK_DEPTH = -2;
+  static const uint16_t CAMERA_DEPTH = 785 + TANK_DEPTH;  // mm
+  static const int TURRET_DEPTH = 545 + TANK_DEPTH;
+  static const int VERTICAL_DISTANCE_BETWEEN_MIRRORS = 10;
+  static const int Y_STEPPER_DEPTH = TURRET_DEPTH;
+  static const int X_STEPPER_DEPTH =
+      TURRET_DEPTH + VERTICAL_DISTANCE_BETWEEN_MIRRORS;
+
+ private:
+  std::atomic<bool> run_flag;
+
+  Stepper x_stepper;
+  Stepper y_stepper;
+
+ public:
+  Turret(void);
+
+  void set_manual_mode(const bool manual_mode);
+  void set_origin(const std::pair<uint16_t, uint16_t> turret_origin_px);
+
+  std::pair<uint16_t, uint16_t> get_origin_px(void) const;
+  std::pair<uint16_t, uint16_t> get_belief_px(void) const;
+  std::pair<uint16_t, uint16_t> get_setpoint_px(void) const;
+  std::pair<int32_t, int32_t> get_belief_steps(void) const;
+  std::pair<int32_t, int32_t> get_setpoint_steps(void) const;
+
+  void update_belief(const std::pair<uint16_t, uint16_t> detected_laser_px);
+  void update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px);
+
+  void run_x_stepper(void);
+  void run_y_stepper(void);
+  void stop_turret(void);
+  void start_turret(void);
+
+  void keyboard_auto(int ch, int px);
+  void keyboard_manual(int ch, int steps);
+};

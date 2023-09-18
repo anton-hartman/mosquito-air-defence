@@ -1,24 +1,41 @@
 #include "../include/utils.hpp"
+#include <cmath>
 
 namespace utils {
 
-std::pair<float, float> pixel_to_mm(const Point& pixel_point,
-                                    const std::vector<float> camera_matrix,
-                                    const float camera_depth) {
-  float fx = camera_matrix[0];  // 0, 0
-  float fy = camera_matrix[4];  // 1, 1
-  float cx = camera_matrix[2];  // 0, 2
-  float cy = camera_matrix[5];  // 1, 2
-
-  float X = (pixel_point.x - cx) * camera_depth / fx;
-  float Y = (pixel_point.y - cy) * camera_depth / fy;
-
-  return {X, Y};
+void draw_target(cv::Mat& frame,
+                 const std::pair<uint16_t, uint16_t>& target,
+                 const cv::Scalar& colour) {
+  // Length of the perpendicular lines for target and setpoint
+  int line_length = 50;
+  // Draw a horizontal line passing through the target point
+  cv::line(frame, cv::Point(target.first - line_length, target.second),
+           cv::Point(target.first + line_length, target.second), colour, 2);
+  // Draw a vertical line passing through the target point
+  cv::line(frame, cv::Point(target.first, target.second - line_length),
+           cv::Point(target.first, target.second + line_length), colour, 2);
 }
 
-std::pair<uint16_t, uint16_t> angle_to_pixel(
-    const std::pair<float, float>& angle) {
-  return {69, 69};
+void put_label(cv::Mat& img,
+               const std::string& label,
+               const std::pair<uint16_t, uint16_t>& origin,
+               const double& font_scale) {
+  int font_face = cv::FONT_HERSHEY_DUPLEX;
+  int thickness = 2;
+  cv::putText(img, label, cv::Point(origin.first, origin.second), font_face,
+              font_scale, cv::Scalar(0, 255, 255), thickness);
 }
+
+// double pixel_to_mm(const double principal_point,
+//                    const double focal_length,
+//                    const uint16_t& px) {
+//   return (px - principal_point) * CAMERA_DEPTH / focal_length;
+// }
+
+// uint16_t mm_to_pixel(const double principal_point,
+//                      const double focal_length,
+//                      const double& mm) {
+//   return (mm * focal_length / CAMERA_DEPTH) + principal_point;
+// }
 
 }  // namespace utils

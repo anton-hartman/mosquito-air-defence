@@ -123,3 +123,8 @@ void calibrate_cam(void) {
   cv::imshow("undistorted image2", dst);
   cv::waitKey(0);
 }
+
+int main(void) {
+  calibrate_cam();
+  return 0;
+}
