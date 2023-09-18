@@ -27,6 +27,7 @@ class Turret {
   Turret(void);
 
   void set_manual_mode(const bool manual_mode);
+  void save_steps_at_frame();
   void set_origin(const std::pair<uint16_t, uint16_t> turret_origin_px);
 
   std::pair<uint16_t, uint16_t> get_origin_px(void) const;

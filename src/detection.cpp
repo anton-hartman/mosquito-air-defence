@@ -165,7 +165,7 @@ std::pair<uint16_t, uint16_t> Detection::detect_laser(
 
   laser_display(maskRed, maskWhite, cntrsImg, displayFrame);
 
-  return laser_pos;  // Return appropriate values, placeholder for now
+  return laser_pos;
 }
 
 #pragma region HSV Slider Functions

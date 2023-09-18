@@ -57,9 +57,13 @@ uint16_t Stepper::steps_to_pixel(const int32_t& steps) const {
   return (mm * focal_length / Turret::CAMERA_DEPTH) + origin_px;
 }
 
+void Stepper::save_steps() {
+  steps_at_detection.store(current_steps.load());
+}
+
 void Stepper::correct_belief() {
   int32_t step_error =
-      (pixel_to_steps(detected_laser_px.load()) - current_steps.load());
+      (pixel_to_steps(detected_laser_px.load()) - steps_at_detection.load());
   current_steps.fetch_add(step_error);
 }
 

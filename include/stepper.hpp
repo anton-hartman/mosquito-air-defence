@@ -34,6 +34,7 @@ class Stepper {
   std::atomic<bool> manual;
 
   std::atomic<int8_t> direction;
+  std::atomic<int32_t> steps_at_detection;
   std::atomic<int32_t> current_steps;
   std::atomic<int32_t> target_steps;
 
@@ -61,6 +62,7 @@ class Stepper {
   void run_stepper(void);
   void stop_stepper(void);
   void enable_stepper(void);
+  void save_steps();
 
   /**
    * @note Should only be used for testing
