@@ -8,6 +8,7 @@
 #include <atomic>
 #include <string>
 #include "include/detection.hpp"
+#include "include/frame.hpp"
 #include "include/turret.hpp"
 #include "include/utils.hpp"
 
@@ -48,9 +49,8 @@ void exit_handler(int signo) {
 }
 
 cv::VideoCapture init_system(void) {
-  std::string width = "1640";
-  std::string height = "1232";
-
+  std::string width = std::to_string(WIDTH);
+  std::string height = std::to_string(HEIGHT);
   std::string left = "40";
   std::string top = "280";  // top = bottom because of flip
   std::string right = "1560";
@@ -84,8 +84,25 @@ cv::VideoCapture init_system(void) {
   return cap;
 }
 
+void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
+  // Check if the input Mat is of the expected size and type
+  if (frame.rows != HEIGHT || frame.cols != WIDTH || frame.type() != CV_8UC3) {
+    std::cerr << "Invalid input Mat dimensions or type!" << std::endl;
+    throw std::runtime_error("Invalid input Mat");
+  }
+
+  for (int i = 0; i < HEIGHT; ++i) {
+    for (int j = 0; j < WIDTH; ++j) {
+      cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
+      // Extracting the red channel (assuming BGR format)
+      red_frame[i * WIDTH + j] = pixel[2];
+    }
+  }
+}
+
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
+  uint8_t* red_frame = new uint8_t[WIDTH * HEIGHT];
 
   while (true) {
     std::chrono::high_resolution_clock::time_point loop_start_time =
@@ -93,21 +110,21 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 
     cap >> frame;
     turret.save_steps_at_frame();
-    // Directly after capturing a new frame so that it is the belief state at
-    // the instance of capturing the frame. Esure frame size remains constant
-    // otherwise the belief state will be for the wrong frame size.
-    // laser_belief_region_px = turret.get_belief_region();
+
+    // cv::Mat undistorted_frame;
+    // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
+    // Look into converting from steps to pixels for laser belief region. How
+    // must distorition be accounted for?
+
+    convert_to_red_frame(frame, red_frame);
 
     if (frame.empty()) {
       std::cout << "Frame is empty, exiting." << std::endl;
       exit(0);
     }
-    // cv::resize(frame, frame, cv::Size(), SCALING_FACTOR, SCALING_FACTOR);
     laser_pos = detector.detect_laser(frame, laser_belief_region_px);
     if (enable_feedback_flag.load()) {
       turret.update_belief(laser_pos);
-      // enable_feedback_flag.store(false);
-      // std::cout << "Feedback off" << std::endl;
     }
 
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
@@ -169,6 +186,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       cap >> frame;  // Drop a frame
     }
   }
+  // Deallocate memory on CPU.
+  delete[] red_frame;
 }
 
 void user_input(void) {

@@ -1,4 +1,5 @@
 #include "../include/detection.hpp"
+#include "../include/frame.hpp"
 #include "../include/utils.hpp"
 
 Detection::Detection(const cv::Mat& first_frame, float alpha) {

@@ -33,6 +33,7 @@ set(SOURCE_FILES
 )
 
 set(HEADER_FILES
+    include/frame.hpp
     include/stepper.hpp
     include/turret.hpp
     include/utils.hpp

@@ -65,7 +65,9 @@
         "bitset": "cpp",
         "codecvt": "cpp",
         "filesystem": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "any": "cpp",
+        "variant": "cpp"
     },
     "python.analysis.typeCheckingMode": "basic",
     "[python]": {
