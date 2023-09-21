@@ -23,13 +23,13 @@ include_directories(
 # List all source and header files
 set(SOURCE_FILES
     main.cpp
+    src/frame.cpp
     src/stepper.cpp
     src/turret.cpp
     src/utils.cpp
     src/detection.cpp
-    src/image_processing.cpp
+    src/image_processing.cu
     # src/camera_calibration.cpp
-    # cuda_test.cu
 )
 
 set(HEADER_FILES

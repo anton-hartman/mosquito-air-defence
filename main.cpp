@@ -1,14 +1,14 @@
 #include <signal.h>
+#include <atomic>
 #include <cmath>
 #include <opencv2/opencv.hpp>
+#include <string>
 #include <thread>
 #include <utility>
 #include <vector>
-// #include "camera_calibration.cpp"
-#include <atomic>
-#include <string>
 #include "include/detection.hpp"
 #include "include/frame.hpp"
+#include "include/image_processing.hpp"
 #include "include/turret.hpp"
 #include "include/utils.hpp"
 
@@ -49,29 +49,6 @@ void exit_handler(int signo) {
 }
 
 cv::VideoCapture init_system(void) {
-  std::string width = std::to_string(WIDTH);
-  std::string height = std::to_string(HEIGHT);
-  std::string left = "40";
-  std::string top = "280";  // top = bottom because of flip
-  std::string right = "1560";
-  std::string bottom = "920";
-  // std::string left = "0";
-  // std::string top = "0";
-  // std::string right = "1640";
-  // std::string bottom = "1232";
-  std::string croppped_width =
-      std::to_string(std::stoi(right) - std::stoi(left));
-  std::string cropped_height =
-      std::to_string(std::stoi(bottom) - std::stoi(top));
-
-  std::string pipeline =
-      "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=" + width +
-      ", height=" + height + ", format=(string)NV12 ! nvvidconv left=" + left +
-      " top=" + top + " right=" + right + " bottom=" + bottom +
-      " flip-method=2 ! video/x-raw, format=(string)BGRx, width=" +
-      croppped_width + ", height=" + cropped_height +
-      " ! videoconvert ! video/x-raw, format=(string)BGR ! appsink";
-
   std::cout << "Using pipeline: \n\t" << pipeline << std::endl;
   cv::VideoCapture cap(pipeline);
 
@@ -103,8 +80,12 @@ void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
   uint8_t* red_frame = new uint8_t[WIDTH * HEIGHT];
+  double total_duration = 0;
+  double avg_duration = 0;
+  uint32_t loop_count = 0;
 
-  while (true) {
+  while (!utils::exit_flag.load()) {
+    loop_count++;
     std::chrono::high_resolution_clock::time_point loop_start_time =
         std::chrono::high_resolution_clock::now();
 
@@ -116,16 +97,24 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // Look into converting from steps to pixels for laser belief region. How
     // must distorition be accounted for?
 
-    convert_to_red_frame(frame, red_frame);
-
     if (frame.empty()) {
       std::cout << "Frame is empty, exiting." << std::endl;
       exit(0);
     }
-    laser_pos = detector.detect_laser(frame, laser_belief_region_px);
-    if (enable_feedback_flag.load()) {
-      turret.update_belief(laser_pos);
-    }
+    convert_to_red_frame(frame, red_frame);
+    total_duration += gpu::binarise(red_frame, 250);
+
+    // cv::Mat redMat(HEIGHT, WIDTH, CV_8UC1, red_frame);
+    // cv::putText(redMat, "Execution time: " + std::to_string(loop_duration),
+    //             cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+    //             cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+    // cv::imshow("Red Channel as Grayscale", redMat);
+    // cv::waitKey(1);  // Adjust the delay as needed
+
+    // laser_pos = detector.detect_laser(frame, laser_belief_region_px);
+    // if (enable_feedback_flag.load()) {
+    //   turret.update_belief(laser_pos);
+    // }
 
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
     utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
@@ -178,6 +167,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       // You have additional time before the next frame is expected.
       // This can be used as idle time or for other tasks.
 
+      // std::cout << "Processing took less than expected for a frame. ("
+      //           << loop_duration << "ms)" << std::endl;
       // std::this_thread::sleep_for(std::chrono::milliseconds(
       //     static_cast<int>(FRAME_TIME_MS - loop_duration)));
     } else {
@@ -188,6 +179,10 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
   }
   // Deallocate memory on CPU.
   delete[] red_frame;
+
+  avg_duration = total_duration / loop_count;
+  std::cout << "Average duration of kernel: " << avg_duration << "us"
+            << std::endl;
 }
 
 void user_input(void) {
@@ -283,13 +278,12 @@ int main(void) {
   std::thread turret_vertical_thread(turret_vertical);
 
   // Join the threads (or use detach based on requirements)
-  video_thread.detach();
+  video_thread.join();
   turret_horizontal_thread.join();
   turret_vertical_thread.join();
   user_input_thread.detach();
 
-  // calibrate_cam();
-
+  cudaDeviceReset();
   exit(0);
 
   return 0;
