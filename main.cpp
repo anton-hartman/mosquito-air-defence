@@ -1,3 +1,4 @@
+#include <cuda_runtime.h>
 #include <signal.h>
 #include <atomic>
 #include <cmath>
