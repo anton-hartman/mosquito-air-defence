@@ -84,6 +84,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
   double avg_duration = 0;
   uint32_t loop_count = 0;
 
+  gpu::init_gpu();
+
   while (!utils::exit_flag.load()) {
     loop_count++;
     std::chrono::high_resolution_clock::time_point loop_start_time =
@@ -102,19 +104,14 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       exit(0);
     }
     convert_to_red_frame(frame, red_frame);
-    total_duration += gpu::binarise(red_frame, 250);
-
-    // cv::Mat redMat(HEIGHT, WIDTH, CV_8UC1, red_frame);
-    // cv::putText(redMat, "Execution time: " + std::to_string(loop_duration),
-    //             cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5,
-    //             cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-    // cv::imshow("Red Channel as Grayscale", redMat);
-    // cv::waitKey(1);  // Adjust the delay as needed
-
-    // laser_pos = detector.detect_laser(frame, laser_belief_region_px);
+    total_duration += gpu::detect_laser(red_frame, 255);
     // if (enable_feedback_flag.load()) {
     //   turret.update_belief(laser_pos);
     // }
+
+    cv::Mat redMat(HEIGHT, WIDTH, CV_8UC1, red_frame);
+    cv::imshow("Red Channel as Grayscale", redMat);
+    cv::waitKey(1);  // Adjust the delay as needed
 
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
     utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
@@ -181,7 +178,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
   delete[] red_frame;
 
   avg_duration = total_duration / loop_count;
-  std::cout << "Average duration of kernel: " << avg_duration << "us"
+  std::cout << "Average duration of kernel = " << avg_duration << "us"
             << std::endl;
 }
 
@@ -267,9 +264,6 @@ int main(void) {
   // cv::resize(initial_frame, initial_frame, cv::Size(), SCALING_FACTOR,
   //            SCALING_FACTOR);
   Detection detector(initial_frame, ALPHA);
-  detector.set_red_thresholds(0, 170, 50, 190, 10, 180, 255, 255);
-  detector.set_white_thresholds(0, 0, 245, 180, 20, 255);
-  detector.create_threshold_trackbars();
 
   // Launch the threads
   std::thread user_input_thread(user_input);
