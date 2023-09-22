@@ -30,9 +30,11 @@ set(SOURCE_FILES
     src/detection.cpp
     src/image_processing.cu
     # src/camera_calibration.cpp
+    src/two_pass_algorithm.cpp
 )
 
 set(HEADER_FILES
+    include/two_pass_algorithm.hpp
     include/frame.hpp
     include/stepper.hpp
     include/turret.hpp

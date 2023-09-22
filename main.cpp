@@ -126,7 +126,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       exit(0);
     }
     convert_to_red_frame(frame, red_frame);
-    total_duration += gpu::detect_laser(red_frame, 230);
+    // laser_pos = gpu::detect_laser(red_frame, 230);
     // if (enable_feedback_flag.load()) {
     //   turret.update_belief(laser_pos);
     // }

@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 #include <opencv2/opencv.hpp>
 #include "frame.hpp"
+#include "two_pass_algorithm.hpp"
 
 namespace gpu {
 
@@ -28,6 +29,7 @@ void closing();
 void open_and_close();
 void close_and_open();
 
-uint32_t detect_laser(uint8_t* red_frame, uint8_t threshold);
+std::pair<uint16_t, uint16_t> detect_laser(uint8_t* red_frame,
+                                           uint8_t threshold);
 
 }  // namespace gpu

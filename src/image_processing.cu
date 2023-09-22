@@ -1,5 +1,6 @@
 #include <iostream>
 #include "../include/image_processing.hpp"
+#include "../include/two_pass_algorithm.hpp"
 
 namespace gpu {
 
@@ -15,6 +16,9 @@ const int struct_elem_size = 2;
 const int diameter = 2 * struct_elem_size + 1;
 __constant__ uint8_t d_structuring_element[diameter * diameter];
 __constant__ int d_struct_elem_size;
+
+BoundingBoxMap bounding_boxes;
+std::pair<uint16_t, uint16_t> laser_position;
 
 void create_structuring_element(uint8_t* struct_elem, int struct_elem_size) {
   int diameter = 2 * struct_elem_size + 1;
@@ -139,10 +143,8 @@ __global__ void dilation(uint8_t* input, uint8_t* output) {
   }
 }
 
-uint32_t detect_laser(uint8_t* red_frame, uint8_t threshold) {
-  std::chrono::high_resolution_clock::time_point start_time =
-      std::chrono::high_resolution_clock::now();
-
+std::pair<uint16_t, uint16_t> detect_laser(uint8_t* red_frame,
+                                           uint8_t threshold) {
   cudaError_t err;
 
   cudaMemcpy(device_frame, red_frame, frame_size, cudaMemcpyHostToDevice);
@@ -160,6 +162,12 @@ uint32_t detect_laser(uint8_t* red_frame, uint8_t threshold) {
   close_and_open();
   // cudaDeviceSynchronize();
 
+  std::chrono::high_resolution_clock::time_point start_time =
+      std::chrono::high_resolution_clock::now();
+
+  // bounding_boxes = find_connected_components(device_frame);
+  laser_position = find_laser_pos(device_frame);
+
   std::chrono::high_resolution_clock::time_point end_time =
       std::chrono::high_resolution_clock::now();
   uint32_t duration = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -175,7 +183,7 @@ uint32_t detect_laser(uint8_t* red_frame, uint8_t threshold) {
   cv::Mat oepning_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
   cv::imshow("first", oepning_mat);
   cv::waitKey(1);
-  return 0;
+  return laser_position;
 }
 
 void opening() {
