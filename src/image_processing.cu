@@ -11,41 +11,32 @@ const size_t frame_size = WIDTH * HEIGHT * sizeof(uint8_t);
 uint8_t* device_frame;
 uint8_t* device_temp_frame;
 
-// For erosion and dilation
-// uint8_t* struct_elem_size = new uint8_t(1);
-uint8_t struct_elem_size = 1;
-// uint8_t* d_struct_elem_size;
-// uint8_t* d_structuring_element;
+const int struct_elem_size = 2;
+const int diameter = 2 * struct_elem_size + 1;
+__constant__ uint8_t d_structuring_element[diameter * diameter];
+__constant__ int d_struct_elem_size;
 
-uint8_t* create_structuring_element() {
-  int diameter = 2 * (struct_elem_size) + 1;
-  uint8_t* struct_elem = new uint8_t[diameter * diameter];
+void create_structuring_element(uint8_t* struct_elem, int struct_elem_size) {
+  int diameter = 2 * struct_elem_size + 1;
 
   for (int i = 0; i < diameter; i++) {
     for (int j = 0; j < diameter; j++) {
-      int y = i - (struct_elem_size);  // y-coordinate relative to the center
-      int x = j - (struct_elem_size);  // x-coordinate relative to the center
+      int y = i - struct_elem_size;  // y-coordinate relative to the center
+      int x = j - struct_elem_size;  // x-coordinate relative to the center
       struct_elem[i * diameter + j] =
-          (x * x + y * y <= (struct_elem_size) * (struct_elem_size)) ? 1 : 0;
+          (x * x + y * y <= struct_elem_size * struct_elem_size) ? 1 : 0;
     }
   }
-  return struct_elem;
 }
 
-size_t sizeof_structuring_elem() {
-  int diameter = 2 * (struct_elem_size) + 1;
-  return (diameter * diameter) * sizeof(uint8_t);
-}
+void initialize_struct_elem() {
+  uint8_t host_struct_elem[diameter * diameter];
+  create_structuring_element(host_struct_elem, struct_elem_size);
 
-void init_structuring_element() {
-  std::cout << "Struct elem: " << *create_structuring_element() << std::endl;
-  cudaMalloc((void**)&d_struct_elem_size, sizeof(uint8_t));
-  cudaMemcpy(&d_struct_elem_size, &struct_elem_size, sizeof(uint8_t),
-             cudaMemcpyHostToDevice);
-
-  cudaMalloc((void**)&d_structuring_element, sizeof_structuring_elem());
-  cudaMemcpy(d_structuring_element, create_structuring_element(),
-             sizeof_structuring_elem(), cudaMemcpyHostToDevice);
+  // Copy the host array to the GPU constant memory
+  cudaMemcpyToSymbol(d_structuring_element, host_struct_elem,
+                     diameter * diameter * sizeof(uint8_t));
+  cudaMemcpyToSymbol(d_struct_elem_size, &struct_elem_size, sizeof(int));
 }
 
 void init_gpu() {
@@ -55,21 +46,14 @@ void init_gpu() {
   cudaMalloc((void**)&device_frame, frame_size);
   cudaMalloc((void**)&device_temp_frame, frame_size);
 
-  init_structuring_element();
+  // init_structuring_element();
+  initialize_struct_elem();
 }
 
 void free_gpu() {
   cudaFree(device_frame);
   cudaFree(device_temp_frame);
-  // delete[] d_structuring_element;
 }
-
-// void undistort(cv::Mat& input_frame,
-//                cv::Mat& output_frame,
-//                cv::Mat& camera_matrix,
-//                cv::Mat& dist_coeffs) {
-//   cv::undistort(input_frame, output_frame, camera_matrix, dist_coeffs);
-// }
 
 __global__ void binarise(uint8_t* device_frame, uint8_t threshold) {
   int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -136,30 +120,57 @@ uint32_t detect_laser(uint8_t* red_frame, uint8_t threshold) {
   if (err != cudaSuccess) {
     printf("CUDA error binarise: %s\n", cudaGetErrorString(err));
   }
-  // cv::Mat bin_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
-  // cv::imshow("binarise", bin_mat);
-  // cv::waitKey(1);
+  cv::Mat bin_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
+  cv::imshow("binarise", bin_mat);
+  cv::waitKey(1);
 
-  // erosion<<<grid_size, block_size>>>(device_frame, device_temp_frame);
-  // cudaDeviceSynchronize();
+  // open_and_close();
+  close_and_open();
+  cudaDeviceSynchronize();
 
-  // err = cudaMemcpy(red_frame, device_temp_frame, frame_size,
-  //                  cudaMemcpyDeviceToHost);
-  // if (err != cudaSuccess) {
-  //   printf("CUDA error erosion: %s\n", cudaGetErrorString(err));
-  // }
-  // cv::Mat erode_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
-  // cv::imshow("erosion", erode_mat);
-  // cv::waitKey(1);
+  err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
+  if (err != cudaSuccess) {
+    printf("CUDA error first: %s\n", cudaGetErrorString(err));
+  }
+  cv::Mat oepning_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
+  cv::imshow("first", oepning_mat);
+  cv::waitKey(1);
+
+  // open_and_close();
+  close_and_open();
+  close_and_open();
+  close_and_open();
+  cudaDeviceSynchronize();
+
+  err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
+  if (err != cudaSuccess) {
+    printf("CUDA error second: %s\n", cudaGetErrorString(err));
+  }
+  cv::Mat closing_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
+  cv::imshow("second", closing_mat);
+  cv::waitKey(1);
 
   return 0;
 }
 
-// void opening() {
-//   erosion<<<grid_size, block_size>>>(device_frame, device_temp_frame,
-//                                      struct_elem, struct_elem_size);
-//   dilation<<<grid_size, block_size>>>(device_temp_frame, device_frame,
-//                                       struct_elem, struct_elem_size);
-// }
+void opening() {
+  erosion<<<grid_size, block_size>>>(device_frame, device_temp_frame);
+  dilation<<<grid_size, block_size>>>(device_temp_frame, device_frame);
+}
+
+void closing() {
+  dilation<<<grid_size, block_size>>>(device_frame, device_temp_frame);
+  erosion<<<grid_size, block_size>>>(device_temp_frame, device_frame);
+}
+
+void open_and_close() {
+  opening();
+  closing();
+}
+
+void close_and_open() {
+  closing();
+  opening();
+}
 
 }  // namespace gpu

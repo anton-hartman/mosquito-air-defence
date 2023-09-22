@@ -110,9 +110,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     //   turret.update_belief(laser_pos);
     // }
 
-    cv::Mat redMat(HEIGHT, WIDTH, CV_8UC1, red_frame);
-    cv::imshow("Red Channel as Grayscale", redMat);
-    cv::waitKey(1);  // Adjust the delay as needed
+    // cv::Mat redMat(HEIGHT, WIDTH, CV_8UC1, red_frame);
+    // cv::imshow("Red Channel as Grayscale", redMat);
+    // cv::waitKey(1);  // Adjust the delay as needed
 
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
     utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
