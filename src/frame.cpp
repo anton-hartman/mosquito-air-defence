@@ -19,7 +19,7 @@ const int WIDTH = std::stoi(croppped_width);
 const int HEIGHT = std::stoi(cropped_height);
 
 const std::string pipeline =
-    "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=" + width +
+    "nvarguscamerasrc sensor-id=0 ! video/x-raw(memory:NVMM), width=" + width +
     ", height=" + height + ", format=(string)NV12 ! nvvidconv left=" + left +
     " top=" + top + " right=" + right + " bottom=" + bottom +
     " flip-method=2 ! video/x-raw, format=(string)BGRx, width=" +

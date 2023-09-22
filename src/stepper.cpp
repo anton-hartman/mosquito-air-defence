@@ -94,7 +94,7 @@ void Stepper::run_stepper() {
   uint32_t auto_delay = 100000;
   uint32_t manual_delay = 1000;
   uint32_t delay_us = auto_delay / MICROSTEPS;
-  enable_stepper();
+  // enable_stepper();
   while (run_flag.load() and !utils::exit_flag.load()) {
     steps = get_steps_and_set_direction();
     for (i = 0; i < steps; i++) {

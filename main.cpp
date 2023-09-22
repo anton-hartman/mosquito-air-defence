@@ -78,6 +78,27 @@ void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
   }
 }
 
+// void get_blobs(cv::Mat& grayscale_frame) {
+// // Set up the detector with default parameters.
+// cv::SimpleBlobDetector detector;
+
+// // Detect blobs.
+// std::vector<cv::KeyPoint> keypoints;
+// detector.detect(grayscale_frame, keypoints);
+
+// // Draw detected blobs as red circles.
+// // DrawMatchesFlags::DRAW_RICH_KEYPOINTS flag ensures the size of the circle
+// // corresponds to the size of blob
+// cv::Mat im_with_keypoints;
+// drawKeypoints(grayscale_frame, keypoints, im_with_keypoints,
+//               cv::Scalar(0, 0, 255),
+//               cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+
+// // Show blobs
+// cv::imshow("keypoints", im_with_keypoints);
+// cv::waitKey(1);
+// }
+
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
   uint8_t* red_frame = new uint8_t[WIDTH * HEIGHT];
@@ -110,9 +131,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     //   turret.update_belief(laser_pos);
     // }
 
-    // cv::Mat redMat(HEIGHT, WIDTH, CV_8UC1, red_frame);
-    // cv::imshow("Red Channel as Grayscale", redMat);
-    // cv::waitKey(1);  // Adjust the delay as needed
+    cv::Mat grayscale_frame(HEIGHT, WIDTH, CV_8UC1, red_frame);
+    // get_blobs(redMat);
 
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
     utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
@@ -185,7 +205,10 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 }
 
 void user_input(void) {
-  bool turret_stopped = false;
+  bool turret_stopped = true;
+
+  std::cout << "Turret disabled" << std::endl;
+
   bool adjust_size = false;
   int steps = 105;
   int px = 110;

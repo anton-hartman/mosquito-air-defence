@@ -140,36 +140,33 @@ __global__ void dilation(uint8_t* input, uint8_t* output) {
 }
 
 uint32_t detect_laser(uint8_t* red_frame, uint8_t threshold) {
+  std::chrono::high_resolution_clock::time_point start_time =
+      std::chrono::high_resolution_clock::now();
+
   cudaError_t err;
 
   cudaMemcpy(device_frame, red_frame, frame_size, cudaMemcpyHostToDevice);
 
-  gaussian_smoothing<<<grid_size, block_size>>>(device_frame, device_temp_frame,
-                                                5, 6.0f);
-  cudaMemcpy(device_frame, device_temp_frame, frame_size,
-             cudaMemcpyDeviceToDevice);
-  cudaDeviceSynchronize();
-  err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
-  if (err != cudaSuccess) {
-    printf("CUDA error smoothing: %s\n", cudaGetErrorString(err));
-  }
-  cv::Mat smooth_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
-  cv::imshow("smoothing", smooth_mat);
-  cv::waitKey(1);
+  // gaussian_smoothing<<<grid_size, block_size>>>(device_frame,
+  // device_temp_frame,
+  //                                               5, 6.0f);
+  // cudaMemcpy(device_frame, device_temp_frame, frame_size,
+  //            cudaMemcpyDeviceToDevice);
+  // cudaDeviceSynchronize();
 
   binarise<<<grid_size, block_size>>>(device_frame, threshold);
-  cudaDeviceSynchronize();
-  err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
-  if (err != cudaSuccess) {
-    printf("CUDA error binarise: %s\n", cudaGetErrorString(err));
-  }
-  cv::Mat bin_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
-  cv::imshow("binarise", bin_mat);
-  cv::waitKey(1);
+  // cudaDeviceSynchronize();
 
-  // open_and_close();
   close_and_open();
-  cudaDeviceSynchronize();
+  // cudaDeviceSynchronize();
+
+  std::chrono::high_resolution_clock::time_point end_time =
+      std::chrono::high_resolution_clock::now();
+  uint32_t duration = std::chrono::duration_cast<std::chrono::microseconds>(
+                          end_time - start_time)
+                          .count();
+
+  std::cout << "GPU processing time = " << duration << " us" << std::endl;
 
   err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
   if (err != cudaSuccess) {
@@ -178,19 +175,6 @@ uint32_t detect_laser(uint8_t* red_frame, uint8_t threshold) {
   cv::Mat oepning_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
   cv::imshow("first", oepning_mat);
   cv::waitKey(1);
-
-  // open_and_close();
-  close_and_open();
-  cudaDeviceSynchronize();
-
-  err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
-  if (err != cudaSuccess) {
-    printf("CUDA error second: %s\n", cudaGetErrorString(err));
-  }
-  cv::Mat closing_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
-  cv::imshow("second", closing_mat);
-  cv::waitKey(1);
-
   return 0;
 }
 
