@@ -55,6 +55,36 @@ void free_gpu() {
   cudaFree(device_temp_frame);
 }
 
+__global__ void gaussian_smoothing(uint8_t* input,
+                                   uint8_t* output,
+                                   int kernel_size,
+                                   float sigma) {
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (x < d_WIDTH && y < d_HEIGHT) {
+    float sum = 0.0f;
+    float total_weight = 0.0f;
+    int half_kernel_size = kernel_size / 2;
+
+    for (int i = -half_kernel_size; i <= half_kernel_size; ++i) {
+      for (int j = -half_kernel_size; j <= half_kernel_size; ++j) {
+        int current_x = x + j;
+        int current_y = y + i;
+
+        if (current_x >= 0 && current_x < d_WIDTH && current_y >= 0 &&
+            current_y < d_HEIGHT) {
+          float weight = exp(-(i * i + j * j) / (2.0f * sigma * sigma));
+          sum += input[current_y * d_WIDTH + current_x] * weight;
+          total_weight += weight;
+        }
+      }
+    }
+
+    output[y * d_WIDTH + x] = static_cast<uint8_t>(sum / total_weight);
+  }
+}
+
 __global__ void binarise(uint8_t* device_frame, uint8_t threshold) {
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -114,6 +144,19 @@ uint32_t detect_laser(uint8_t* red_frame, uint8_t threshold) {
 
   cudaMemcpy(device_frame, red_frame, frame_size, cudaMemcpyHostToDevice);
 
+  gaussian_smoothing<<<grid_size, block_size>>>(device_frame, device_temp_frame,
+                                                5, 6.0f);
+  cudaMemcpy(device_frame, device_temp_frame, frame_size,
+             cudaMemcpyDeviceToDevice);
+  cudaDeviceSynchronize();
+  err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
+  if (err != cudaSuccess) {
+    printf("CUDA error smoothing: %s\n", cudaGetErrorString(err));
+  }
+  cv::Mat smooth_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
+  cv::imshow("smoothing", smooth_mat);
+  cv::waitKey(1);
+
   binarise<<<grid_size, block_size>>>(device_frame, threshold);
   cudaDeviceSynchronize();
   err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
@@ -137,8 +180,6 @@ uint32_t detect_laser(uint8_t* red_frame, uint8_t threshold) {
   cv::waitKey(1);
 
   // open_and_close();
-  close_and_open();
-  close_and_open();
   close_and_open();
   cudaDeviceSynchronize();
 

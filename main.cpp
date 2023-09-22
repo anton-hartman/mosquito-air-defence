@@ -105,7 +105,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       exit(0);
     }
     convert_to_red_frame(frame, red_frame);
-    total_duration += gpu::detect_laser(red_frame, 255);
+    total_duration += gpu::detect_laser(red_frame, 230);
     // if (enable_feedback_flag.load()) {
     //   turret.update_belief(laser_pos);
     // }
@@ -177,6 +177,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
   }
   // Deallocate memory on CPU.
   delete[] red_frame;
+  gpu::free_gpu();
 
   avg_duration = total_duration / loop_count;
   std::cout << "Average duration of kernel = " << avg_duration << "us"
