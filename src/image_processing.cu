@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include "../include/image_processing.hpp"
 #include "../include/two_pass_algorithm.hpp"
@@ -17,8 +18,7 @@ const int diameter = 2 * struct_elem_size + 1;
 __constant__ uint8_t d_structuring_element[diameter * diameter];
 __constant__ int d_struct_elem_size;
 
-BoundingBoxMap bounding_boxes;
-std::pair<uint16_t, uint16_t> laser_position;
+std::pair<int32_t, int32_t> laser_position;
 
 void create_structuring_element(uint8_t* struct_elem, int struct_elem_size) {
   int diameter = 2 * struct_elem_size + 1;
@@ -143,47 +143,197 @@ __global__ void dilation(uint8_t* input, uint8_t* output) {
   }
 }
 
-std::pair<uint16_t, uint16_t> detect_laser(uint8_t* red_frame,
-                                           uint8_t threshold) {
+bool is_blob_in_ignore_region(
+    const std::pair<uint16_t, uint16_t>& blob,
+    const std::pair<uint16_t, uint16_t>& ignore_region_top_left,
+    const std::pair<uint16_t, uint16_t>& ignore_region_bottom_right) {
+  uint16_t x = blob.first;
+  uint16_t y = blob.second;
+  return x >= ignore_region_top_left.first &&
+         x <= ignore_region_bottom_right.first &&
+         y >= ignore_region_top_left.second &&
+         y <= ignore_region_bottom_right.second;
+}
+
+std::pair<int32_t, int32_t> distinguish_laser(
+    std::vector<std::pair<uint16_t, uint16_t>> blobs,
+    std::pair<uint16_t, uint16_t> camera_origin,
+    std::pair<uint16_t, uint16_t> ignore_region_top_left,
+    std::pair<uint16_t, uint16_t> ignore_region_bottom_right) {
+  // std::cout << "All Blobs:" << std::endl;
+  // for (size_t i = 0; i < blobs.size(); ++i) {
+  //   std::cout << "Blob " << i + 1 << ": (" << blobs[i].first << ", "
+  //             << blobs[i].second << ")" << std::endl;
+  // }
+
+  if (blobs.size() == 1)
+    return blobs.at(0);
+
+  std::pair<int32_t, int32_t> result = std::make_pair(-1, -1);
+  double minDist = std::numeric_limits<double>::infinity();
+  double maxDist = -1;
+
+  uint16_t ox = camera_origin.first;
+  uint16_t oy = camera_origin.second;
+
+  for (size_t i = 0; i < blobs.size(); i++) {
+    std::pair<uint16_t, uint16_t> blob = blobs[i];
+    uint16_t x = blob.first;
+    uint16_t y = blob.second;
+
+    if (is_blob_in_ignore_region(blob, ignore_region_top_left,
+                                 ignore_region_bottom_right)) {
+      std::cout << "blob in ignore region" << std::endl;
+      continue;  // Skip blobs in the ignore region
+    }
+
+    double dist = std::hypot(x - ox, y - oy);
+
+    if (y <= oy && dist < minDist) {
+      minDist = dist;
+      result = std::make_pair(x, y);
+    }
+
+    if (y >= oy && dist > maxDist) {
+      maxDist = dist;
+      result = std::make_pair(x, y);
+    }
+
+    if (y > oy && result.first == -1)
+      result = std::make_pair(x, y);
+  }
+
+  // std::cout << "result = (" << result.first << ", " << result.second << ")"
+  //           << std::endl;
+  return result;
+}
+
+std::pair<int32_t, int32_t> distinguish_laser(
+    std::vector<std::pair<uint16_t, uint16_t>> blobs,
+    std::pair<uint16_t, uint16_t> camera_origin) {
+  if (blobs.size() < 1)
+    return blobs.at(0);
+
+  std::pair<uint16_t, uint16_t> blob1 = blobs[0];
+  std::pair<uint16_t, uint16_t> blob2 = blobs[1];
+
+  uint16_t ox = camera_origin.first;
+  uint16_t oy = camera_origin.second;
+
+  uint16_t x1 = blob1.first;
+  uint16_t y1 = blob1.second;
+  uint16_t x2 = blob2.first;
+  uint16_t y2 = blob2.second;
+
+  // When both blobs are at or below the camera origin the closest blob is the
+  // laser
+  if (y1 <= oy && y2 <= oy) {
+    double dist1 = std::hypot(x1 - ox, y1 - oy);
+    double dist2 = std::hypot(x2 - ox, y2 - oy);
+
+    if (dist1 < dist2)
+      return std::make_pair(x1, y1);
+    else
+      return std::make_pair(x2, y2);
+  }
+
+  // When both blobs are at or above the camera origin the furthest blob is the
+  // laser
+  if (y1 >= oy && y2 >= oy) {
+    double dist1 = std::hypot(x1 - ox, y1 - oy);
+    double dist2 = std::hypot(x2 - ox, y2 - oy);
+
+    if (dist1 > dist2)
+      return std::make_pair(x1, y1);
+    else
+      return std::make_pair(x2, y2);
+  }
+
+  // When blobs are on either side of the camera origin the laser is the blob
+  // that is above the camera origin
+  if (y1 > oy)
+    return std::make_pair(x1, y1);
+  else
+    return std::make_pair(x2, y2);
+}
+
+void save_frame_to_text_file(const uint8_t* frame,
+                             size_t size,
+                             const std::string& filename) {
+  std::ofstream out_file(filename);
+
+  out_file << "{";
+  if (!out_file) {
+    std::cerr << "Could not open file for writing: " << filename << std::endl;
+    return;
+  }
+
+  for (size_t i = 0; i < size; ++i) {
+    out_file << static_cast<unsigned int>(
+        frame[i]);  // Cast to unsigned int for proper text output
+    if (i < size - 1) {
+      out_file << ", ";  // Separate each byte by space
+    }
+  }
+  out_file << "}";
+
+  out_file.close();
+  std::cout << "Saved frame to: " << filename << std::endl;
+}
+
+std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame,
+                                         uint8_t threshold) {
   cudaError_t err;
 
-  cudaMemcpy(device_frame, red_frame, frame_size, cudaMemcpyHostToDevice);
+  err = cudaMemcpy(device_frame, red_frame, frame_size, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    printf("CUDA error 1: %s\n", cudaGetErrorString(err));
+  }
 
-  // gaussian_smoothing<<<grid_size, block_size>>>(device_frame,
-  // device_temp_frame,
-  //                                               5, 6.0f);
-  // cudaMemcpy(device_frame, device_temp_frame, frame_size,
-  //            cudaMemcpyDeviceToDevice);
+  gaussian_smoothing<<<grid_size, block_size>>>(device_frame, device_temp_frame,
+                                                5, 6.0f);
+  err = cudaMemcpy(device_frame, device_temp_frame, frame_size,
+                   cudaMemcpyDeviceToDevice);
+  if (err != cudaSuccess) {
+    printf("CUDA error 2: %s\n", cudaGetErrorString(err));
+  }
   // cudaDeviceSynchronize();
 
   binarise<<<grid_size, block_size>>>(device_frame, threshold);
-  // cudaDeviceSynchronize();
-
   close_and_open();
-  // cudaDeviceSynchronize();
+
+  err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
+  if (err != cudaSuccess) {
+    printf("CUDA error 3: %s\n", cudaGetErrorString(err));
+  }
+  // save_frame_to_text_file(red_frame, WIDTH * HEIGHT, "gpu_frame.txt");
 
   std::chrono::high_resolution_clock::time_point start_time =
       std::chrono::high_resolution_clock::now();
 
-  // bounding_boxes = find_connected_components(device_frame);
-  laser_position = find_laser_pos(device_frame);
+  laser_position = distinguish_laser(
+      find_blobs(red_frame), std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
+      std::make_pair(0, 0), std::make_pair(0, 0));
 
   std::chrono::high_resolution_clock::time_point end_time =
       std::chrono::high_resolution_clock::now();
   uint32_t duration = std::chrono::duration_cast<std::chrono::microseconds>(
                           end_time - start_time)
                           .count();
+  // std::cout << "GPU processing time = " << duration << " us" << std::endl;
 
-  std::cout << "GPU processing time = " << duration << " us" << std::endl;
-
-  err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
-  if (err != cudaSuccess) {
-    printf("CUDA error first: %s\n", cudaGetErrorString(err));
-  }
-  cv::Mat oepning_mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
-  cv::imshow("first", oepning_mat);
+  cv::Mat mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
+  cv::putText(mat,
+              "laser pos = (" + std::to_string(laser_position.first) + ", " +
+                  std::to_string(laser_position.second) + ")",
+              cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+              cv::Scalar(255, 255, 255), 2);
+  cv::imshow("pre-processed frame", mat);
   cv::waitKey(1);
+  // std::cout << "laser pos = (" << laser_position.first << ", "
+  //           << laser_position.second << ")" << std::endl;
   return laser_position;
+  // return std::make_pair(-2, -2);
 }
 
 void opening() {

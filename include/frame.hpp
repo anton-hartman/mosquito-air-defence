@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 extern const std::string width;
@@ -15,3 +16,11 @@ extern const int WIDTH;
 extern const int HEIGHT;
 
 extern const std::string pipeline;
+
+extern const double F_X;
+extern const double F_Y;
+extern const double C_X;
+extern const double C_Y;
+
+extern const uint16_t X_ORIGIN_PX;
+extern const uint16_t Y_ORIGIN_PX;

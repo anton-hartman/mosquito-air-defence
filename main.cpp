@@ -18,26 +18,12 @@ Turret turret;
 std::atomic<bool> utils::exit_flag(false);
 std::atomic<bool> enable_feedback_flag(false);
 
-const float SCALING_FACTOR = 1.0;
-const float ALPHA = 0.01;
-const float FRAME_TIME_MS = 1000 / 24.0;
-// const std::vector<float> CAMERA_MATRIX = {647.0756309728268,
-//                                           0,
-//                                           304.4404590127848,
-//                                           0,
-//                                           861.7363873209705,
-//                                           257.5858878142162,
-//                                           0,
-//                                           0,
-//                                           1};
-// const float CAMERA_DEPTH = 1104;  // mm
-
 cv::VideoCapture cap;
 int manual_mode = 1;
 
 // Laser co-ordinates plus uncertainty in pixels
 utils::Circle laser_belief_region_px;
-std::pair<uint16_t, uint16_t> laser_pos;
+std::pair<int32_t, int32_t> laser_pos;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -78,27 +64,6 @@ void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
   }
 }
 
-// void get_blobs(cv::Mat& grayscale_frame) {
-// // Set up the detector with default parameters.
-// cv::SimpleBlobDetector detector;
-
-// // Detect blobs.
-// std::vector<cv::KeyPoint> keypoints;
-// detector.detect(grayscale_frame, keypoints);
-
-// // Draw detected blobs as red circles.
-// // DrawMatchesFlags::DRAW_RICH_KEYPOINTS flag ensures the size of the circle
-// // corresponds to the size of blob
-// cv::Mat im_with_keypoints;
-// drawKeypoints(grayscale_frame, keypoints, im_with_keypoints,
-//               cv::Scalar(0, 0, 255),
-//               cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
-
-// // Show blobs
-// cv::imshow("keypoints", im_with_keypoints);
-// cv::waitKey(1);
-// }
-
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
   uint8_t* red_frame = new uint8_t[WIDTH * HEIGHT];
@@ -126,13 +91,12 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       exit(0);
     }
     convert_to_red_frame(frame, red_frame);
-    // laser_pos = gpu::detect_laser(red_frame, 230);
-    // if (enable_feedback_flag.load()) {
-    //   turret.update_belief(laser_pos);
-    // }
+    laser_pos = gpu::detect_laser(red_frame, 230);
+    if (enable_feedback_flag.load()) {
+      turret.update_belief(laser_pos);
+    }
 
-    cv::Mat grayscale_frame(HEIGHT, WIDTH, CV_8UC1, red_frame);
-    // get_blobs(redMat);
+    // cv::Mat grayscale_frame(HEIGHT, WIDTH, CV_8UC1, red_frame);
 
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
     utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
@@ -160,42 +124,16 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                                                               loop_start_time)
             .count();
 
-    // // 2. Split the image into its individual channels
-    // std::vector<cv::Mat> channels;
-    // cv::split(frame, channels);
-
-    // // 3. Set the green and blue channels to zero
-    // channels[0] =
-    //     cv::Mat::zeros(frame.rows, frame.cols, CV_8UC1);  // Blue channel
-    // channels[1] =
-    //     cv::Mat::zeros(frame.rows, frame.cols, CV_8UC1);  // Green channel
-
-    // // 4. Merge the channels back together
-    // cv::Mat redOnly;
-    // cv::merge(channels, redOnly);
-
     cv::imshow("frame", frame);
     // cv::imshow("Red Channel", redOnly);
     char key = static_cast<char>(cv::waitKey(1));
     if (key == 'q') {
       utils::exit_flag.store(true);
     }
-
-    if (loop_duration < FRAME_TIME_MS) {
-      // You have additional time before the next frame is expected.
-      // This can be used as idle time or for other tasks.
-
-      // std::cout << "Processing took less than expected for a frame. ("
-      //           << loop_duration << "ms)" << std::endl;
-      // std::this_thread::sleep_for(std::chrono::milliseconds(
-      //     static_cast<int>(FRAME_TIME_MS - loop_duration)));
-    } else {
-      // std::cout << "Processing took longer than expected for a frame. ("
-      //           << loop_duration << "ms)" << std::endl;
-      cap >> frame;  // Drop a frame
-    }
   }
-  // Deallocate memory on CPU.
+
+  std::cout << "Video processing out of main loop" << std::endl;
+
   delete[] red_frame;
   gpu::free_gpu();
 
@@ -217,16 +155,21 @@ void user_input(void) {
     std::cout << "Enter a character: ";
     std::cin >> ch;  // Read a character from standard input
 
-    if (ch == 'e') {
-      if (turret_stopped) {
-        turret_stopped = false;
-        turret.start_turret();
-        std::cout << "Turret started" << std::endl;
-      } else {
-        turret_stopped = true;
-        turret.stop_turret();
-        std::cout << "Turret stopped" << std::endl;
-      }
+    if (ch == 'q') {
+      std::cout << "Exit with keypress = q" << std::endl;
+      utils::exit_flag.store(true);
+      break;
+    }
+
+    if (turret_stopped and
+        (ch == 'e' or ch == 'w' or ch == 'a' or ch == 's' or ch == 'd')) {
+      turret_stopped = false;
+      turret.start_turret();
+      std::cout << "Turret started" << std::endl;
+    } else if (!turret_stopped and ch == 'e') {
+      turret_stopped = true;
+      turret.stop_turret();
+      std::cout << "Turret stopped" << std::endl;
     } else if (ch == 'o') {
       turret.set_origin(laser_pos);
       std::cout << "Origin set to: " << laser_pos.first << ", "
@@ -286,9 +229,8 @@ int main(void) {
   cv::VideoCapture cap = init_system();
   cv::Mat initial_frame;
   cap >> initial_frame;
-  // cv::resize(initial_frame, initial_frame, cv::Size(), SCALING_FACTOR,
-  //            SCALING_FACTOR);
-  Detection detector(initial_frame, ALPHA);
+  float alpha = 0.1;
+  Detection detector(initial_frame, alpha);
 
   // Launch the threads
   std::thread user_input_thread(user_input);
@@ -296,10 +238,14 @@ int main(void) {
   std::thread turret_horizontal_thread(turret_horizontal);
   std::thread turret_vertical_thread(turret_vertical);
 
+  std::cout << "Threads launched" << std::endl;
   // Join the threads (or use detach based on requirements)
   video_thread.join();
+  std::cout << "Video thread joined" << std::endl;
   turret_horizontal_thread.join();
+  std::cout << "Turret horizontal thread joined" << std::endl;
   turret_vertical_thread.join();
+  std::cout << "Turret vertical thread joined" << std::endl;
   user_input_thread.detach();
 
   cudaDeviceReset();
