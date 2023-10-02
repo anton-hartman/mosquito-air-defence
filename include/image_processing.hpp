@@ -28,7 +28,7 @@ void closing();
 void open_and_close();
 void close_and_open();
 
-std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame,
-                                           uint8_t threshold);
+std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame, uint8_t threshold);
+std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold);
 
 }  // namespace gpu
