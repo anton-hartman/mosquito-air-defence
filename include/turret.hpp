@@ -8,14 +8,19 @@
 
 class Turret {
  public:
-  // static const uint16_t TANK_DEPTH = 318;
-  static const int TANK_DEPTH = -2;
+  static const uint16_t TANK_DEPTH = 318;
+  // static const int TANK_DEPTH = -2;
   static const uint16_t CAMERA_DEPTH = 785 + TANK_DEPTH;  // mm
   static const int TURRET_DEPTH = 545 + TANK_DEPTH;
   static const int VERTICAL_DISTANCE_BETWEEN_MIRRORS = 10;
   static const int Y_STEPPER_DEPTH = TURRET_DEPTH;
   static const int X_STEPPER_DEPTH =
       TURRET_DEPTH + VERTICAL_DISTANCE_BETWEEN_MIRRORS;
+
+  // For PID control
+  static constexpr double K_P = 1.0;
+  static constexpr double K_I = 0.1;
+  static constexpr double K_D = 0.01;
 
  private:
   std::atomic<bool> run_flag;

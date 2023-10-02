@@ -10,6 +10,10 @@ const int8_t ANTI_CLOCKWISE = -1;
 
 std::atomic<bool> run_flag(true);
 
+// For PID control
+int32_t previous_error;
+int32_t integral;
+
 Stepper::Stepper(std::string name,
                  uint8_t enable_pin,
                  uint8_t direction_pin,
@@ -76,16 +80,37 @@ void Stepper::increment_setpoint_in_steps(const int32_t steps) {
   target_steps.fetch_add(steps);
 }
 
-uint32_t Stepper::get_steps_and_set_direction() {
-  int32_t steps = target_steps.load() - current_steps.load();
-  if (steps > 0) {
+// uint32_t Stepper::get_steps_and_set_direction() {
+//   int32_t steps = target_steps.load() - current_steps.load();
+//   if (steps > 0) {
+//     GPIO::output(direction_pin, GPIO::LOW);
+//     direction.store(CLOCKWISE);
+//   } else {
+//     GPIO::output(direction_pin, GPIO::HIGH);
+//     direction.store(ANTI_CLOCKWISE);
+//   }
+//   return abs(steps);
+// }
+
+uint32_t Stepper::get_pid_error_and_set_direction() {
+  int32_t error = target_steps.load() - current_steps.load();
+
+  integral += error;
+  int32_t derivative = error - previous_error;
+  previous_error = error;
+
+  int32_t output =
+      Turret::K_P * error + Turret::K_I * integral + Turret::K_D * derivative;
+
+  if (output > 0) {
     GPIO::output(direction_pin, GPIO::LOW);
     direction.store(CLOCKWISE);
   } else {
     GPIO::output(direction_pin, GPIO::HIGH);
     direction.store(ANTI_CLOCKWISE);
   }
-  return abs(steps);
+
+  return abs(output);
 }
 
 void Stepper::run_stepper() {
@@ -96,7 +121,8 @@ void Stepper::run_stepper() {
   uint32_t delay_us = auto_delay / MICROSTEPS;
   enable_stepper();
   while (run_flag.load() and !utils::exit_flag.load()) {
-    steps = get_steps_and_set_direction();
+    // steps = get_steps_and_set_direction();
+    steps = get_pid_error_and_set_direction();
     for (i = 0; i < steps; i++) {
       GPIO::output(step_pin, GPIO::HIGH);
       std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
