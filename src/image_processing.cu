@@ -3,9 +3,21 @@
 #include "../include/image_processing.hpp"
 // #include "../include/labeling_algorithms.h"
 // #include "../include/labels_solver.h"
-#include "../include/two_pass_algorithm.hpp"
+// #include "../include/two_pass_algorithm.hpp"
 
 namespace gpu {
+
+typedef struct pt_ {
+  int x, y;
+} pt;
+
+typedef struct blob_ {
+  int min_x, max_x;
+  int min_y, max_y;
+  int cen_x, cen_y;
+  int n_pixels;
+  int ID;
+} blob;
 
 dim3 const block_size(16, 8);
 dim3 const grid_size((WIDTH + block_size.x - 1) / block_size.x,
@@ -210,6 +222,52 @@ std::pair<int32_t, int32_t> distinguish_laser(
   return result;
 }
 
+std::pair<uint16_t, uint16_t> distinguish_laser(
+    const std::vector<blob>& blobs,
+    const std::pair<uint16_t, uint16_t> camera_origin,
+    const std::pair<uint16_t, uint16_t> ignore_region_top_left,
+    const std::pair<uint16_t, uint16_t> ignore_region_bottom_right) {
+  if (blobs.size() == 1)
+    return std::make_pair(blobs.at(0).cen_x, blobs.at(0).cen_y);
+
+  std::pair<int32_t, int32_t> result = std::make_pair(-1, -1);
+  double minDist = std::numeric_limits<double>::infinity();
+  double maxDist = -1;
+
+  uint16_t ox = camera_origin.first;
+  uint16_t oy = camera_origin.second;
+
+  for (size_t i = 0; i < blobs.size(); i++) {
+    uint16_t x = blobs[i].cen_x;
+    uint16_t y = blobs[i].cen_y;
+
+    if (is_blob_in_ignore_region(std::make_pair(x, y), ignore_region_top_left,
+                                 ignore_region_bottom_right)) {
+      std::cout << "blob in ignore region" << std::endl;
+      continue;  // Skip blobs in the ignore region
+    }
+
+    double dist = std::hypot(x - ox, y - oy);
+
+    if (y <= oy && dist < minDist) {
+      minDist = dist;
+      result = std::make_pair(x, y);
+    }
+
+    if (y >= oy && dist > maxDist) {
+      maxDist = dist;
+      result = std::make_pair(x, y);
+    }
+
+    if (y > oy && result.first == -1)
+      result = std::make_pair(x, y);
+  }
+
+  // std::cout << "result = (" << result.first << ", " << result.second << ")"
+  //           << std::endl;
+  return result;
+}
+
 std::pair<int32_t, int32_t> distinguish_laser(
     std::vector<std::pair<uint16_t, uint16_t>> blobs,
     std::pair<uint16_t, uint16_t> camera_origin) {
@@ -283,6 +341,63 @@ void save_frame_to_text_file(const uint8_t* frame,
   std::cout << "Saved frame to: " << filename << std::endl;
 }
 
+void get_blobs(uint8_t* frame, std::vector<blob>& blobs) {
+  // int i, j, k, l, r = img.rows, c = img.cols, id = 1;
+  int i, j, k, l, r = HEIGHT, c = WIDTH, id = 1;
+  std::vector<std::vector<int>> pixel_ID(r, std::vector<int>(c, -1));
+  // Stores ID of a pixel; -1 means unvisited
+  std::queue<pt> open_list;
+  // Breadth-First-Search hence queue of points
+  for (i = 1; i < r - 1; i++) {
+    for (j = 1; j < c - 1; j++) {
+      if (frame[i * WIDTH + j] == 0 || pixel_ID[i][j] > -1) {
+        continue;
+      }
+      pt start = {j, i};
+      open_list.push(start);
+      int sum_x = 0, sum_y = 0, n_pixels = 0, max_x = 0, max_y = 0;
+      int min_x = c + 1, min_y = r + 1;
+      while (!open_list.empty()) {  // Dequeue the element at the head of the
+                                    // queue
+        pt top = open_list.front();
+        open_list.pop();
+        pixel_ID[top.y][top.x] = id;
+        n_pixels++;  // To obtain the bounding box of the blob w.r.t the
+                     // original image
+        min_x = (top.x < min_x) ? top.x : min_x;
+        min_y = (top.y < min_y) ? top.y : min_y;
+        max_x = (top.x > max_x) ? top.x : max_x;
+        max_y = (top.y > max_y) ? top.y : max_y;
+        sum_y += top.y;
+        sum_x += top.x;  // Add the 8-connected neighbours that are yet to be
+                         // visited, to the queue
+        for (k = top.y - 1; k <= top.y + 1; k++) {
+          for (l = top.x - 1; l <= top.x + 1; l++) {
+            if (frame[k * WIDTH + l] == 0 || pixel_ID[k][l] > -1) {
+              continue;
+            }
+            pt next = {l, k};
+            pixel_ID[k][l] = id;
+            open_list.push(next);
+          }
+        }
+      }
+
+      if (n_pixels < 20) {  // At least 20 pixels
+        continue;
+      }
+
+      blob nextcentre = {
+          min_x,    max_x, min_y, max_y, sum_x / n_pixels, sum_y / n_pixels,
+          n_pixels, id};
+      blobs.push_back(nextcentre);
+      id++;
+    }
+  }
+  std::cout
+      << blobs.size();  // To test correctness; can use the vector as desired
+}
+
 std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame,
                                          uint8_t threshold) {
   cudaError_t err;
@@ -310,19 +425,27 @@ std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame,
   }
   // save_frame_to_text_file(red_frame, WIDTH * HEIGHT, "gpu_frame.txt");
 
-  std::chrono::high_resolution_clock::time_point start_time =
-      std::chrono::high_resolution_clock::now();
+  // std::chrono::high_resolution_clock::time_point start_time =
+  //     std::chrono::high_resolution_clock::now();
 
-  laser_position = distinguish_laser(
-      find_blobs(red_frame), std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
-      std::make_pair(0, 0), std::make_pair(0, 0));
+  // laser_position = distinguish_laser(
+  //     find_blobs(red_frame), std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
+  //     std::make_pair(0, 0), std::make_pair(0, 0));
 
-  std::chrono::high_resolution_clock::time_point end_time =
-      std::chrono::high_resolution_clock::now();
-  uint32_t duration = std::chrono::duration_cast<std::chrono::microseconds>(
-                          end_time - start_time)
-                          .count();
-  // std::cout << "GPU processing time = " << duration << " us" << std::endl;
+  std::vector<blob> blobs;
+  // get_blobs(red_frame, blobs);
+
+  // std::chrono::high_resolution_clock::time_point end_time =
+  //     std::chrono::high_resolution_clock::now();
+  // uint32_t duration = std::chrono::duration_cast<std::chrono::microseconds>(
+  //                         end_time - start_time)
+  //                         .count();
+  // std::cout << "get_blobs processing time = " << duration << " us" <<
+  // std::endl;
+
+  // laser_position =
+  //     distinguish_laser(blobs, std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
+  //                       std::make_pair(0, 0), std::make_pair(0, 0));
 
   cv::Mat mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
   cv::putText(mat,

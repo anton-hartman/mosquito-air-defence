@@ -57,9 +57,13 @@ void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
 
   for (int i = 0; i < HEIGHT; ++i) {
     for (int j = 0; j < WIDTH; ++j) {
-      cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
+      // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
+      // // Extracting the red channel (assuming BGR format)
+      // red_frame[i * WIDTH + j] = pixel[2];
+
+      // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
       // Extracting the red channel (assuming BGR format)
-      red_frame[i * WIDTH + j] = pixel[2];
+      red_frame[i * WIDTH + j] = frame.at<cv::Vec3b>(i, j)[2];
     }
   }
 }
@@ -75,22 +79,32 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 
   while (!utils::exit_flag.load()) {
     loop_count++;
-    std::chrono::high_resolution_clock::time_point loop_start_time =
-        std::chrono::high_resolution_clock::now();
 
     cap >> frame;
     turret.save_steps_at_frame();
-
-    // cv::Mat undistorted_frame;
-    // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
-    // Look into converting from steps to pixels for laser belief region. How
-    // must distorition be accounted for?
 
     if (frame.empty()) {
       std::cout << "Frame is empty, exiting." << std::endl;
       exit(0);
     }
+    // cv::Mat undistorted_frame;
+    // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
+    // Look into converting from steps to pixels for laser belief region. How
+    // must distorition be accounted for?
+
+    std::chrono::high_resolution_clock::time_point loop_start_time =
+        std::chrono::high_resolution_clock::now();
+
     convert_to_red_frame(frame, red_frame);
+
+    std::chrono::high_resolution_clock::time_point loop_end_time =
+        std::chrono::high_resolution_clock::now();
+    uint32_t loop_duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time -
+                                                              loop_start_time)
+            .count();
+    std::cout << "Loop duration = " << loop_duration << "ms" << std::endl;
+
     laser_pos = gpu::detect_laser(red_frame, 230);
     if (enable_feedback_flag.load()) {
       turret.update_belief(laser_pos);
@@ -117,15 +131,16 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                          ", " + std::to_string(target_steps.second) + ")",
                      std::pair<uint16_t, uint16_t>(10, 60), 0.5);
 
-    std::chrono::high_resolution_clock::time_point loop_end_time =
+    cv::imshow("frame", frame);
+
+    std::chrono::high_resolution_clock::time_point loop2_end_time =
         std::chrono::high_resolution_clock::now();
-    uint32_t loop_duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time -
+    uint32_t loop_duration2 =
+        std::chrono::duration_cast<std::chrono::milliseconds>(loop2_end_time -
                                                               loop_start_time)
             .count();
+    std::cout << "Loop duration2 = " << loop_duration2 << "ms" << std::endl;
 
-    cv::imshow("frame", frame);
-    // cv::imshow("Red Channel", redOnly);
     char key = static_cast<char>(cv::waitKey(1));
     if (key == 'q') {
       utils::exit_flag.store(true);
