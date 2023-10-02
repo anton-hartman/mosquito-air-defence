@@ -54,35 +54,3 @@ target_link_libraries(mosquito-air-defence
     ${OpenCV_LIBS}
     ${CUDA_LIBRARIES}
 )
-
-# ---- Google Test Configuration ----
-
-# Find Google Test and Google Mock
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
-
-enable_testing()
-
-# Add your unit tests target
-add_executable(unit_tests
-    tests/test_main.cpp  # A main file for running all tests
-    # tests/turret_controller_test.cpp  
-)
-
-# Link your project's code and Google Test
-target_link_libraries(unit_tests
-    # PRIVATE
-    # mosqutio-air-defence  # Link your project's library or source files
-    ${CURSES_LIBRARIES}
-    ${OpenCV_LIBS}
-    ${GTEST_BOTH_LIBRARIES} 
-    pthread
-    # GTest::GTest
-    # GTest::Main
-    # GMock::GMock
-    # GMock::Main
-)
-
-# Register your tests with CTest
-include(GoogleTest)
-gtest_discover_tests(unit_tests)

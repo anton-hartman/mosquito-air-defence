@@ -70,6 +70,9 @@ void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
 
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
+  std::vector<cv::Mat> channels;
+  cv::Mat red_channel;
+
   uint8_t* red_frame = new uint8_t[WIDTH * HEIGHT];
   double total_duration = 0;
   double avg_duration = 0;
@@ -78,39 +81,27 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
   gpu::init_gpu();
 
   while (!utils::exit_flag.load()) {
-    loop_count++;
+    // loop_count++;
 
     cap >> frame;
     turret.save_steps_at_frame();
-
     if (frame.empty()) {
       std::cout << "Frame is empty, exiting." << std::endl;
       exit(0);
     }
+    cv::split(frame, channels);
+    red_channel = channels[2];
+
     // cv::Mat undistorted_frame;
     // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
     // Look into converting from steps to pixels for laser belief region. How
     // must distorition be accounted for?
 
-    std::chrono::high_resolution_clock::time_point loop_start_time =
-        std::chrono::high_resolution_clock::now();
-
-    convert_to_red_frame(frame, red_frame);
-
-    std::chrono::high_resolution_clock::time_point loop_end_time =
-        std::chrono::high_resolution_clock::now();
-    uint32_t loop_duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time -
-                                                              loop_start_time)
-            .count();
-    std::cout << "Loop duration = " << loop_duration << "ms" << std::endl;
-
-    laser_pos = gpu::detect_laser(red_frame, 230);
+    laser_pos = gpu::detect_laser(red_channel, 230);
+    // laser_pos = gpu::detect_laser(red_frame, 230);
     if (enable_feedback_flag.load()) {
       turret.update_belief(laser_pos);
     }
-
-    // cv::Mat grayscale_frame(HEIGHT, WIDTH, CV_8UC1, red_frame);
 
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
     utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
@@ -132,14 +123,6 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                      std::pair<uint16_t, uint16_t>(10, 60), 0.5);
 
     cv::imshow("frame", frame);
-
-    std::chrono::high_resolution_clock::time_point loop2_end_time =
-        std::chrono::high_resolution_clock::now();
-    uint32_t loop_duration2 =
-        std::chrono::duration_cast<std::chrono::milliseconds>(loop2_end_time -
-                                                              loop_start_time)
-            .count();
-    std::cout << "Loop duration2 = " << loop_duration2 << "ms" << std::endl;
 
     char key = static_cast<char>(cv::waitKey(1));
     if (key == 'q') {

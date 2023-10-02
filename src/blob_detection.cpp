@@ -3,12 +3,6 @@
 #include <queue>
 #include <string>
 // #include "../include/frame.hpp"
-// #include "opencv2/core/core.hpp"
-// #include "opencv2/highgui/highgui.hpp"
-// #include "opencv2/imgproc/imgproc.hpp"
-
-// using namespace std;
-// using namespace cv;
 
 typedef struct pt_ {
   int x, y;

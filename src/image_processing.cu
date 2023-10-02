@@ -1,9 +1,5 @@
-#include <fstream>
 #include <iostream>
 #include "../include/image_processing.hpp"
-// #include "../include/labeling_algorithms.h"
-// #include "../include/labels_solver.h"
-// #include "../include/two_pass_algorithm.hpp"
 
 namespace gpu {
 
@@ -64,7 +60,6 @@ void init_gpu() {
   cudaMalloc((void**)&device_frame, frame_size);
   cudaMalloc((void**)&device_temp_frame, frame_size);
 
-  // init_structuring_element();
   initialize_struct_elem();
 }
 
@@ -169,59 +164,6 @@ bool is_blob_in_ignore_region(
          y <= ignore_region_bottom_right.second;
 }
 
-std::pair<int32_t, int32_t> distinguish_laser(
-    std::vector<std::pair<uint16_t, uint16_t>> blobs,
-    std::pair<uint16_t, uint16_t> camera_origin,
-    std::pair<uint16_t, uint16_t> ignore_region_top_left,
-    std::pair<uint16_t, uint16_t> ignore_region_bottom_right) {
-  // std::cout << "All Blobs:" << std::endl;
-  // for (size_t i = 0; i < blobs.size(); ++i) {
-  //   std::cout << "Blob " << i + 1 << ": (" << blobs[i].first << ", "
-  //             << blobs[i].second << ")" << std::endl;
-  // }
-
-  if (blobs.size() == 1)
-    return blobs.at(0);
-
-  std::pair<int32_t, int32_t> result = std::make_pair(-1, -1);
-  double minDist = std::numeric_limits<double>::infinity();
-  double maxDist = -1;
-
-  uint16_t ox = camera_origin.first;
-  uint16_t oy = camera_origin.second;
-
-  for (size_t i = 0; i < blobs.size(); i++) {
-    std::pair<uint16_t, uint16_t> blob = blobs[i];
-    uint16_t x = blob.first;
-    uint16_t y = blob.second;
-
-    if (is_blob_in_ignore_region(blob, ignore_region_top_left,
-                                 ignore_region_bottom_right)) {
-      std::cout << "blob in ignore region" << std::endl;
-      continue;  // Skip blobs in the ignore region
-    }
-
-    double dist = std::hypot(x - ox, y - oy);
-
-    if (y <= oy && dist < minDist) {
-      minDist = dist;
-      result = std::make_pair(x, y);
-    }
-
-    if (y >= oy && dist > maxDist) {
-      maxDist = dist;
-      result = std::make_pair(x, y);
-    }
-
-    if (y > oy && result.first == -1)
-      result = std::make_pair(x, y);
-  }
-
-  // std::cout << "result = (" << result.first << ", " << result.second << ")"
-  //           << std::endl;
-  return result;
-}
-
 std::pair<uint16_t, uint16_t> distinguish_laser(
     const std::vector<blob>& blobs,
     const std::pair<uint16_t, uint16_t> camera_origin,
@@ -263,82 +205,7 @@ std::pair<uint16_t, uint16_t> distinguish_laser(
       result = std::make_pair(x, y);
   }
 
-  // std::cout << "result = (" << result.first << ", " << result.second << ")"
-  //           << std::endl;
   return result;
-}
-
-std::pair<int32_t, int32_t> distinguish_laser(
-    std::vector<std::pair<uint16_t, uint16_t>> blobs,
-    std::pair<uint16_t, uint16_t> camera_origin) {
-  if (blobs.size() < 1)
-    return blobs.at(0);
-
-  std::pair<uint16_t, uint16_t> blob1 = blobs[0];
-  std::pair<uint16_t, uint16_t> blob2 = blobs[1];
-
-  uint16_t ox = camera_origin.first;
-  uint16_t oy = camera_origin.second;
-
-  uint16_t x1 = blob1.first;
-  uint16_t y1 = blob1.second;
-  uint16_t x2 = blob2.first;
-  uint16_t y2 = blob2.second;
-
-  // When both blobs are at or below the camera origin the closest blob is the
-  // laser
-  if (y1 <= oy && y2 <= oy) {
-    double dist1 = std::hypot(x1 - ox, y1 - oy);
-    double dist2 = std::hypot(x2 - ox, y2 - oy);
-
-    if (dist1 < dist2)
-      return std::make_pair(x1, y1);
-    else
-      return std::make_pair(x2, y2);
-  }
-
-  // When both blobs are at or above the camera origin the furthest blob is the
-  // laser
-  if (y1 >= oy && y2 >= oy) {
-    double dist1 = std::hypot(x1 - ox, y1 - oy);
-    double dist2 = std::hypot(x2 - ox, y2 - oy);
-
-    if (dist1 > dist2)
-      return std::make_pair(x1, y1);
-    else
-      return std::make_pair(x2, y2);
-  }
-
-  // When blobs are on either side of the camera origin the laser is the blob
-  // that is above the camera origin
-  if (y1 > oy)
-    return std::make_pair(x1, y1);
-  else
-    return std::make_pair(x2, y2);
-}
-
-void save_frame_to_text_file(const uint8_t* frame,
-                             size_t size,
-                             const std::string& filename) {
-  std::ofstream out_file(filename);
-
-  out_file << "{";
-  if (!out_file) {
-    std::cerr << "Could not open file for writing: " << filename << std::endl;
-    return;
-  }
-
-  for (size_t i = 0; i < size; ++i) {
-    out_file << static_cast<unsigned int>(
-        frame[i]);  // Cast to unsigned int for proper text output
-    if (i < size - 1) {
-      out_file << ", ";  // Separate each byte by space
-    }
-  }
-  out_file << "}";
-
-  out_file.close();
-  std::cout << "Saved frame to: " << filename << std::endl;
 }
 
 void get_blobs(uint8_t* frame, std::vector<blob>& blobs) {
@@ -398,6 +265,65 @@ void get_blobs(uint8_t* frame, std::vector<blob>& blobs) {
       << blobs.size();  // To test correctness; can use the vector as desired
 }
 
+void get_blobs(cv::Mat frame, std::vector<blob>& blobs) {
+  // int i, j, k, l, r = img.rows, c = img.cols, id = 1;
+  int i, j, k, l, r = HEIGHT, c = WIDTH, id = 1;
+  std::vector<std::vector<int>> pixel_ID(r, std::vector<int>(c, -1));
+  // Stores ID of a pixel; -1 means unvisited
+  std::queue<pt> open_list;
+  // Breadth-First-Search hence queue of points
+  for (i = 1; i < r - 1; i++) {
+    for (j = 1; j < c - 1; j++) {
+      if (frame.at<uint8_t>(i, j) == 0 || pixel_ID[i][j] > -1) {
+        // if (frame[i * WIDTH + j] == 0 || pixel_ID[i][j] > -1) {
+        continue;
+      }
+      pt start = {j, i};
+      open_list.push(start);
+      int sum_x = 0, sum_y = 0, n_pixels = 0, max_x = 0, max_y = 0;
+      int min_x = c + 1, min_y = r + 1;
+      while (!open_list.empty()) {  // Dequeue the element at the head of the
+                                    // queue
+        pt top = open_list.front();
+        open_list.pop();
+        pixel_ID[top.y][top.x] = id;
+        n_pixels++;  // To obtain the bounding box of the blob w.r.t the
+                     // original image
+        min_x = (top.x < min_x) ? top.x : min_x;
+        min_y = (top.y < min_y) ? top.y : min_y;
+        max_x = (top.x > max_x) ? top.x : max_x;
+        max_y = (top.y > max_y) ? top.y : max_y;
+        sum_y += top.y;
+        sum_x += top.x;  // Add the 8-connected neighbours that are yet to be
+                         // visited, to the queue
+        for (k = top.y - 1; k <= top.y + 1; k++) {
+          for (l = top.x - 1; l <= top.x + 1; l++) {
+            if (frame.at<uint8_t>(k, l) == 0 || pixel_ID[k][l] > -1) {
+              // if (frame[k * WIDTH + l] == 0 || pixel_ID[k][l] > -1) {
+              continue;
+            }
+            pt next = {l, k};
+            pixel_ID[k][l] = id;
+            open_list.push(next);
+          }
+        }
+      }
+
+      if (n_pixels < 20) {  // At least 20 pixels
+        continue;
+      }
+
+      blob nextcentre = {
+          min_x,    max_x, min_y, max_y, sum_x / n_pixels, sum_y / n_pixels,
+          n_pixels, id};
+      blobs.push_back(nextcentre);
+      id++;
+    }
+  }
+  std::cout
+      << blobs.size();  // To test correctness; can use the vector as desired
+}
+
 std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame,
                                          uint8_t threshold) {
   cudaError_t err;
@@ -423,29 +349,12 @@ std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame,
   if (err != cudaSuccess) {
     printf("CUDA error 3: %s\n", cudaGetErrorString(err));
   }
-  // save_frame_to_text_file(red_frame, WIDTH * HEIGHT, "gpu_frame.txt");
-
-  // std::chrono::high_resolution_clock::time_point start_time =
-  //     std::chrono::high_resolution_clock::now();
-
-  // laser_position = distinguish_laser(
-  //     find_blobs(red_frame), std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
-  //     std::make_pair(0, 0), std::make_pair(0, 0));
 
   std::vector<blob> blobs;
-  // get_blobs(red_frame, blobs);
-
-  // std::chrono::high_resolution_clock::time_point end_time =
-  //     std::chrono::high_resolution_clock::now();
-  // uint32_t duration = std::chrono::duration_cast<std::chrono::microseconds>(
-  //                         end_time - start_time)
-  //                         .count();
-  // std::cout << "get_blobs processing time = " << duration << " us" <<
-  // std::endl;
-
-  // laser_position =
-  //     distinguish_laser(blobs, std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
-  //                       std::make_pair(0, 0), std::make_pair(0, 0));
+  get_blobs(red_frame, blobs);
+  laser_position =
+      distinguish_laser(blobs, std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
+                        std::make_pair(0, 0), std::make_pair(0, 0));
 
   cv::Mat mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
   cv::putText(mat,
@@ -455,10 +364,52 @@ std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame,
               cv::Scalar(255, 255, 255), 2);
   cv::imshow("pre-processed frame", mat);
   cv::waitKey(1);
-  // std::cout << "laser pos = (" << laser_position.first << ", "
-  //           << laser_position.second << ")" << std::endl;
   return laser_position;
-  // return std::make_pair(-2, -2);
+}
+
+std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
+  // cudaError_t err;
+
+  // Upload the CPU input to the GPU
+  cv::cuda::GpuMat input_gpu_mat;
+  input_gpu_mat.upload(red_frame);
+  // Create an output GpuMat
+  cv::cuda::GpuMat output_gpu_mat(red_frame.size(), red_frame.type());
+
+  gaussian_smoothing<<<grid_size, block_size>>>(
+      input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>(), 5, 6.0f);
+  // err = cudaMemcpy(device_frame, device_temp_frame, frame_size,
+  //                  cudaMemcpyDeviceToDevice);
+  // if (err != cudaSuccess) {
+  //   printf("CUDA error 2: %s\n", cudaGetErrorString(err));
+  // }
+  // cudaDeviceSynchronize();
+
+  binarise<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(), threshold);
+  close_and_open();
+
+  // err = cudaMemcpy(red_frame, device_frame, frame_size,
+  // cudaMemcpyDeviceToHost); if (err != cudaSuccess) {
+  //   printf("CUDA error 3: %s\n", cudaGetErrorString(err));
+  // }
+
+  // Download the result back to CPU
+  output_gpu_mat.download(red_frame);
+  std::vector<blob> blobs;
+  get_blobs(red_frame, blobs);
+  laser_position =
+      distinguish_laser(blobs, std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
+                        std::make_pair(0, 0), std::make_pair(0, 0));
+
+  // cv::Mat mat(HEIGHT, WIDTH, CV_8UC1, red_frame);
+  cv::putText(red_frame,
+              "laser pos = (" + std::to_string(laser_position.first) + ", " +
+                  std::to_string(laser_position.second) + ")",
+              cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+              cv::Scalar(255, 255, 255), 2);
+  cv::imshow("pre-processed frame", red_frame);
+  cv::waitKey(1);
+  return laser_position;
 }
 
 void opening() {
