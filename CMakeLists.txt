@@ -31,6 +31,7 @@ set(SOURCE_FILES
     src/detection.cpp
     src/image_processing.cu
     src/two_pass_algorithm.cpp
+    src/blob_detection.cpp
 )
 
 set(HEADER_FILES

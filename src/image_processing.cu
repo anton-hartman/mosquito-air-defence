@@ -1,6 +1,8 @@
 #include <fstream>
 #include <iostream>
 #include "../include/image_processing.hpp"
+// #include "../include/labeling_algorithms.h"
+// #include "../include/labels_solver.h"
 #include "../include/two_pass_algorithm.hpp"
 
 namespace gpu {
