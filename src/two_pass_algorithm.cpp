@@ -125,6 +125,9 @@ BoundingBoxMap find_connected_components(const uint8_t* frame) {
 }
 
 std::vector<std::pair<uint16_t, uint16_t>> find_blobs(const uint8_t* frame) {
+  std::chrono::high_resolution_clock::time_point start_time =
+      std::chrono::high_resolution_clock::now();
+
   BoundingBoxMap bounding_boxes = find_connected_components(frame);
   // std::cout << "components connectd" << std::endl;
 
@@ -143,6 +146,15 @@ std::vector<std::pair<uint16_t, uint16_t>> find_blobs(const uint8_t* frame) {
     c_y = (min_point.first + max_point.first) / 2;
     blobs.push_back({c_x, c_y});
   }
+
+  std::chrono::high_resolution_clock::time_point end_time =
+      std::chrono::high_resolution_clock::now();
+  uint32_t duration = std::chrono::duration_cast<std::chrono::microseconds>(
+                          end_time - start_time)
+                          .count();
+  std::cout << "Connected components processing time = " << duration << " us"
+            << std::endl;
+
   return blobs;
 }
 
