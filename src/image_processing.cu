@@ -417,9 +417,19 @@ void opening() {
   dilation<<<grid_size, block_size>>>(device_temp_frame, device_frame);
 }
 
+void opening(uint8_t* input, uint8_t* output) {
+  erosion<<<grid_size, block_size>>>(input, output);
+  dilation<<<grid_size, block_size>>>(output, input);
+}
+
 void closing() {
   dilation<<<grid_size, block_size>>>(device_frame, device_temp_frame);
   erosion<<<grid_size, block_size>>>(device_temp_frame, device_frame);
+}
+
+void closing(uint8_t* input, uint8_t* output) {
+  dilation<<<grid_size, block_size>>>(output, input);
+  erosion<<<grid_size, block_size>>>(input, output);
 }
 
 void open_and_close() {
@@ -430,6 +440,74 @@ void open_and_close() {
 void close_and_open() {
   closing();
   opening();
+}
+
+std::vector<blob> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
+  cv::cuda::GpuMat input_gpu_mat;
+  input_gpu_mat.upload(red_frame);
+  cv::cuda::GpuMat output_gpu_mat(red_frame.size(), red_frame.type());
+
+  gaussian_smoothing<<<grid_size, block_size>>>(
+      input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>(), 5, 6.0f);
+  binarise<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(), threshold);
+  closing(output_gpu_mat.ptr<uint8_t>(), input_gpu_mat.ptr<uint8_t>());
+  opening(input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>());
+
+  output_gpu_mat.download(red_frame);
+  std::vector<blob> blobs;
+  get_blobs(red_frame, blobs);
+
+  cv::imshow("mosquitoes pre-processed", red_frame);
+  cv::waitKey(1);
+  return blobs;
+}
+
+__global__ void subtract_background(uint8_t* device_frame) {
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (x < d_WIDTH && y < d_HEIGHT) {
+    background[y * d_WIDTH + x] =
+        learning_rate * device_frame[y * d_WIDTH + x] +
+        (1 - learning_rate) * background[y * d_WIDTH + x];
+    device_frame[y * d_WIDTH + x] =
+        device_frame[y * d_WIDTH + x] - background[y * d_WIDTH + x];
+  }
+}
+
+class Subtractor {
+ private:
+  __constant__ cv::cuda::GpuMat background;
+  __constant__ float learning_rate;
+
+ public:
+  Subtractor(cv::Mat backgroud, float learning_rate)
+      : learning_rate(learning_rate) {
+    this->background.upload(backgroud);
+  }
+
+  std::vector<blob> detect_mosquitoes(cv::Mat red_frame) {
+    cv::cuda::GpuMat input_gpu_mat;
+    input_gpu_mat.upload(red_frame);
+    cv::cuda::GpuMat output_gpu_mat(red_frame.size(), red_frame.type());
+
+    gaussian_smoothing<<<grid_size, block_size>>>(
+        input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>(), 5, 6.0f);
+    // binarise<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(),
+    // threshold);
+    subtract_background<<<grid_size, block_size>>>(
+        output_gpu_mat.ptr<uint8_t>());
+    closing(output_gpu_mat.ptr<uint8_t>(), input_gpu_mat.ptr<uint8_t>());
+    opening(input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>());
+
+    output_gpu_mat.download(red_frame);
+    std::vector<blob> blobs;
+    get_blobs(red_frame, blobs);
+
+    cv::imshow("mosquitoes pre-processed", red_frame);
+    cv::waitKey(1);
+    return blobs;
+  }
 }
 
 }  // namespace gpu
