@@ -8,7 +8,7 @@
 const int8_t CLOCKWISE = 1;
 const int8_t ANTI_CLOCKWISE = -1;
 
-std::atomic<bool> run_flag(true);
+// std::atomic<bool> run_flag(true);
 
 Stepper::Stepper(std::string name,
                  uint8_t enable_pin,
@@ -95,13 +95,14 @@ void Stepper::run_stepper() {
   uint32_t manual_delay = 1000;
   uint32_t delay_us = auto_delay / MICROSTEPS;
   // enable_stepper();
-  while (run_flag.load() and !utils::exit_flag.load()) {
+  while (!utils::exit_flag.load()) {
     steps = get_steps_and_set_direction();
     for (i = 0; i < steps; i++) {
       GPIO::output(step_pin, GPIO::HIGH);
       std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
       GPIO::output(step_pin, GPIO::LOW);
-      if (new_setpoint.load() or new_feedback.load()) {
+      if (new_setpoint.load() or new_feedback.load() or
+          !utils::run_flag.load() or utils::exit_flag.load()) {
         break;
       }
       std::this_thread::sleep_for(std::chrono::microseconds(delay_us));

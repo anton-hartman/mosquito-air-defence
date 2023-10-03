@@ -12,8 +12,8 @@ extern const std::string bottom;
 extern const std::string croppped_width;
 extern const std::string cropped_height;
 
-extern const int WIDTH;
-extern const int HEIGHT;
+extern const int COLS;
+extern const int ROWS;
 
 extern const std::string pipeline;
 

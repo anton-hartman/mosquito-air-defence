@@ -15,6 +15,7 @@
 
 Turret turret;
 
+std::atomic<bool> utils::run_flag(true);
 std::atomic<bool> utils::exit_flag(false);
 std::atomic<bool> enable_feedback_flag(false);
 
@@ -48,40 +49,45 @@ cv::VideoCapture init_system(void) {
   return cap;
 }
 
-void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
-  // Check if the input Mat is of the expected size and type
-  if (frame.rows != HEIGHT || frame.cols != WIDTH || frame.type() != CV_8UC3) {
-    std::cerr << "Invalid input Mat dimensions or type!" << std::endl;
-    throw std::runtime_error("Invalid input Mat");
-  }
+// void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
+//   // Check if the input Mat is of the expected size and type
+//   if (frame.rows != ROWS || frame.cols != COLS || frame.type() != CV_8UC3)
+//   {
+//     std::cerr << "Invalid input Mat dimensions or type!" << std::endl;
+//     throw std::runtime_error("Invalid input Mat");
+//   }
 
-  for (int i = 0; i < HEIGHT; ++i) {
-    for (int j = 0; j < WIDTH; ++j) {
-      // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
-      // // Extracting the red channel (assuming BGR format)
-      // red_frame[i * WIDTH + j] = pixel[2];
+//   for (int i = 0; i < ROWS; ++i) {
+//     for (int j = 0; j < COLS; ++j) {
+//       // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
+//       // // Extracting the red channel (assuming BGR format)
+//       // red_frame[i * COLS + j] = pixel[2];
 
-      // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
-      // Extracting the red channel (assuming BGR format)
-      red_frame[i * WIDTH + j] = frame.at<cv::Vec3b>(i, j)[2];
-    }
-  }
-}
+//       // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
+//       // Extracting the red channel (assuming BGR format)
+//       red_frame[i * COLS + j] = frame.at<cv::Vec3b>(i, j)[2];
+//     }
+//   }
+// }
 
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
   std::vector<cv::Mat> channels;
   cv::Mat red_channel;
 
-  uint8_t* red_frame = new uint8_t[WIDTH * HEIGHT];
+  // uint8_t* red_frame = new uint8_t[COLS * ROWS];
   double total_duration = 0;
   double avg_duration = 0;
   uint32_t loop_count = 0;
 
   gpu::init_gpu();
 
+  std::cout << "ROWS: " << ROWS << std::endl;
+  std::cout << "COLS: " << COLS << std::endl;
+
   while (!utils::exit_flag.load()) {
     // loop_count++;
+    auto start_time = std::chrono::high_resolution_clock::now();
 
     cap >> frame;
     turret.save_steps_at_frame();
@@ -91,6 +97,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     }
     cv::split(frame, channels);
     red_channel = channels[2];
+    // std::cout << "Frame size: " << red_channel.size() << std::endl;
 
     // cv::Mat undistorted_frame;
     // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
@@ -99,9 +106,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 
     laser_pos = gpu::detect_laser(red_channel, 230);
     // laser_pos = gpu::detect_laser(red_frame, 230);
-    if (enable_feedback_flag.load()) {
-      turret.update_belief(laser_pos);
-    }
+    // if (enable_feedback_flag.load()) {
+    //   turret.update_belief(laser_pos);
+    // }
 
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
     utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
@@ -122,6 +129,14 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                          ", " + std::to_string(target_steps.second) + ")",
                      std::pair<uint16_t, uint16_t>(10, 60), 0.5);
 
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        end_time - start_time)
+                        .count();
+
+    cv::putText(frame, "FPS: " + std::to_string(1000 / duration),
+                cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
     cv::imshow("frame", frame);
 
     char key = static_cast<char>(cv::waitKey(1));
@@ -132,7 +147,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 
   std::cout << "Video processing out of main loop" << std::endl;
 
-  delete[] red_frame;
+  // delete[] red_frame;
   gpu::free_gpu();
 
   avg_duration = total_duration / loop_count;
@@ -173,6 +188,7 @@ void user_input(void) {
       std::cout << "Origin set to: " << laser_pos.first << ", "
                 << laser_pos.second << std::endl;
     } else if (ch == 'm') {
+      utils::run_flag.store(false);
       manual_mode = !manual_mode;
       if (manual_mode) {
         turret.set_manual_mode(true);
@@ -184,6 +200,7 @@ void user_input(void) {
         turret.set_manual_mode(false);
         std::cout << "Auto" << std::endl;
       }
+      utils::run_flag.store(true);
     } else if (ch == 'f') {
       enable_feedback_flag.store(!enable_feedback_flag.load());
       if (enable_feedback_flag.load()) {

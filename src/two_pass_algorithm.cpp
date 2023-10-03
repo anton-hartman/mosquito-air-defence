@@ -13,20 +13,20 @@
 
 using namespace std;
 
-// const int WIDTH = 300;
-// const int HEIGHT = 300;
+// const int COLS = 300;
+// const int ROWS = 300;
 
 // Function to perform the Two-Pass Algorithm
 BoundingBoxMap find_connected_components(const uint8_t* frame) {
-  vector<vector<int>> label_image(HEIGHT, vector<int>(WIDTH, 0));
+  vector<vector<int>> label_image(ROWS, vector<int>(COLS, 0));
   int next_label = 1;
   map<int, int> equivalences;
   BoundingBoxMap bounding_boxes;
 
   // First Pass
-  for (int y = 0; y < HEIGHT; ++y) {
-    for (int x = 0; x < WIDTH; ++x) {
-      if (frame[y * WIDTH + x] == 255) {  // Foreground pixel
+  for (int y = 0; y < ROWS; ++y) {
+    for (int x = 0; x < COLS; ++x) {
+      if (frame[y * COLS + x] == 255) {  // Foreground pixel
         vector<int> neighbors;
         if (x > 0) {
           neighbors.push_back(label_image[y][x - 1]);  // Left
@@ -37,7 +37,7 @@ BoundingBoxMap find_connected_components(const uint8_t* frame) {
         if (x > 0 && y > 0) {
           neighbors.push_back(label_image[y - 1][x - 1]);  // Above Left
         }
-        if (x < WIDTH - 1 && y > 0) {
+        if (x < COLS - 1 && y > 0) {
           neighbors.push_back(label_image[y - 1][x + 1]);  // Above Right
         }
 
@@ -97,8 +97,8 @@ BoundingBoxMap find_connected_components(const uint8_t* frame) {
   // std::cout << "first pass done" << std::endl;
   // Second Pass
   BoundingBoxMap final_bounding_boxes;
-  for (int y = 0; y < HEIGHT; ++y) {
-    for (int x = 0; x < WIDTH; ++x) {
+  for (int y = 0; y < ROWS; ++y) {
+    for (int x = 0; x < COLS; ++x) {
       if (label_image[y][x] > 0) {
         int root_label = label_image[y][x];
         while (equivalences[root_label] != root_label) {
@@ -190,12 +190,12 @@ std::vector<std::pair<uint16_t, uint16_t>> find_blobs(const uint8_t* frame) {
 // }
 
 // int main() {
-//   // uint8_t frame[WIDTH * HEIGHT] = {
+//   // uint8_t frame[COLS * ROWS] = {
 //   //     0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0,
 //   // };
 
 //   BoundingBoxMap bounding_boxes = find_connected_components(
-//       readFrameFromTextFile("gpu_frame.txt", WIDTH * HEIGHT));
+//       readFrameFromTextFile("gpu_frame.txt", COLS * ROWS));
 //   // BoundingBoxMap bounding_boxes = find_connected_components(frame);
 
 //   // Output the bounding rectangles
