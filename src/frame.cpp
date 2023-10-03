@@ -1,25 +1,25 @@
 #include "../include/frame.hpp"
 
-const std::string width = "1640";
-const std::string height = "1232";
+// const std::string width = "1640";
+// const std::string height = "1232";
 
-const std::string left = "40";
-const std::string top = "280";  // top = bottom because of flip
-const std::string right = "1560";
-const std::string bottom = "920";
-
-// const std::string left = "0";
-// const std::string top = "0";
-// const std::string right = "1640";
-// const std::string bottom = "1232";
-
-// const std::string width = "1280";
-// const std::string height = "720";
+// const std::string left = "40";
+// const std::string top = "280";  // top = bottom because of flip
+// const std::string right = "1560";
+// const std::string bottom = "920";
 
 // // const std::string left = "0";
-// // const std::string top = "0";  // top = bottom because of flip
-// // const std::string right = "1280";
-// // const std::string bottom = "720";
+// // const std::string top = "0";
+// // const std::string right = "1640";
+// // const std::string bottom = "1232";
+
+const std::string width = "1280";
+const std::string height = "720";
+
+const std::string left = "0";
+const std::string top = "0";  // top = bottom because of flip
+const std::string right = "1280";
+const std::string bottom = "720";
 
 // const std::string left = "100";
 // const std::string top = "200";  // top = bottom because of flip

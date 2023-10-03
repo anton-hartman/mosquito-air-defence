@@ -49,33 +49,32 @@ cv::VideoCapture init_system(void) {
   return cap;
 }
 
-// void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
-//   // Check if the input Mat is of the expected size and type
-//   if (frame.rows != ROWS || frame.cols != COLS || frame.type() != CV_8UC3)
-//   {
-//     std::cerr << "Invalid input Mat dimensions or type!" << std::endl;
-//     throw std::runtime_error("Invalid input Mat");
-//   }
+void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
+  // Check if the input Mat is of the expected size and type
+  if (frame.rows != ROWS || frame.cols != COLS || frame.type() != CV_8UC3) {
+    std::cerr << "Invalid input Mat dimensions or type!" << std::endl;
+    throw std::runtime_error("Invalid input Mat");
+  }
 
-//   for (int i = 0; i < ROWS; ++i) {
-//     for (int j = 0; j < COLS; ++j) {
-//       // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
-//       // // Extracting the red channel (assuming BGR format)
-//       // red_frame[i * COLS + j] = pixel[2];
+  for (int i = 0; i < ROWS; ++i) {
+    for (int j = 0; j < COLS; ++j) {
+      // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
+      // // Extracting the red channel (assuming BGR format)
+      // red_frame[i * COLS + j] = pixel[2];
 
-//       // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
-//       // Extracting the red channel (assuming BGR format)
-//       red_frame[i * COLS + j] = frame.at<cv::Vec3b>(i, j)[2];
-//     }
-//   }
-// }
+      // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
+      // Extracting the red channel (assuming BGR format)
+      red_frame[i * COLS + j] = frame.at<cv::Vec3b>(i, j)[2];
+    }
+  }
+}
 
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   cv::Mat frame;
   std::vector<cv::Mat> channels;
   cv::Mat red_channel;
 
-  // uint8_t* red_frame = new uint8_t[COLS * ROWS];
+  uint8_t* red_frame = new uint8_t[COLS * ROWS];
   double total_duration = 0;
   double avg_duration = 0;
   uint32_t loop_count = 0;
@@ -104,6 +103,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // Look into converting from steps to pixels for laser belief region. How
     // must distorition be accounted for?
 
+    // convert_to_red_frame(frame, red_frame);
     laser_pos = gpu::detect_laser(red_channel, 230);
     // laser_pos = gpu::detect_laser(red_frame, 230);
     // if (enable_feedback_flag.load()) {

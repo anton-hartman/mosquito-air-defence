@@ -23,8 +23,8 @@ dim3 const grid_size((COLS + block_size.x - 1) / block_size.x,
                      (ROWS + block_size.y - 1) / block_size.y);
 
 const size_t frame_size = COLS * ROWS * sizeof(uint8_t);
-// uint8_t* device_frame;
-// uint8_t* device_temp_frame;
+uint8_t* device_frame;
+uint8_t* device_temp_frame;
 
 const int struct_elem_size = 2;
 const int diameter = 2 * struct_elem_size + 1;
@@ -60,15 +60,15 @@ void init_gpu() {
   cudaMemcpyToSymbol(d_COLS, &COLS, sizeof(int));
   cudaMemcpyToSymbol(d_ROWS, &ROWS, sizeof(int));
 
-  // cudaMalloc((void**)&device_frame, frame_size);
-  // cudaMalloc((void**)&device_temp_frame, frame_size);
+  cudaMalloc((void**)&device_frame, frame_size);
+  cudaMalloc((void**)&device_temp_frame, frame_size);
 
   initialize_struct_elem();
 }
 
 void free_gpu() {
-  // cudaFree(device_frame);
-  // cudaFree(device_temp_frame);
+  cudaFree(device_frame);
+  cudaFree(device_temp_frame);
 }
 
 __global__ void gaussian_smoothing(uint8_t* input,
@@ -108,6 +108,10 @@ __global__ void binarise(uint8_t* device_frame, uint8_t threshold) {
   if (x < d_COLS && y < d_ROWS) {
     device_frame[y * d_COLS + x] =
         device_frame[y * d_COLS + x] >= threshold ? 255 : 0;
+  }
+  if (x == d_COLS - 1 && y == d_ROWS - 1) {
+    printf("d_ROWS = %d, d_COLS = %d\n", d_ROWS, d_COLS);
+    printf("Reached the last pixel\n");
   }
 }
 
@@ -353,49 +357,48 @@ int get_blobs(cv::Mat frame, std::vector<Blob>& blobs) {
   // return -3;
 }
 
-// std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame,
-//                                          uint8_t threshold) {
-//   cudaError_t err;
-//
-//   err = cudaMemcpy(device_frame, red_frame, frame_size,
-//   cudaMemcpyHostToDevice); if (err != cudaSuccess) {
-//     printf("CUDA error 1: %s\n", cudaGetErrorString(err));
-//   }
-//
-//   gaussian_smoothing<<<grid_size, block_size>>>(device_frame,
-//   device_temp_frame,
-//                                                 5, 6.0f);
-//   err = cudaMemcpy(device_frame, device_temp_frame, frame_size,
-//                    cudaMemcpyDeviceToDevice);
-//   if (err != cudaSuccess) {
-//     printf("CUDA error 2: %s\n", cudaGetErrorString(err));
-//   }
-//   // cudaDeviceSynchronize();
-//
-//   binarise<<<grid_size, block_size>>>(device_frame, threshold);
-//   close_and_open();
-//
-//   err = cudaMemcpy(red_frame, device_frame, frame_size,
-//   cudaMemcpyDeviceToHost); if (err != cudaSuccess) {
-//     printf("CUDA error 3: %s\n", cudaGetErrorString(err));
-//   }
-//
-//   std::vector<Blob> blobs;
-//   get_blobs(red_frame, blobs);
-//   laser_position =
-//       distinguish_laser(blobs, std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
-//                         std::make_pair(0, 0), std::make_pair(0, 0));
-//
-//   cv::Mat mat(ROWS, COLS, CV_8UC1, red_frame);
-//   cv::putText(mat,
-//               "laser pos = (" + std::to_string(laser_position.first) + ", " +
-//                   std::to_string(laser_position.second) + ")",
-//               cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
-//               cv::Scalar(255, 255, 255), 2);
-//   cv::imshow("pre-processed frame", mat);
-//   cv::waitKey(1);
-//   return laser_position;
-// }
+std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame,
+                                         uint8_t threshold) {
+  cudaError_t err;
+
+  err = cudaMemcpy(device_frame, red_frame, frame_size, cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    printf("CUDA error 1: %s\n", cudaGetErrorString(err));
+  }
+
+  gaussian_smoothing<<<grid_size, block_size>>>(device_frame, device_temp_frame,
+                                                5, 6.0f);
+  err = cudaMemcpy(device_frame, device_temp_frame, frame_size,
+                   cudaMemcpyDeviceToDevice);
+  if (err != cudaSuccess) {
+    printf("CUDA error 2: %s\n", cudaGetErrorString(err));
+  }
+  // cudaDeviceSynchronize();
+
+  binarise<<<grid_size, block_size>>>(device_frame, threshold);
+  // close_and_open();
+
+  err = cudaMemcpy(red_frame, device_frame, frame_size, cudaMemcpyDeviceToHost);
+  if (err != cudaSuccess) {
+    printf("CUDA error 3: %s\n", cudaGetErrorString(err));
+  }
+
+  std::vector<Blob> blobs;
+  // get_blobs(red_frame, blobs);
+  // laser_position =
+  //     distinguish_laser(blobs, std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
+  //                       std::make_pair(0, 0), std::make_pair(0, 0));
+
+  cv::Mat mat(ROWS, COLS, CV_8UC1, red_frame);
+  cv::putText(mat,
+              "laser pos = (" + std::to_string(laser_position.first) + ", " +
+                  std::to_string(laser_position.second) + ")",
+              cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+              cv::Scalar(255, 255, 255), 2);
+  cv::imshow("pre-processed frame", mat);
+  cv::waitKey(1);
+  return laser_position;
+}
 
 int count = 0;
 std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
@@ -403,15 +406,22 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   int num_blobs = -2;
   // num_blobs = bd::get_blobs(red_frame, blobs);
 
-  cv::cuda::GpuMat input_gpu_mat;
-  input_gpu_mat.upload(red_frame);
+  // cv::cuda::GpuMat input_gpu_mat;
+  // input_gpu_mat.upload(red_frame);
   cv::imshow("red channel", red_frame);
-  cv::cuda::GpuMat output_gpu_mat(red_frame.size(), red_frame.type());
+  cv::waitKey(1);
+  // cv::cuda::GpuMat output_gpu_mat(red_frame.size(), red_frame.type());
+  cv::cuda::GpuMat output_gpu_mat;
   output_gpu_mat.upload(red_frame);
 
   // gaussian_smoothing<<<grid_size, block_size>>>(
   //     input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>(), 5, 6.0f);
   binarise<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(), threshold);
+
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    printf("CUDA error: %s\n", cudaGetErrorString(err));
+  }
 
   // erosion<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(),
   //                                    input_gpu_mat.ptr<uint8_t>());
@@ -423,23 +433,28 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   // erosion<<<grid_size, block_size>>>(input_gpu_mat.ptr<uint8_t>(),
   //                                    output_gpu_mat.ptr<uint8_t>());
 
-  output_gpu_mat.download(red_frame);
-  std::vector<Blob> blobs;
+  // cv::OutputArray out_frame;
+  // output_gpu_mat.download(red_frame);
 
-  std::cout << "count = " << count++ << std::endl;
-  num_blobs = get_blobs(red_frame, blobs);
+  cv::Mat red_frame_cpu;  // Declare a cv::Mat to hold the downloaded data
+  output_gpu_mat.download(red_frame_cpu);  // Download the data from GPU to CPU
+
+  // std::vector<Blob> blobs;
+
+  // std::cout << "count = " << count++ << std::endl;
+  // num_blobs = get_blobs(red_frame, blobs);
 
   // laser_position =
   //     distinguish_laser(blobs, std::make_pair(X_ORIGIN_PX, Y_ORIGIN_PX),
   //                       std::make_pair(0, 0), std::make_pair(0, 0));
 
-  cv::putText(red_frame,
+  cv::putText(red_frame_cpu,
               "laser pos = (" + std::to_string(laser_position.first) + ", " +
                   std::to_string(laser_position.second) +
                   ")  num blobs = " + std::to_string(num_blobs),
               cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
               cv::Scalar(255, 255, 255), 2);
-  cv::imshow("laser pre-processed frame", red_frame);
+  cv::imshow("laser pre-processed frame", red_frame_cpu);
   cv::waitKey(1);
   return laser_position;
 }
