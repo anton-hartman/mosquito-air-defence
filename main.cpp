@@ -20,6 +20,7 @@ std::atomic<bool> utils::exit_flag(false);
 std::atomic<bool> enable_feedback_flag(false);
 
 cv::VideoCapture cap;
+cv::Mat frame;
 int manual_mode = 1;
 
 // Laser co-ordinates plus uncertainty in pixels
@@ -49,28 +50,66 @@ cv::VideoCapture init_system(void) {
   return cap;
 }
 
-void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
-  // Check if the input Mat is of the expected size and type
-  if (frame.rows != ROWS || frame.cols != COLS || frame.type() != CV_8UC3) {
-    std::cerr << "Invalid input Mat dimensions or type!" << std::endl;
-    throw std::runtime_error("Invalid input Mat");
-  }
+// void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
+//   // Check if the input Mat is of the expected size and type
+//   if (frame.rows != ROWS || frame.cols != COLS || frame.type() != CV_8UC3) {
+//     std::cerr << "Invalid input Mat dimensions or type!" << std::endl;
+//     throw std::runtime_error("Invalid input Mat");
+//   }
 
-  for (int i = 0; i < ROWS; ++i) {
-    for (int j = 0; j < COLS; ++j) {
-      // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
-      // // Extracting the red channel (assuming BGR format)
-      // red_frame[i * COLS + j] = pixel[2];
+//   for (int i = 0; i < ROWS; ++i) {
+//     for (int j = 0; j < COLS; ++j) {
+//       // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
+//       // // Extracting the red channel (assuming BGR format)
+//       // red_frame[i * COLS + j] = pixel[2];
 
-      // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
-      // Extracting the red channel (assuming BGR format)
-      red_frame[i * COLS + j] = frame.at<cv::Vec3b>(i, j)[2];
-    }
+//       // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
+//       // Extracting the red channel (assuming BGR format)
+//       red_frame[i * COLS + j] = frame.at<cv::Vec3b>(i, j)[2];
+//     }
+//   }
+// }
+
+// Global variables
+bool drawing = false;
+cv::Point top_left_pt, bottom_right_pt;
+
+// Mouse callback function
+void draw_rectangle(int event, int x, int y, int flags, void* param) {
+  if (event == cv::EVENT_LBUTTONDOWN) {
+    drawing = true;
+    top_left_pt = cv::Point(x, y);
+  } else if (event == cv::EVENT_LBUTTONUP) {
+    drawing = false;
+    bottom_right_pt = cv::Point(x, y);
+    cv::rectangle(*static_cast<cv::Mat*>(param), top_left_pt, bottom_right_pt,
+                  cv::Scalar(0, 255, 0), 2);
   }
 }
 
+std::pair<cv::Point, cv::Point> get_bounding_box() {
+  // Make a deep copy of the global frame
+  cv::Mat local_frame = frame.clone();
+
+  cv::namedWindow("Draw a rectangle");
+
+  // Assign draw_rectangle function to mouse callback
+  cv::setMouseCallback("Draw a rectangle", draw_rectangle, &local_frame);
+
+  while (true) {
+    cv::imshow("Draw a rectangle", local_frame);
+
+    // Exit when 'Esc' is pressed
+    if (cv::waitKey(1) == 27)
+      break;
+  }
+
+  cv::destroyAllWindows();
+
+  return std::make_pair(top_left_pt, bottom_right_pt);
+}
+
 void process_video(cv::VideoCapture& cap, Detection& detector) {
-  cv::Mat frame;
   std::vector<cv::Mat> channels;
   cv::Mat red_channel;
 
@@ -110,6 +149,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       turret.update_belief(laser_pos);
     }
 
+    utils::draw_target(frame, {X_ORIGIN_PX, Y_ORIGIN_PX},
+                       cv::Scalar(0, 255, 255));
+    utils::put_label(frame, "Camera Origin", {X_ORIGIN_PX, Y_ORIGIN_PX}, 0.5);
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
     utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
     utils::draw_target(frame, laser_pos, cv::Scalar(0, 0, 255));
@@ -137,11 +179,20 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     cv::putText(frame, "FPS: " + std::to_string(1000 / duration),
                 cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5,
                 cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
-    cv::imshow("frame", frame);
 
+    cv::imshow("frame", frame);
     char key = static_cast<char>(cv::waitKey(1));
     if (key == 'q') {
       utils::exit_flag.store(true);
+    } else if (key == 'b') {
+      std::pair<cv::Point, cv::Point> points = get_bounding_box();
+      gpu::set_ignore_region({points.first.x, points.first.y},
+                             {points.second.x, points.second.y});
+
+      std::cout << "Top left point: (" << points.first.x << ", "
+                << points.first.y << ")\n";
+      std::cout << "Bottom right point: (" << points.second.x << ", "
+                << points.second.y << ")\n";
     }
   }
 
@@ -174,6 +225,16 @@ void user_input(void) {
       break;
     }
 
+    // if (ch == 'b') {
+    //   std::pair<cv::Point, cv::Point> points = get_bounding_box();
+    //   gpu::set_ignore_region({points.first.x, points.first.y},
+    //                          {points.second.x, points.second.y});
+
+    //   std::cout << "Top left point: (" << points.first.x << ", "
+    //             << points.first.y << ")\n";
+    //   std::cout << "Bottom right point: (" << points.second.x << ", "
+    //             << points.second.y << ")\n";
+    // } else
     if (turret_stopped and
         (ch == 'e' or ch == 'w' or ch == 'a' or ch == 's' or ch == 'd')) {
       turret_stopped = false;

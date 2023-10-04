@@ -1,7 +1,6 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include "../include/blob_detection.hpp"
 #include "../include/image_processing.hpp"
 
 namespace gpu {
@@ -17,6 +16,15 @@ typedef struct blob_ {
   int n_pixels;
   int ID;
 } Blob;
+
+std::pair<uint16_t, uint16_t> ignore_region_top_left = {0, 0};
+std::pair<uint16_t, uint16_t> ignore_region_bottom_right = {0, 0};
+
+void set_ignore_region(std::pair<uint16_t, uint16_t> top_left,
+                       std::pair<uint16_t, uint16_t> bottom_right) {
+  ignore_region_top_left = top_left;
+  ignore_region_bottom_right = bottom_right;
+}
 
 dim3 const block_size(16, 8);
 dim3 const grid_size((COLS + block_size.x - 1) / block_size.x,
@@ -168,10 +176,7 @@ bool is_blob_in_ignore_region(
 }
 
 std::pair<uint16_t, uint16_t> distinguish_laser(
-    const std::vector<Blob>& blobs,
-    const std::pair<uint16_t, uint16_t> camera_origin,
-    const std::pair<uint16_t, uint16_t> ignore_region_top_left,
-    const std::pair<uint16_t, uint16_t> ignore_region_bottom_right) {
+    const std::vector<Blob>& blobs) {
   if (blobs.size() == 1)
     return std::make_pair(blobs.at(0).cen_x, blobs.at(0).cen_y);
 
@@ -179,8 +184,8 @@ std::pair<uint16_t, uint16_t> distinguish_laser(
   double minDist = std::numeric_limits<double>::infinity();
   double maxDist = -1;
 
-  uint16_t ox = camera_origin.first;
-  uint16_t oy = camera_origin.second;
+  uint16_t ox = X_ORIGIN_PX;
+  uint16_t oy = Y_ORIGIN_PX;
 
   for (size_t i = 0; i < blobs.size(); i++) {
     uint16_t x = blobs[i].cen_x;
@@ -188,7 +193,7 @@ std::pair<uint16_t, uint16_t> distinguish_laser(
 
     if (is_blob_in_ignore_region(std::make_pair(x, y), ignore_region_top_left,
                                  ignore_region_bottom_right)) {
-      std::cout << "blob in ignore region" << std::endl;
+      // std::cout << "blob in ignore region" << std::endl;
       continue;  // Skip blobs in the ignore region
     }
 
@@ -371,8 +376,7 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   std::vector<Blob> blobs;
   int num_blobs = -2;
   num_blobs = get_blobs(red_frame.ptr(), blobs);
-  laser_position =
-      distinguish_laser(blobs, {X_ORIGIN_PX, Y_ORIGIN_PX}, {0, 0}, {0, 0});
+  laser_position = distinguish_laser(blobs);
 
   cv::putText(red_frame,
               "laser pos = (" + std::to_string(laser_position.first) + ", " +
