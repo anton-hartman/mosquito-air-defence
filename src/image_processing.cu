@@ -17,8 +17,8 @@ typedef struct blob_ {
   int ID;
 } Blob;
 
-std::pair<uint16_t, uint16_t> ignore_region_top_left = {0, 0};
-std::pair<uint16_t, uint16_t> ignore_region_bottom_right = {0, 0};
+std::pair<uint16_t, uint16_t> ignore_region_top_left = {523, 293};
+std::pair<uint16_t, uint16_t> ignore_region_bottom_right = {553, 316};
 
 void set_ignore_region(std::pair<uint16_t, uint16_t> top_left,
                        std::pair<uint16_t, uint16_t> bottom_right) {
@@ -184,9 +184,6 @@ std::pair<uint16_t, uint16_t> distinguish_laser(
   double minDist = std::numeric_limits<double>::infinity();
   double maxDist = -1;
 
-  uint16_t ox = X_ORIGIN_PX;
-  uint16_t oy = Y_ORIGIN_PX;
-
   for (size_t i = 0; i < blobs.size(); i++) {
     uint16_t x = blobs[i].cen_x;
     uint16_t y = blobs[i].cen_y;
@@ -197,19 +194,19 @@ std::pair<uint16_t, uint16_t> distinguish_laser(
       continue;  // Skip blobs in the ignore region
     }
 
-    double dist = std::hypot(x - ox, y - oy);
+    double dist = std::hypot(x - C_X, y - C_Y);
 
-    if (y <= oy && dist < minDist) {
+    if (y <= C_Y && dist < minDist) {
       minDist = dist;
       result = std::make_pair(x, y);
     }
 
-    if (y >= oy && dist > maxDist) {
+    if (y >= C_Y && dist > maxDist) {
       maxDist = dist;
       result = std::make_pair(x, y);
     }
 
-    if (y > oy && result.first == -1)
+    if (y > C_Y && result.first == -1)
       result = std::make_pair(x, y);
   }
 

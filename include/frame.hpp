@@ -19,8 +19,10 @@ extern const std::string pipeline;
 
 extern const double F_X;
 extern const double F_Y;
-extern const double C_X;
-extern const double C_Y;
+extern const double C_X_DOUBLE;
+extern const double C_Y_DOUBLE;
+extern const uint16_t C_X;
+extern const uint16_t C_Y;
 
-extern const uint16_t X_ORIGIN_PX;
-extern const uint16_t Y_ORIGIN_PX;
+extern const uint16_t TURRET_X_ORIGIN_PX;
+extern const uint16_t TURRET_Y_ORIGIN_PX;

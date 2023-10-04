@@ -1,4 +1,5 @@
 #include "../include/frame.hpp"
+#include <cmath>
 
 // const std::string width = "1640";
 // const std::string height = "1232";
@@ -42,10 +43,15 @@ const std::string pipeline =
     croppped_width + ", height=" + cropped_height +
     " ! videoconvert ! video/x-raw, format=(string)BGR ! appsink";
 
-const double F_X = 647.0756309728268;
-const double F_Y = 861.7363873209705;
-const double C_X = 304.4404590127848;
-const double C_Y = 257.5858878142162;
+// distCoeffs : [0.06150274950265684, -0.8341596977696566, 0.005983206836437576,
+// -0.008859874706440122, 5.750238644767881]
 
-const uint16_t X_ORIGIN_PX = 592;
-const uint16_t Y_ORIGIN_PX = 591;
+const double F_X = 1279.131802347799;
+const double F_Y = 1246.965965697424;
+const double C_X_DOUBLE = 457.9569088752605;
+const double C_Y_DOUBLE = 240.0934429867023;
+const uint16_t C_X = std::round(C_X_DOUBLE);
+const uint16_t C_Y = std::round(C_Y_DOUBLE);
+
+const uint16_t TURRET_X_ORIGIN_PX = 533;
+const uint16_t TURRET_Y_ORIGIN_PX = 332;

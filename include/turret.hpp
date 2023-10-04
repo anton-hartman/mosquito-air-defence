@@ -9,10 +9,10 @@
 
 class Turret {
  public:
-  // static const uint16_t TANK_DEPTH = 318;
-  static const int TANK_DEPTH = -2;
-  static const uint16_t CAMERA_DEPTH = 785 + TANK_DEPTH;  // mm
-  static const int TURRET_DEPTH = 545 + TANK_DEPTH;
+  static const uint16_t TANK_DEPTH = 318;
+  // static const int TANK_DEPTH = -2;
+  static const uint16_t CAMERA_DEPTH = 793 + TANK_DEPTH;  // mm
+  static const int TURRET_DEPTH = 575 + TANK_DEPTH;
   static const int VERTICAL_DISTANCE_BETWEEN_MIRRORS = 10;
   static const int Y_STEPPER_DEPTH = TURRET_DEPTH;
   static const int X_STEPPER_DEPTH =

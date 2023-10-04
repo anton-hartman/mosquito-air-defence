@@ -8,8 +8,6 @@
 const int8_t CLOCKWISE = 1;
 const int8_t ANTI_CLOCKWISE = -1;
 
-// std::atomic<bool> run_flag(true);
-
 Stepper::Stepper(std::string name,
                  uint8_t enable_pin,
                  uint8_t direction_pin,
@@ -28,7 +26,7 @@ Stepper::Stepper(std::string name,
       focal_length(f),
       pos_step_limit(1'000'000),
       neg_step_limit(-1'000'000),
-      target_px(0),
+      target_px(150),
       detected_laser_px(0),
       new_setpoint(false),
       new_feedback(false),
@@ -46,14 +44,12 @@ void Stepper::stop_stepper(void) {
 }
 
 int32_t Stepper::pixel_to_steps(const uint16_t& px) const {
-  // double mm = utils::pixel_to_mm(principal_point, focal_length, px);
   double mm = (px - origin_px) * Turret::CAMERA_DEPTH / focal_length;
   return std::atan2(mm, depth) / MICROSTEP_ANGLE_RAD;
 }
 
 uint16_t Stepper::steps_to_pixel(const int32_t& steps) const {
   double mm = depth * std::tan(steps * MICROSTEP_ANGLE_RAD);
-  // return utils::mm_to_pixel(principal_point, focal_length, mm);
   return (mm * focal_length / Turret::CAMERA_DEPTH) + origin_px;
 }
 
@@ -72,7 +68,7 @@ void Stepper::update_target_steps() {
 }
 
 void Stepper::increment_setpoint_in_steps(const int32_t steps) {
-  target_px.fetch_add(steps_to_pixel(steps));
+  // target_px.fetch_add(steps_to_pixel(steps));
   target_steps.fetch_add(steps);
 }
 

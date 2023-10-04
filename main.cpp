@@ -25,7 +25,7 @@ int manual_mode = 1;
 
 // Laser co-ordinates plus uncertainty in pixels
 utils::Circle laser_belief_region_px;
-std::pair<int32_t, int32_t> laser_pos;
+std::pair<int32_t, int32_t> laser_pos_px;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -69,6 +69,30 @@ cv::VideoCapture init_system(void) {
 //     }
 //   }
 // }
+
+bool save_frame_as_jpeg(const cv::Mat& frame, int& counter) {
+  // Check if the frame is empty
+  if (frame.empty()) {
+    std::cerr << "The frame is empty, cannot save it." << std::endl;
+    return false;
+  }
+
+  // Generate file name using counter
+  std::string file_name = "../cal_imgs/img" + std::to_string(counter) + ".jpg";
+
+  // Save the frame as a JPEG file
+  if (!cv::imwrite(file_name, frame)) {
+    std::cerr << "Failed to save the frame." << std::endl;
+    return false;
+  }
+
+  std::cout << "Saved the frame to " << file_name << std::endl;
+
+  // Increment the counter for next time
+  counter++;
+
+  return true;
+}
 
 // Global variables
 bool drawing = false;
@@ -123,6 +147,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
   std::cout << "ROWS: " << ROWS << std::endl;
   std::cout << "COLS: " << COLS << std::endl;
 
+  bool save = false;
+  int save_counter = 0;
+
   while (!utils::exit_flag.load()) {
     // loop_count++;
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -133,6 +160,12 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       std::cout << "Frame is empty, exiting." << std::endl;
       exit(0);
     }
+
+    if (save) {
+      save_frame_as_jpeg(frame, save_counter);
+      save = false;
+    }
+
     cv::split(frame, channels);
     red_channel = channels[2];
     // std::cout << "Frame size: " << red_channel.size() << std::endl;
@@ -142,24 +175,35 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // Look into converting from steps to pixels for laser belief region. How
     // must distorition be accounted for?
 
-    laser_pos = gpu::detect_laser(red_channel, 230);
+    laser_pos_px = gpu::detect_laser(red_channel, 230);
     // convert_to_red_frame(frame, red_frame);
-    // laser_pos = gpu::detect_laser(red_frame, 230);
+    // laser_pos_px = gpu::detect_laser(red_frame, 230);
     if (enable_feedback_flag.load()) {
-      turret.update_belief(laser_pos);
+      turret.update_belief(laser_pos_px);
     }
 
-    utils::draw_target(frame, {X_ORIGIN_PX, Y_ORIGIN_PX},
+    cv::rectangle(frame,
+                  cv::Point(gpu::ignore_region_top_left.first,
+                            gpu::ignore_region_top_left.second),
+                  cv::Point(gpu::ignore_region_bottom_right.first,
+                            gpu::ignore_region_bottom_right.second),
+                  cv::Scalar(0, 255, 0), 2);
+    utils::draw_target(frame, {C_X_DOUBLE, C_Y_DOUBLE},
                        cv::Scalar(0, 255, 255));
-    utils::put_label(frame, "Camera Origin", {X_ORIGIN_PX, Y_ORIGIN_PX}, 0.5);
+    utils::put_label(frame, "Camera Origin", {C_X_DOUBLE, C_Y_DOUBLE}, 0.5);
     utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
-    utils::put_label(frame, "Origin", turret.get_origin_px(), 0.5);
-    utils::draw_target(frame, laser_pos, cv::Scalar(0, 0, 255));
-    utils::put_label(frame, "Detected laser", laser_pos, 0.5);
+    utils::put_label(frame, "Turret Origin", turret.get_origin_px(), 0.5);
+    utils::draw_target(frame, laser_pos_px, cv::Scalar(0, 0, 255));
+    utils::put_label(frame, "Detected laser", laser_pos_px, 0.5);
     utils::draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
-    utils::put_label(frame, "Setpoint", turret.get_setpoint_px(), 0.5);
     utils::draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
     utils::put_label(frame, "Belief", turret.get_belief_px(), 0.5);
+
+    std::pair<uint16_t, uint16_t> set_pt = turret.get_setpoint_px();
+    utils::put_label(frame,
+                     "Setpoint (" + std::to_string(set_pt.first) + ", " +
+                         std::to_string(set_pt.second) + ")",
+                     std::pair<uint16_t, uint16_t>(10, 90), 0.5);
     std::pair<int32_t, int32_t> current_steps = turret.get_belief_steps();
     utils::put_label(frame,
                      "Belief steps (" + std::to_string(current_steps.first) +
@@ -177,7 +221,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                         .count();
 
     cv::putText(frame, "FPS: " + std::to_string(1000 / duration),
-                cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                cv::Point(COLS - 50, 10), cv::FONT_HERSHEY_SIMPLEX, 0.5,
                 cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
 
     cv::imshow("frame", frame);
@@ -193,6 +237,8 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                 << points.first.y << ")\n";
       std::cout << "Bottom right point: (" << points.second.x << ", "
                 << points.second.y << ")\n";
+    } else if (key == 's') {
+      save = true;
     }
   }
 
@@ -225,18 +271,10 @@ void user_input(void) {
       break;
     }
 
-    // if (ch == 'b') {
-    //   std::pair<cv::Point, cv::Point> points = get_bounding_box();
-    //   gpu::set_ignore_region({points.first.x, points.first.y},
-    //                          {points.second.x, points.second.y});
-
-    //   std::cout << "Top left point: (" << points.first.x << ", "
-    //             << points.first.y << ")\n";
-    //   std::cout << "Bottom right point: (" << points.second.x << ", "
-    //             << points.second.y << ")\n";
-    // } else
-    if (turret_stopped and
-        (ch == 'e' or ch == 'w' or ch == 'a' or ch == 's' or ch == 'd')) {
+    if (ch == 'h') {
+      turret.update_setpoint(laser_pos_px);
+    } else if (turret_stopped and (ch == 'e' or ch == 'w' or ch == 'a' or
+                                   ch == 's' or ch == 'd')) {
       turret_stopped = false;
       turret.start_turret();
       std::cout << "Turret started" << std::endl;
@@ -245,9 +283,9 @@ void user_input(void) {
       turret.stop_turret();
       std::cout << "Turret stopped" << std::endl;
     } else if (ch == 'o') {
-      turret.set_origin(laser_pos);
-      std::cout << "Origin set to: " << laser_pos.first << ", "
-                << laser_pos.second << std::endl;
+      turret.set_origin(laser_pos_px);
+      std::cout << "Origin set to: " << laser_pos_px.first << ", "
+                << laser_pos_px.second << std::endl;
     } else if (ch == 'm') {
       utils::run_flag.store(false);
       manual_mode = !manual_mode;

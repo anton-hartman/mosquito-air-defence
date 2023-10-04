@@ -30,6 +30,7 @@ set(SOURCE_FILES
     src/utils.cpp
     src/detection.cpp
     src/image_processing.cu
+
     # src/blob_detection.cpp
     # src/two_pass_algorithm.cpp
 )
@@ -41,6 +42,7 @@ set(HEADER_FILES
     include/utils.hpp
     include/detection.hpp
     include/image_processing.hpp
+
     # include/blob_detection.hpp
     # include/two_pass_algorithm.hpp
 )

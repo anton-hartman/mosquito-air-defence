@@ -6,6 +6,9 @@
 
 namespace gpu {
 
+extern std::pair<uint16_t, uint16_t> ignore_region_top_left;
+extern std::pair<uint16_t, uint16_t> ignore_region_bottom_right;
+
 __constant__ int d_COLS;
 __constant__ int d_ROWS;
 

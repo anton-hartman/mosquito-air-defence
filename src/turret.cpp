@@ -20,16 +20,16 @@ Turret::Turret(void)
                 M1_DIR_PIN,
                 M1_STEP_PIN,
                 X_STEPPER_DEPTH,
-                X_ORIGIN_PX,
-                C_X,
+                TURRET_X_ORIGIN_PX,
+                C_X_DOUBLE,
                 F_X),
       y_stepper("y_stepper",
                 M2_ENABLE_PIN,
                 M2_DIR_PIN,
                 M2_STEP_PIN,
                 Y_STEPPER_DEPTH,
-                Y_ORIGIN_PX,
-                C_Y,
+                TURRET_Y_ORIGIN_PX,
+                C_Y_DOUBLE,
                 F_Y) {
   GPIO::setmode(GPIO::BOARD);
   GPIO::setup(M1_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
@@ -104,18 +104,6 @@ void Turret::update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {
   x_stepper.set_target_px(setpoint_px.first);
   y_stepper.set_target_px(setpoint_px.second);
 }
-
-// void Turret::update_belief(BoundingBoxMap bounding_boxes) {
-//   for (const std::pair<int, Rectangle>& element : bounding_boxes) {
-//     int label = element.first;
-//     const Rectangle& rectangle = element.second;
-//     const Point& min_point = rectangle.first;
-//     const Point& max_point = rectangle.second;
-//     std::cout << "Label: " << label << " Bounding Rectangle: {{"
-//               << min_point.first << ", " << min_point.second << "}, {"
-//               << max_point.first << ", " << max_point.second << "}}\n";
-//   }
-// }
 
 void Turret::update_belief(
     const std::pair<int32_t, int32_t> detected_laser_px) {

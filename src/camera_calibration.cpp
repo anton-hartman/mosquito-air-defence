@@ -27,8 +27,7 @@ void calibrate_cam(void) {
   // Extracting path of individual image stored in a given directory
   std::vector<cv::String> images;
   // Path of the folder containing checkerboard images
-  std::string path =
-      "/home/anton/mosquito-air-defence/calibration_images/*.jpg";
+  std::string path = "/home/anton/mosquito-air-defence/cal_imgs_saved/*.jpg";
 
   cv::glob(path, images);
 
