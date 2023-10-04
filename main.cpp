@@ -74,7 +74,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
   std::vector<cv::Mat> channels;
   cv::Mat red_channel;
 
-  uint8_t* red_frame = new uint8_t[COLS * ROWS];
+  // uint8_t* red_frame = new uint8_t[COLS * ROWS];
   double total_duration = 0;
   double avg_duration = 0;
   uint32_t loop_count = 0;
@@ -103,9 +103,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // Look into converting from steps to pixels for laser belief region. How
     // must distorition be accounted for?
 
-    // laser_pos = gpu::detect_laser(red_channel, 230);
-    convert_to_red_frame(frame, red_frame);
-    laser_pos = gpu::detect_laser(red_frame, 230);
+    laser_pos = gpu::detect_laser(red_channel, 230);
+    // convert_to_red_frame(frame, red_frame);
+    // laser_pos = gpu::detect_laser(red_frame, 230);
     if (enable_feedback_flag.load()) {
       turret.update_belief(laser_pos);
     }
@@ -147,7 +147,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 
   std::cout << "Video processing out of main loop" << std::endl;
 
-  delete[] red_frame;
+  // delete[] red_frame;
   gpu::free_gpu();
 
   avg_duration = total_duration / loop_count;
