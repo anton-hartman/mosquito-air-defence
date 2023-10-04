@@ -16,15 +16,15 @@
 const std::string width = "1280";
 const std::string height = "720";
 
-const std::string left = "0";
-const std::string top = "0";  // top = bottom because of flip
-const std::string right = "1280";
-const std::string bottom = "720";
+// const std::string left = "0";
+// const std::string top = "0";  // top = bottom because of flip
+// const std::string right = "1280";
+// const std::string bottom = "720";
 
-// const std::string left = "100";
-// const std::string top = "200";  // top = bottom because of flip
-// const std::string right = "1160";
-// const std::string bottom = "540";
+const std::string left = "100";
+const std::string top = "200";  // top = bottom because of flip
+const std::string right = "1160";
+const std::string bottom = "540";
 
 const std::string croppped_width =
     std::to_string(std::stoi(right) - std::stoi(left));
