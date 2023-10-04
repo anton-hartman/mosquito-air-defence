@@ -18,6 +18,11 @@ class Turret {
   static const int X_STEPPER_DEPTH =
       TURRET_DEPTH + VERTICAL_DISTANCE_BETWEEN_MIRRORS;
 
+  // For PID control
+  static constexpr double K_P = 0.5;
+  static constexpr double K_I = 0.001;
+  static constexpr double K_D = 0.0;
+
  private:
   std::atomic<bool> run_flag;
 

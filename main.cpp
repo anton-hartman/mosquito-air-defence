@@ -241,8 +241,10 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                         end_time - start_time)
                         .count();
 
-    cv::putText(frame, "FPS: " + std::to_string(1000 / duration),
-                cv::Point(COLS - 80, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+    cv::putText(frame,
+                "FPS: " + std::to_string(1000 / duration) + " (" +
+                    std::to_string(duration) + " ms)",
+                cv::Point(COLS - 150, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
                 cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
 
     markup_frame();

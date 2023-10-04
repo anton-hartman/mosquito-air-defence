@@ -33,7 +33,10 @@ Stepper::Stepper(std::string name,
       direction(CLOCKWISE),
       current_steps(0),
       target_steps(0),
-      manual(false) {}
+      manual(false) {
+  previous_error = 0;
+  integral = 0;
+}
 
 void Stepper::enable_stepper(void) {
   GPIO::output(enable_pin, GPIO::HIGH);
@@ -84,15 +87,35 @@ uint32_t Stepper::get_steps_and_set_direction() {
   return abs(steps);
 }
 
+uint32_t Stepper::get_pid_error_and_set_direction() {
+  int32_t error = target_steps.load() - current_steps.load();
+
+  integral += error;
+  int32_t derivative = error - previous_error;
+  previous_error = error;
+
+  int32_t output =
+      Turret::K_P * error + Turret::K_I * integral + Turret::K_D * derivative;
+
+  if (output > 0) {
+    GPIO::output(direction_pin, GPIO::LOW);
+    direction.store(CLOCKWISE);
+  } else {
+    GPIO::output(direction_pin, GPIO::HIGH);
+    direction.store(ANTI_CLOCKWISE);
+  }
+
+  return abs(output);
+}
+
 void Stepper::run_stepper() {
   uint32_t steps;
   uint32_t i;
-  uint32_t auto_delay = 50000;
+  uint32_t auto_delay = 40000;
   uint32_t manual_delay = 1000;
   uint32_t delay_us = auto_delay / MICROSTEPS;
-  // enable_stepper();
   while (!utils::exit_flag.load()) {
-    steps = get_steps_and_set_direction();
+    steps = get_pid_error_and_set_direction();
     for (i = 0; i < steps; i++) {
       GPIO::output(step_pin, GPIO::HIGH);
       std::this_thread::sleep_for(std::chrono::microseconds(delay_us));

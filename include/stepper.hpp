@@ -38,6 +38,10 @@ class Stepper {
   std::atomic<int32_t> current_steps;
   std::atomic<int32_t> target_steps;
 
+  // For PID control
+  int32_t previous_error;
+  int32_t integral;
+
   int32_t pixel_to_steps(const uint16_t& px) const;
   uint16_t steps_to_pixel(const int32_t& steps) const;
 
@@ -45,6 +49,7 @@ class Stepper {
    * @return The absolute value of the steps to take and sets the direction
    */
   uint32_t get_steps_and_set_direction();
+  uint32_t get_pid_error_and_set_direction();
 
   void correct_belief();
   void update_target_steps();
