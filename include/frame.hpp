@@ -26,3 +26,15 @@ extern const uint16_t C_Y;
 
 extern const uint16_t TURRET_X_ORIGIN_PX;
 extern const uint16_t TURRET_Y_ORIGIN_PX;
+
+typedef struct pt_ {
+  int x, y;
+} Pt;
+
+typedef struct blob_ {
+  int min_x, max_x;
+  int min_y, max_y;
+  int cen_x, cen_y;
+  int n_pixels;
+  int ID;
+} Blob;

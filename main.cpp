@@ -18,6 +18,7 @@ Turret turret;
 std::atomic<bool> utils::run_flag(true);
 std::atomic<bool> utils::exit_flag(false);
 std::atomic<bool> enable_feedback_flag(false);
+std::atomic<bool> mos_detection_flag(false);
 
 cv::VideoCapture cap;
 cv::Mat frame;
@@ -28,6 +29,7 @@ bool turret_stopped = true;
 // Laser co-ordinates plus uncertainty in pixels
 utils::Circle laser_belief_region_px;
 std::pair<int32_t, int32_t> laser_pos_px;
+std::vector<Pt> mosquitoes_px;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -52,47 +54,18 @@ cv::VideoCapture init_system(void) {
   return cap;
 }
 
-// void convert_to_red_frame(const cv::Mat& frame, uint8_t* red_frame) {
-//   // Check if the input Mat is of the expected size and type
-//   if (frame.rows != ROWS || frame.cols != COLS || frame.type() != CV_8UC3) {
-//     std::cerr << "Invalid input Mat dimensions or type!" << std::endl;
-//     throw std::runtime_error("Invalid input Mat");
-//   }
-
-//   for (int i = 0; i < ROWS; ++i) {
-//     for (int j = 0; j < COLS; ++j) {
-//       // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
-//       // // Extracting the red channel (assuming BGR format)
-//       // red_frame[i * COLS + j] = pixel[2];
-
-//       // cv::Vec3b pixel = frame.at<cv::Vec3b>(i, j);
-//       // Extracting the red channel (assuming BGR format)
-//       red_frame[i * COLS + j] = frame.at<cv::Vec3b>(i, j)[2];
-//     }
-//   }
-// }
-
 bool save_frame_as_jpeg(const cv::Mat& frame, int& counter) {
-  // Check if the frame is empty
   if (frame.empty()) {
     std::cerr << "The frame is empty, cannot save it." << std::endl;
     return false;
   }
-
-  // Generate file name using counter
   std::string file_name = "../cal_imgs/img" + std::to_string(counter) + ".jpg";
-
-  // Save the frame as a JPEG file
   if (!cv::imwrite(file_name, frame)) {
     std::cerr << "Failed to save the frame." << std::endl;
     return false;
   }
-
   std::cout << "Saved the frame to " << file_name << std::endl;
-
-  // Increment the counter for next time
   counter++;
-
   return true;
 }
 
@@ -176,13 +149,19 @@ void markup_frame() {
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
                 cv::LINE_AA);
   }
-  if (manual_mode) {
-    cv::putText(frame, "Manual Mode", cv::Point(COLS - 150, 80),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
-                cv::LINE_AA);
+  if (!mos_detection_flag.load()) {
+    if (manual_mode) {
+      cv::putText(frame, "Keyboard = Manual", cv::Point(COLS - 150, 80),
+                  cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
+                  cv::LINE_AA);
+    } else {
+      cv::putText(frame, "Keyboard = Auto", cv::Point(COLS - 150, 80),
+                  cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+                  cv::LINE_AA);
+    }
   } else {
-    cv::putText(frame, "Auto Mode", cv::Point(COLS - 150, 80),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+    cv::putText(frame, "Keyboard = OFF", cv::Point(COLS - 150, 80),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(100, 100, 100), 1,
                 cv::LINE_AA);
   }
   if (enable_feedback_flag.load()) {
@@ -192,6 +171,15 @@ void markup_frame() {
   } else {
     cv::putText(frame, "Feedback Disabled", cv::Point(COLS - 150, 110),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
+                cv::LINE_AA);
+  }
+  if (mos_detection_flag.load()) {
+    cv::putText(frame, "Mos Detection = ON", cv::Point(COLS - 150, 130),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+                cv::LINE_AA);
+  } else {
+    cv::putText(frame, "Mos Detection = OFF", cv::Point(COLS - 150, 130),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
                 cv::LINE_AA);
   }
 }
@@ -234,6 +222,10 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     laser_pos_px = gpu::detect_laser(red_channel, 230);
     if (enable_feedback_flag.load()) {
       turret.update_belief(laser_pos_px);
+    }
+    if (mos_detection_flag.load()) {
+      mosquitoes_px = gpu::detect_mosquitoes(red_channel, 100);
+      turret.update_setpoint({mosquitoes_px.at(0).x, mosquitoes_px.at(0).y});
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -288,7 +280,11 @@ void user_input(void) {
       break;
     }
 
-    if (ch == 'h') {
+    if (ch == 'k') {
+      mos_detection_flag.store(!mos_detection_flag.load());
+      std::cout << "Mosquito detection: " << mos_detection_flag.load()
+                << std::endl;
+    } else if (ch == 'h') {
       turret.update_belief(laser_pos_px);
       turret.update_setpoint(laser_pos_px);
     } else if (turret_stopped and (ch == 'e' or ch == 'w' or ch == 'a' or
@@ -341,10 +337,12 @@ void user_input(void) {
         px -= 100;
       }
       std::cout << "Pixels per click: " << steps << std::endl;
-    } else if (manual_mode) {
-      turret.keyboard_manual(ch, steps);
-    } else {
-      turret.keyboard_auto(ch, px);
+    } else if (!mos_detection_flag.load()) {
+      if (manual_mode) {
+        turret.keyboard_manual(ch, steps);
+      } else {
+        turret.keyboard_auto(ch, px);
+      }
     }
   }
 }

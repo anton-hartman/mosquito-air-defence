@@ -5,18 +5,6 @@
 
 namespace gpu {
 
-typedef struct pt_ {
-  int x, y;
-} Pt;
-
-typedef struct blob_ {
-  int min_x, max_x;
-  int min_y, max_y;
-  int cen_x, cen_y;
-  int n_pixels;
-  int ID;
-} Blob;
-
 std::pair<uint16_t, uint16_t> ignore_region_top_left = {523, 293};
 std::pair<uint16_t, uint16_t> ignore_region_bottom_right = {553, 316};
 
@@ -33,6 +21,8 @@ dim3 const grid_size((COLS + block_size.x - 1) / block_size.x,
 const size_t frame_size = COLS * ROWS * sizeof(uint8_t);
 uint8_t* d_frame_1;
 uint8_t* d_frame_2;
+uint8_t* mos_d_frame_1;
+uint8_t* mos_d_frame_2;
 
 const int struct_elem_size = 2;
 const int diameter = 2 * struct_elem_size + 1;
@@ -70,6 +60,8 @@ void init_gpu() {
 
   cudaMalloc((void**)&d_frame_1, frame_size);
   cudaMalloc((void**)&d_frame_2, frame_size);
+  cudaMalloc((void**)&mos_d_frame_1, frame_size);
+  cudaMalloc((void**)&mos_d_frame_2, frame_size);
 
   initialize_struct_elem();
 }
@@ -77,6 +69,8 @@ void init_gpu() {
 void free_gpu() {
   cudaFree(d_frame_1);
   cudaFree(d_frame_2);
+  cudaFree(mos_d_frame_1);
+  cudaFree(mos_d_frame_2);
 }
 
 __global__ void gaussian_smoothing(uint8_t* input,
@@ -222,7 +216,6 @@ std::pair<uint16_t, uint16_t> distinguish_laser_only_2(
   }
 
   std::vector<Blob> two_blobs;
-  int blob_count = 0;
   for (size_t i = 0; i < blobs.size(); i++) {
     if (is_blob_in_ignore_region({blobs[i].cen_x, blobs[i].cen_y},
                                  ignore_region_top_left,
@@ -230,11 +223,6 @@ std::pair<uint16_t, uint16_t> distinguish_laser_only_2(
       continue;
     } else {
       two_blobs.push_back(blobs[i]);
-      blob_count++;
-    }
-
-    if (blob_count == 2) {
-      break;
     }
   }
 
@@ -242,6 +230,11 @@ std::pair<uint16_t, uint16_t> distinguish_laser_only_2(
     return std::make_pair(two_blobs[0].cen_x, two_blobs[0].cen_y);
   } else if (two_blobs.size() < 1) {
     return std::make_pair(-2, -2);
+  }
+
+  if (two_blobs.size() > 2) {
+    std::cout << "More than two blobs outside of ignore region: "
+              << std::to_string(two_blobs.size()) << std::endl;
   }
 
   uint16_t x1 = two_blobs[0].cen_x;
@@ -452,27 +445,41 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   return laser_position;
 }
 
-// std::vector<Blob> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
-//   cv::cuda::GpuMat input_gpu_mat;
-//   input_gpu_mat.upload(red_frame);
-//   cv::cuda::GpuMat output_gpu_mat(red_frame.size(), red_frame.type());
-//
-//   gaussian_smoothing<<<grid_size, block_size>>>(
-//       input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>(),
-//       5, 6.0f);
-//   binarise<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(),
-//   threshold);
-//   // closing(output_gpu_mat.ptr<uint8_t>(), input_gpu_mat.ptr<uint8_t>());
-//   // opening(input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>());
-//
-//   output_gpu_mat.download(red_frame);
-//   std::vector<Blob> blobs;
-//   get_blobs(red_frame, blobs);
-//
-//   cv::imshow("mosquitoes pre-processed", red_frame);
-//   cv::waitKey(1);
-//   return blobs;
-// }
+std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
+  cudaError_t err = cudaMemcpy(mos_d_frame_1, red_frame.ptr(), frame_size,
+                               cudaMemcpyHostToDevice);
+  (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
+
+  gaussian_smoothing<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2, 5,
+                                                6.0f);
+  binarise<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
+  dilation<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
+  erosion<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
+  erosion<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
+  dilation<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
+
+  err = cudaMemcpy(red_frame.ptr(), mos_d_frame_2, frame_size,
+                   cudaMemcpyDeviceToHost);
+  (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
+
+  std::vector<Blob> blobs;
+  int num_blobs = -2;
+  num_blobs = get_blobs(red_frame.ptr(), blobs);
+  std::vector<Pt> blob_centres;
+  for (size_t i = 0; i < blobs.size(); i++) {
+    blob_centres.push_back({blobs[i].cen_x, blobs[i].cen_y});
+  }
+  if (blob_centres.size() == 0) {
+    return blob_centres.push_back({-1, -1});
+  }
+
+  cv::putText(red_frame, "num blobs = " + std::to_string(num_blobs),
+              cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+              cv::Scalar(255, 255, 255), 2);
+  cv::imshow("mosquitoes", red_frame);
+  cv::waitKey(1);
+  return blobs;
+}
 
 // __global__ void subtract_background(uint8_t* device_frame) {
 //   int x = blockIdx.x * blockDim.x + threadIdx.x;

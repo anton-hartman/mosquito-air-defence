@@ -14,10 +14,7 @@ __constant__ int d_ROWS;
 
 extern const dim3 block_size;
 extern const dim3 grid_size;
-
 extern const size_t frame_size;
-// extern uint8_t* d_frame_1;
-// extern uint8_t* d_frame_2;
 
 void init_gpu();
 void free_gpu();
@@ -29,13 +26,7 @@ __global__ void dilation(uint8_t* input, uint8_t* output);
 void set_ignore_region(std::pair<uint16_t, uint16_t> top_left,
                        std::pair<uint16_t, uint16_t> bottom_right);
 
-// void opening();
-// void closing();
-// void open_and_close();
-// void close_and_open();
-
-// std::pair<int32_t, int32_t> detect_laser(uint8_t* red_frame, uint8_t
-// threshold);
 std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold);
+std::vector<Blob> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold);
 
 }  // namespace gpu
