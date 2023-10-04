@@ -213,6 +213,71 @@ std::pair<uint16_t, uint16_t> distinguish_laser(
   return result;
 }
 
+std::pair<uint16_t, uint16_t> distinguish_laser_only_2(
+    const std::vector<Blob>& blobs) {
+  if (blobs.size() == 1) {
+    return std::make_pair(blobs.at(0).cen_x, blobs.at(0).cen_y);
+  } else if (blobs.size() < 1) {
+    return std::make_pair(-1, -1);
+  }
+
+  std::vector<Blob> two_blobs;
+  int blob_count = 0;
+  for (size_t i = 0; i < blobs.size(); i++) {
+    if (is_blob_in_ignore_region({blobs[i].cen_x, blobs[i].cen_y},
+                                 ignore_region_top_left,
+                                 ignore_region_bottom_right)) {
+      continue;
+    } else {
+      two_blobs.push_back(blobs[i]);
+      blob_count++;
+    }
+
+    if (blob_count == 2) {
+      break;
+    }
+  }
+
+  if (two_blobs.size() == 1) {
+    return std::make_pair(two_blobs[0].cen_x, two_blobs[0].cen_y);
+  } else if (two_blobs.size() < 1) {
+    return std::make_pair(-2, -2);
+  }
+
+  uint16_t x1 = two_blobs[0].cen_x;
+  uint16_t y1 = two_blobs[0].cen_y;
+  uint16_t x2 = two_blobs[1].cen_x;
+  uint16_t y2 = two_blobs[1].cen_y;
+
+  // When both blobs are at or below the camera origin, then the one closer to
+  // the origin of the camera is the laser.
+  if (y1 >= C_Y && y2 >= C_Y) {
+    if (y1 < y2) {
+      // y1 is closer to the camera origin
+      return std::make_pair(x1, y1);
+    } else {
+      return std::make_pair(x2, y2);
+    }
+  }
+
+  // When both blobs are at or above the camera origin, then the one farther
+  // from the origin of the camera is the laser.
+  if (y1 <= C_Y && y2 <= C_Y) {
+    if (y1 < y2) {
+      // y1 is further from the camera origin
+      return std::make_pair(x1, y1);
+    } else {
+      return std::make_pair(x2, y2);
+    }
+  }
+
+  // When blobs are on either side of the camera origin
+  if (y1 < C_Y)
+    return std::make_pair(x1, y1);
+  else
+    return std::make_pair(x2, y2);
+}
+
 int get_blobs(uint8_t* frame, std::vector<Blob>& blobs) {
   int i, j, k, l, r = ROWS, c = COLS, id = 1;
   std::vector<std::vector<int>> pixel_ID(r, std::vector<int>(c, -1));
@@ -373,7 +438,8 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   std::vector<Blob> blobs;
   int num_blobs = -2;
   num_blobs = get_blobs(red_frame.ptr(), blobs);
-  laser_position = distinguish_laser(blobs);
+  // laser_position = distinguish_laser(blobs);
+  laser_position = distinguish_laser_only_2(blobs);
 
   cv::putText(red_frame,
               "laser pos = (" + std::to_string(laser_position.first) + ", " +
@@ -392,7 +458,8 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
 //   cv::cuda::GpuMat output_gpu_mat(red_frame.size(), red_frame.type());
 //
 //   gaussian_smoothing<<<grid_size, block_size>>>(
-//       input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>(), 5, 6.0f);
+//       input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>(),
+//       5, 6.0f);
 //   binarise<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(),
 //   threshold);
 //   // closing(output_gpu_mat.ptr<uint8_t>(), input_gpu_mat.ptr<uint8_t>());

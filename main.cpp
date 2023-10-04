@@ -21,7 +21,9 @@ std::atomic<bool> enable_feedback_flag(false);
 
 cv::VideoCapture cap;
 cv::Mat frame;
+
 int manual_mode = 1;
+bool turret_stopped = true;
 
 // Laser co-ordinates plus uncertainty in pixels
 utils::Circle laser_belief_region_px;
@@ -133,25 +135,80 @@ std::pair<cv::Point, cv::Point> get_bounding_box() {
   return std::make_pair(top_left_pt, bottom_right_pt);
 }
 
+void markup_frame() {
+  cv::rectangle(frame,
+                cv::Point(gpu::ignore_region_top_left.first,
+                          gpu::ignore_region_top_left.second),
+                cv::Point(gpu::ignore_region_bottom_right.first,
+                          gpu::ignore_region_bottom_right.second),
+                cv::Scalar(0, 255, 0), 2);
+  utils::draw_target(frame, {C_X_DOUBLE, C_Y_DOUBLE}, cv::Scalar(0, 255, 255));
+  utils::put_label(frame, "Camera Origin", {C_X_DOUBLE, C_Y_DOUBLE}, 0.5);
+  utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
+  utils::put_label(frame, "Turret Origin", turret.get_origin_px(), 0.5);
+  utils::draw_target(frame, laser_pos_px, cv::Scalar(0, 0, 255));
+  utils::put_label(frame, "Detected laser", laser_pos_px, 0.5);
+  utils::draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
+  utils::put_label(frame, "Belief", turret.get_belief_px(), 0.5);
+  utils::draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
+  std::pair<uint16_t, uint16_t> set_pt = turret.get_setpoint_px();
+  utils::put_label(frame,
+                   "Setpoint (" + std::to_string(set_pt.first) + ", " +
+                       std::to_string(set_pt.second) + ")",
+                   std::pair<uint16_t, uint16_t>(10, 90), 0.5);
+  std::pair<int32_t, int32_t> current_steps = turret.get_belief_steps();
+  utils::put_label(frame,
+                   "Belief steps (" + std::to_string(current_steps.first) +
+                       ", " + std::to_string(current_steps.second) + ")",
+                   std::pair<uint16_t, uint16_t>(10, 30), 0.5);
+  std::pair<int32_t, int32_t> target_steps = turret.get_setpoint_steps();
+  utils::put_label(frame,
+                   "Target steps (" + std::to_string(target_steps.first) +
+                       ", " + std::to_string(target_steps.second) + ")",
+                   std::pair<uint16_t, uint16_t>(10, 60), 0.5);
+
+  if (turret_stopped) {
+    cv::putText(frame, "Turret Disabled", cv::Point(COLS - 150, 50),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
+                cv::LINE_AA);
+  } else {
+    cv::putText(frame, "Turret Enabled", cv::Point(COLS - 150, 50),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+                cv::LINE_AA);
+  }
+  if (manual_mode) {
+    cv::putText(frame, "Manual Mode", cv::Point(COLS - 150, 80),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
+                cv::LINE_AA);
+  } else {
+    cv::putText(frame, "Auto Mode", cv::Point(COLS - 150, 80),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+                cv::LINE_AA);
+  }
+  if (enable_feedback_flag.load()) {
+    cv::putText(frame, "Feedback Enabled", cv::Point(COLS - 150, 110),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+                cv::LINE_AA);
+  } else {
+    cv::putText(frame, "Feedback Disabled", cv::Point(COLS - 150, 110),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
+                cv::LINE_AA);
+  }
+}
+
 void process_video(cv::VideoCapture& cap, Detection& detector) {
   std::vector<cv::Mat> channels;
   cv::Mat red_channel;
-
-  // uint8_t* red_frame = new uint8_t[COLS * ROWS];
-  double total_duration = 0;
-  double avg_duration = 0;
-  uint32_t loop_count = 0;
 
   gpu::init_gpu();
 
   std::cout << "ROWS: " << ROWS << std::endl;
   std::cout << "COLS: " << COLS << std::endl;
 
-  bool save = false;
+  bool save_img = false;
   int save_counter = 0;
 
   while (!utils::exit_flag.load()) {
-    // loop_count++;
     auto start_time = std::chrono::high_resolution_clock::now();
 
     cap >> frame;
@@ -161,14 +218,13 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       exit(0);
     }
 
-    if (save) {
+    if (save_img) {
       save_frame_as_jpeg(frame, save_counter);
-      save = false;
+      save_img = false;
     }
 
     cv::split(frame, channels);
     red_channel = channels[2];
-    // std::cout << "Frame size: " << red_channel.size() << std::endl;
 
     // cv::Mat undistorted_frame;
     // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
@@ -176,44 +232,9 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // must distorition be accounted for?
 
     laser_pos_px = gpu::detect_laser(red_channel, 230);
-    // convert_to_red_frame(frame, red_frame);
-    // laser_pos_px = gpu::detect_laser(red_frame, 230);
     if (enable_feedback_flag.load()) {
       turret.update_belief(laser_pos_px);
     }
-
-    cv::rectangle(frame,
-                  cv::Point(gpu::ignore_region_top_left.first,
-                            gpu::ignore_region_top_left.second),
-                  cv::Point(gpu::ignore_region_bottom_right.first,
-                            gpu::ignore_region_bottom_right.second),
-                  cv::Scalar(0, 255, 0), 2);
-    utils::draw_target(frame, {C_X_DOUBLE, C_Y_DOUBLE},
-                       cv::Scalar(0, 255, 255));
-    utils::put_label(frame, "Camera Origin", {C_X_DOUBLE, C_Y_DOUBLE}, 0.5);
-    utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
-    utils::put_label(frame, "Turret Origin", turret.get_origin_px(), 0.5);
-    utils::draw_target(frame, laser_pos_px, cv::Scalar(0, 0, 255));
-    utils::put_label(frame, "Detected laser", laser_pos_px, 0.5);
-    utils::draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
-    utils::draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
-    utils::put_label(frame, "Belief", turret.get_belief_px(), 0.5);
-
-    std::pair<uint16_t, uint16_t> set_pt = turret.get_setpoint_px();
-    utils::put_label(frame,
-                     "Setpoint (" + std::to_string(set_pt.first) + ", " +
-                         std::to_string(set_pt.second) + ")",
-                     std::pair<uint16_t, uint16_t>(10, 90), 0.5);
-    std::pair<int32_t, int32_t> current_steps = turret.get_belief_steps();
-    utils::put_label(frame,
-                     "Belief steps (" + std::to_string(current_steps.first) +
-                         ", " + std::to_string(current_steps.second) + ")",
-                     std::pair<uint16_t, uint16_t>(10, 30), 0.5);
-    std::pair<int32_t, int32_t> target_steps = turret.get_setpoint_steps();
-    utils::put_label(frame,
-                     "Target steps (" + std::to_string(target_steps.first) +
-                         ", " + std::to_string(target_steps.second) + ")",
-                     std::pair<uint16_t, uint16_t>(10, 60), 0.5);
 
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -221,8 +242,10 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                         .count();
 
     cv::putText(frame, "FPS: " + std::to_string(1000 / duration),
-                cv::Point(COLS - 50, 10), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                cv::Point(COLS - 80, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
                 cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+
+    markup_frame();
 
     cv::imshow("frame", frame);
     char key = static_cast<char>(cv::waitKey(1));
@@ -238,23 +261,15 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       std::cout << "Bottom right point: (" << points.second.x << ", "
                 << points.second.y << ")\n";
     } else if (key == 's') {
-      save = true;
+      save_img = true;
     }
   }
 
   std::cout << "Video processing out of main loop" << std::endl;
-
-  // delete[] red_frame;
   gpu::free_gpu();
-
-  avg_duration = total_duration / loop_count;
-  std::cout << "Average duration of kernel = " << avg_duration << "us"
-            << std::endl;
 }
 
 void user_input(void) {
-  bool turret_stopped = true;
-
   std::cout << "Turret disabled" << std::endl;
 
   bool adjust_size = false;
@@ -272,6 +287,7 @@ void user_input(void) {
     }
 
     if (ch == 'h') {
+      turret.update_belief(laser_pos_px);
       turret.update_setpoint(laser_pos_px);
     } else if (turret_stopped and (ch == 'e' or ch == 'w' or ch == 'a' or
                                    ch == 's' or ch == 'd')) {

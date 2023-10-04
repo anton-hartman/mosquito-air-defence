@@ -101,13 +101,20 @@ std::pair<int32_t, int32_t> Turret::get_setpoint_steps(void) const {
 }
 
 void Turret::update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {
+  if (setpoint_px.first < 0 or setpoint_px.second < 0 or
+      setpoint_px.first > COLS or setpoint_px.second > ROWS) {
+    std::cout << "Invalid setpoint" << std::endl;
+    return;
+  }
   x_stepper.set_target_px(setpoint_px.first);
   y_stepper.set_target_px(setpoint_px.second);
 }
 
 void Turret::update_belief(
     const std::pair<int32_t, int32_t> detected_laser_px) {
-  if (detected_laser_px.first < 0 && detected_laser_px.second < 0) {
+  if (detected_laser_px.first < 0 or detected_laser_px.second < 0 or
+      detected_laser_px.first > COLS or detected_laser_px.second > ROWS) {
+    std::cout << "Invalid belief" << std::endl;
     return;
   }
   x_stepper.set_detected_laser_px(detected_laser_px.first);

@@ -46,10 +46,10 @@ const std::string pipeline =
 // distCoeffs : [0.06150274950265684, -0.8341596977696566, 0.005983206836437576,
 // -0.008859874706440122, 5.750238644767881]
 
-const double F_X = 1279.131802347799;
-const double F_Y = 1246.965965697424;
-const double C_X_DOUBLE = 457.9569088752605;
-const double C_Y_DOUBLE = 240.0934429867023;
+const double F_X = 1279.13149855341;
+const double F_Y = 1246.965909876756;
+const double C_X_DOUBLE = 457.9588295305912;
+const double C_Y_DOUBLE = 240.0948537167988;
 const uint16_t C_X = std::round(C_X_DOUBLE);
 const uint16_t C_Y = std::round(C_Y_DOUBLE);
 

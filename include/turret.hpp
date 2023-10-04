@@ -38,7 +38,6 @@ class Turret {
   std::pair<int32_t, int32_t> get_setpoint_steps(void) const;
 
   void update_belief(const std::pair<int32_t, int32_t> detected_laser_px);
-  void update_belief(BoundingBoxMap bounding_boxes);
   void update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px);
 
   void run_x_stepper(void);

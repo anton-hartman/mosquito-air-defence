@@ -7,7 +7,7 @@
 
 // Defining the dimensions of checkerboard
 int CHECKERBOARD[2] = {9, 6};
-const float SQUARE_SIZE = 25.0;  // in millimeters
+const float SQUARE_SIZE = 22.5;  // in millimeters
 
 void calibrate_cam(void) {
   // Creating vector to store vectors of 3D points for each checkerboard image

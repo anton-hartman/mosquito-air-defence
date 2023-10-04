@@ -87,7 +87,7 @@ uint32_t Stepper::get_steps_and_set_direction() {
 void Stepper::run_stepper() {
   uint32_t steps;
   uint32_t i;
-  uint32_t auto_delay = 100000;
+  uint32_t auto_delay = 50000;
   uint32_t manual_delay = 1000;
   uint32_t delay_us = auto_delay / MICROSTEPS;
   // enable_stepper();
