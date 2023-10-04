@@ -8,6 +8,7 @@
 namespace utils {
 
 extern std::atomic<bool> exit_flag;
+extern std::atomic<bool> run_flag;
 
 /**
  * @param x uint16_t

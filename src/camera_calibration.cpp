@@ -7,7 +7,7 @@
 
 // Defining the dimensions of checkerboard
 int CHECKERBOARD[2] = {9, 6};
-const float SQUARE_SIZE = 25.0;  // in millimeters
+const float SQUARE_SIZE = 22.5;  // in millimeters
 
 void calibrate_cam(void) {
   // Creating vector to store vectors of 3D points for each checkerboard image
@@ -27,8 +27,7 @@ void calibrate_cam(void) {
   // Extracting path of individual image stored in a given directory
   std::vector<cv::String> images;
   // Path of the folder containing checkerboard images
-  std::string path =
-      "/home/anton/mosquito-air-defence/calibration_images/*.jpg";
+  std::string path = "/home/anton/mosquito-air-defence/cal_imgs_saved/*.jpg";
 
   cv::glob(path, images);
 

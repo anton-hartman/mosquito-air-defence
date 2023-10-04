@@ -1,6 +1,7 @@
 
 #include "../include/turret.hpp"
 #include <JetsonGPIO.h>
+#include "../include/frame.hpp"
 #include "../include/stepper.hpp"
 #include "../include/utils.hpp"
 
@@ -12,14 +13,6 @@
 #define M2_DIR_PIN 18
 #define M2_STEP_PIN 12
 
-const double F_X = 647.0756309728268;
-const double F_Y = 861.7363873209705;
-const double C_X = 304.4404590127848;
-const double C_Y = 257.5858878142162;
-
-const uint16_t X_ORIGIN_PX = 592;
-const uint16_t Y_ORIGIN_PX = 591;
-
 Turret::Turret(void)
     : run_flag(true),
       x_stepper("x_stepper",
@@ -27,16 +20,16 @@ Turret::Turret(void)
                 M1_DIR_PIN,
                 M1_STEP_PIN,
                 X_STEPPER_DEPTH,
-                X_ORIGIN_PX,
-                C_X,
+                TURRET_X_ORIGIN_PX,
+                C_X_DOUBLE,
                 F_X),
       y_stepper("y_stepper",
                 M2_ENABLE_PIN,
                 M2_DIR_PIN,
                 M2_STEP_PIN,
                 Y_STEPPER_DEPTH,
-                Y_ORIGIN_PX,
-                C_Y,
+                TURRET_Y_ORIGIN_PX,
+                C_Y_DOUBLE,
                 F_Y) {
   GPIO::setmode(GPIO::BOARD);
   GPIO::setup(M1_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
@@ -108,13 +101,20 @@ std::pair<int32_t, int32_t> Turret::get_setpoint_steps(void) const {
 }
 
 void Turret::update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {
+  if (setpoint_px.first < 0 or setpoint_px.second < 0 or
+      setpoint_px.first > COLS or setpoint_px.second > ROWS) {
+    std::cout << "Invalid setpoint" << std::endl;
+    return;
+  }
   x_stepper.set_target_px(setpoint_px.first);
   y_stepper.set_target_px(setpoint_px.second);
 }
 
 void Turret::update_belief(
-    const std::pair<uint16_t, uint16_t> detected_laser_px) {
-  if (detected_laser_px.first == 0 && detected_laser_px.second == 0) {
+    const std::pair<int32_t, int32_t> detected_laser_px) {
+  if (detected_laser_px.first < 0 or detected_laser_px.second < 0 or
+      detected_laser_px.first > COLS or detected_laser_px.second > ROWS) {
+    std::cout << "Invalid belief" << std::endl;
     return;
   }
   x_stepper.set_detected_laser_px(detected_laser_px.first);

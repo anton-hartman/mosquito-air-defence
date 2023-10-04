@@ -4,6 +4,9 @@ project(MosquitoAirDefence)
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 14)
 
+enable_language(CUDA)
+
+find_package(CUDA REQUIRED)
 find_package(JetsonGPIO REQUIRED)
 find_package(Curses REQUIRED) # For keyboard input
 find_package(OpenCV REQUIRED)
@@ -14,25 +17,34 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CURSES_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS} 
+    ${CUDA_INCLUDE_DIRS}
 )
 
 # List all source and header files
 set(SOURCE_FILES
+    # src/camera_calibration.cpp
     main.cpp
+    src/frame.cpp
     src/stepper.cpp
     src/turret.cpp
     src/utils.cpp
     src/detection.cpp
-    src/image_processing.cpp
-    # src/camera_calibration.cpp
+    src/image_processing.cu
+
+    # src/blob_detection.cpp
+    # src/two_pass_algorithm.cpp
 )
 
 set(HEADER_FILES
+    include/frame.hpp
     include/stepper.hpp
     include/turret.hpp
     include/utils.hpp
     include/detection.hpp
     include/image_processing.hpp
+
+    # include/blob_detection.hpp
+    # include/two_pass_algorithm.hpp
 )
 
 # Add executable
@@ -43,36 +55,5 @@ target_link_libraries(mosquito-air-defence
     JetsonGPIO::JetsonGPIO
     ${CURSES_LIBRARIES}
     ${OpenCV_LIBS}
+    ${CUDA_LIBRARIES}
 )
-
-# ---- Google Test Configuration ----
-
-# Find Google Test and Google Mock
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
-
-enable_testing()
-
-# Add your unit tests target
-add_executable(unit_tests
-    tests/test_main.cpp  # A main file for running all tests
-    # tests/turret_controller_test.cpp  
-)
-
-# Link your project's code and Google Test
-target_link_libraries(unit_tests
-    # PRIVATE
-    # mosqutio-air-defence  # Link your project's library or source files
-    ${CURSES_LIBRARIES}
-    ${OpenCV_LIBS}
-    ${GTEST_BOTH_LIBRARIES} 
-    pthread
-    # GTest::GTest
-    # GTest::Main
-    # GMock::GMock
-    # GMock::Main
-)
-
-# Register your tests with CTest
-include(GoogleTest)
-gtest_discover_tests(unit_tests)
