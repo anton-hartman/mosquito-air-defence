@@ -381,6 +381,8 @@ void user_input(void) {
         }
       }
     } else if (ch == 'k') {
+      turret.set_manual_mode(false);
+      manual_mode = false;
       mos_detection_flag.store(!mos_detection_flag.load());
       std::cout << "Mosquito detection: " << mos_detection_flag.load()
                 << std::endl;
