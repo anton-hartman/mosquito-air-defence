@@ -2,6 +2,7 @@
 #include <JetsonGPIO.h>
 #include <chrono>
 #include <thread>
+#include "../include/frame.hpp"
 #include "../include/turret.hpp"
 #include "../include/utils.hpp"
 
@@ -94,8 +95,7 @@ uint32_t Stepper::get_pid_error_and_set_direction() {
   int32_t derivative = error - previous_error;
   previous_error = error;
 
-  int32_t output =
-      Turret::K_P * error + Turret::K_I * integral + Turret::K_D * derivative;
+  int32_t output = K_P * error + K_I * integral + K_D * derivative;
 
   if (output > 0) {
     GPIO::output(direction_pin, GPIO::LOW);

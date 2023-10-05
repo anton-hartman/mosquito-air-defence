@@ -26,6 +26,9 @@ cv::Mat frame;
 int manual_mode = 1;
 bool turret_stopped = true;
 
+int laser_threshold = 230;
+int mos_threshold = 70;
+
 // Laser co-ordinates plus uncertainty in pixels
 utils::Circle laser_belief_region_px;
 std::pair<int32_t, int32_t> laser_pos_px;
@@ -117,30 +120,44 @@ void markup_frame() {
                 cv::Scalar(0, 255, 0), 2);
 
   utils::draw_target(frame, {C_X_DOUBLE, C_Y_DOUBLE}, cv::Scalar(0, 255, 255));
-  utils::put_label(frame, "Camera Origin", {C_X_DOUBLE, C_Y_DOUBLE}, 0.5);
+  cv::putText(frame, "Camera Origin", cv::Point(C_X_DOUBLE, C_Y_DOUBLE),
+              cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
+              cv::LINE_AA);
   utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
-  utils::put_label(frame, "Turret Origin", turret.get_origin_px(), 0.5);
+  cv::putText(
+      frame, "Turret Origin",
+      cv::Point(turret.get_origin_px().first, turret.get_origin_px().second),
+      cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   utils::draw_target(frame, laser_pos_px, cv::Scalar(0, 0, 255));
-  utils::put_label(frame, "Detected laser", laser_pos_px, 0.5);
+  cv::putText(frame, "Detected Laser",
+              cv::Point(laser_pos_px.first, laser_pos_px.second + 20),
+              cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
+              cv::LINE_AA);
   utils::draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
-  utils::put_label(frame, "Belief", turret.get_belief_px(), 0.5);
+  cv::putText(
+      frame, "Belief",
+      cv::Point(turret.get_belief_px().first, turret.get_belief_px().second),
+      cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   utils::draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
 
   std::pair<int32_t, int32_t> current_steps = turret.get_belief_steps();
-  utils::put_label(frame,
-                   "Belief steps (" + std::to_string(current_steps.first) +
-                       ", " + std::to_string(current_steps.second) + ")",
-                   std::pair<uint16_t, uint16_t>(COLS - 200, 30), 0.5);
+  cv::putText(frame,
+              "Belief steps (" + std::to_string(current_steps.first) + ", " +
+                  std::to_string(current_steps.second) + ")",
+              cv::Point(COLS - 230, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   std::pair<int32_t, int32_t> target_steps = turret.get_setpoint_steps();
-  utils::put_label(frame,
-                   "Target steps (" + std::to_string(target_steps.first) +
-                       ", " + std::to_string(target_steps.second) + ")",
-                   std::pair<uint16_t, uint16_t>(COLS - 200, 60), 0.5);
+  cv::putText(frame,
+              "Target steps (" + std::to_string(target_steps.first) + ", " +
+                  std::to_string(target_steps.second) + ")",
+              cv::Point(COLS - 230, 50), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   std::pair<uint16_t, uint16_t> set_pt = turret.get_setpoint_px();
-  utils::put_label(frame,
-                   "    Setpoint (" + std::to_string(set_pt.first) + ", " +
-                       std::to_string(set_pt.second) + ")",
-                   std::pair<uint16_t, uint16_t>(COLS - 200, 90), 0.5);
+  cv::putText(frame,
+              "Setpoint (" + std::to_string(set_pt.first) + ", " +
+                  std::to_string(set_pt.second) + ")",
+              cv::Point(COLS - 230, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 
   if (turret_stopped) {
     cv::putText(frame, "Turret Disabled", cv::Point(10, 50),
@@ -163,7 +180,7 @@ void markup_frame() {
     }
   } else {
     cv::putText(frame, "Keyboard = OFF", cv::Point(10, 70),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(100, 100, 100), 1,
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(50, 50, 50), 1,
                 cv::LINE_AA);
   }
   if (enable_feedback_flag.load()) {
@@ -184,6 +201,15 @@ void markup_frame() {
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                 cv::LINE_AA);
   }
+
+  cv::putText(frame, "Mos Threshold = " + std::to_string(mos_threshold),
+              cv::Point(10, 130), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  cv::putText(frame,
+              "PID = (" + std::to_string(K_P) + ", " + std::to_string(K_I) +
+                  ", " + std::to_string(K_D) + ")",
+              cv::Point(10, 150), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 }
 
 void process_video(cv::VideoCapture& cap, Detection& detector) {
@@ -222,10 +248,11 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // must distorition be accounted for?
 
     if (mos_detection_flag.load()) {
-      mosquitoes_px = gpu::detect_mosquitoes(red_channel, 100);
+      mosquitoes_px =
+          gpu::detect_mosquitoes(red_channel.clone(), mos_threshold);
       turret.update_setpoint({mosquitoes_px.at(0).x, mosquitoes_px.at(0).y});
     }
-    laser_pos_px = gpu::detect_laser(red_channel, 230);
+    laser_pos_px = gpu::detect_laser(red_channel, laser_threshold);
     if (enable_feedback_flag.load()) {
       turret.update_belief(laser_pos_px);
     }
@@ -239,7 +266,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
                 "FPS: " + std::to_string(1000 / duration) + " (" +
                     std::to_string(duration) + " ms)",
                 cv::Point(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
-                cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+                cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
 
     markup_frame();
 
@@ -268,6 +295,12 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 void user_input(void) {
   std::cout << "Turret disabled" << std::endl;
 
+  bool threshold_mode = false;
+  bool mos_threshold_mode = false;
+  bool kp_mode = false;
+  bool ki_mode = false;
+  bool kd_mode = false;
+
   bool adjust_size = false;
   int steps = 105;
   int px = 110;
@@ -282,7 +315,72 @@ void user_input(void) {
       break;
     }
 
-    if (ch == 'k') {
+    if (ch == 't') {
+      threshold_mode = !threshold_mode;
+      if (threshold_mode) {
+        std::cout << "Threshold mode on" << std::endl;
+      } else {
+        mos_threshold_mode = false;
+        kp_mode = false;
+        ki_mode = false;
+        kd_mode = false;
+        std::cout << "Threshold mode off" << std::endl;
+      }
+    } else if (mos_threshold_mode) {
+      if (ch == 'w') {
+        mos_threshold += 10;
+      } else if (ch == 's') {
+        mos_threshold -= 10;
+      }
+    } else if (kp_mode) {
+      if (ch == 'w') {
+        K_P += 0.1;
+      } else if (ch == 's') {
+        K_P -= 0.1;
+      }
+    } else if (ki_mode) {
+      if (ch == 'w') {
+        K_I += 0.001;
+      } else if (ch == 's') {
+        K_I -= 0.001;
+      }
+    } else if (kd_mode) {
+      if (ch == 'w') {
+        K_D += 0.01;
+      } else if (ch == 's') {
+        K_D -= 0.01;
+      }
+    } else if (threshold_mode) {
+      if (ch == 'm') {
+        mos_threshold_mode = !mos_threshold_mode;
+        if (mos_threshold_mode) {
+          std::cout << "Mosquito threshold mode on" << std::endl;
+        } else {
+          std::cout << "Mosquito threshold mode off" << std::endl;
+        }
+      } else if (ch == 'p') {
+        kp_mode = !kp_mode;
+        if (kp_mode) {
+          std::cout << "Kp mode on" << std::endl;
+        } else {
+          std::cout << "Kp mode off" << std::endl;
+        }
+      } else if (ch == 'i') {
+        ki_mode = !ki_mode;
+        if (ki_mode) {
+          std::cout << "Ki mode on" << std::endl;
+        } else {
+          std::cout << "Ki mode off" << std::endl;
+        }
+      } else if (ch == 'd') {
+        kd_mode = !kd_mode;
+        if (kd_mode) {
+          std::cout << "Kd mode on" << std::endl;
+        } else {
+          std::cout << "Kd mode off" << std::endl;
+        }
+      }
+    } else if (ch == 'k') {
       mos_detection_flag.store(!mos_detection_flag.load());
       std::cout << "Mosquito detection: " << mos_detection_flag.load()
                 << std::endl;

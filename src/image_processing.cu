@@ -103,13 +103,23 @@ __global__ void gaussian_smoothing(uint8_t* input,
   }
 }
 
-__global__ void binarise(uint8_t* device_frame, uint8_t threshold) {
+__global__ void binarise_gt(uint8_t* device_frame, uint8_t threshold) {
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (x < d_COLS && y < d_ROWS) {
     device_frame[y * d_COLS + x] =
         device_frame[y * d_COLS + x] >= threshold ? 255 : 0;
+  }
+}
+
+__global__ void binarise_lt(uint8_t* device_frame, uint8_t threshold) {
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (x < d_COLS && y < d_ROWS) {
+    device_frame[y * d_COLS + x] =
+        device_frame[y * d_COLS + x] <= threshold ? 255 : 0;
   }
 }
 
@@ -482,7 +492,7 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
   gaussian_smoothing<<<grid_size, block_size>>>(d_frame_1, d_frame_2, 5, 6.0f);
-  binarise<<<grid_size, block_size>>>(d_frame_2, threshold);
+  binarise_gt<<<grid_size, block_size>>>(d_frame_2, threshold);
   dilation<<<grid_size, block_size>>>(d_frame_2, d_frame_1);
   erosion<<<grid_size, block_size>>>(d_frame_1, d_frame_2);
   erosion<<<grid_size, block_size>>>(d_frame_2, d_frame_1);
@@ -535,7 +545,7 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
 
   gaussian_smoothing<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2, 5,
                                                 6.0f);
-  binarise<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
+  binarise_lt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
   dilation<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
   erosion<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
   erosion<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
@@ -547,11 +557,31 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
 
   std::vector<Blob> blobs;
   int num_blobs = -2;
-  num_blobs = get_blobs(red_frame.ptr(), blobs);
+  // num_blobs = get_blobs(red_frame.ptr(), blobs);
+  // std::vector<Pt> blob_centres;
+  // for (size_t i = 0; i < blobs.size(); i++) {
+  //   blob_centres.push_back({blobs[i].cen_x, blobs[i].cen_y});
+  // }
+
+  cv::Mat label_image;
   std::vector<Pt> blob_centres;
-  for (size_t i = 0; i < blobs.size(); i++) {
-    blob_centres.push_back({blobs[i].cen_x, blobs[i].cen_y});
+  num_blobs = cv::connectedComponents(red_frame, label_image, 8, CV_16U);
+  cv::Mat label_image_8u;
+  label_image.convertTo(label_image_8u, CV_8UC1);
+
+  // Calculate moments for each label
+  std::vector<cv::Moments> moments(num_blobs);
+  for (int i = 0; i < num_blobs; i++) {
+    moments[i] = cv::moments(label_image_8u, i);
   }
+
+  // Calculate center points for each label
+  blob_centres.resize(num_blobs);
+  for (int i = 0; i < num_blobs; i++) {
+    blob_centres[i] = {static_cast<int>(moments[i].m10 / moments[i].m00),
+                       static_cast<int>(moments[i].m01 / moments[i].m00)};
+  }
+
   if (blob_centres.size() == 0) {
     blob_centres.push_back({-1, -1});
   }
@@ -596,7 +626,7 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
 //     gaussian_smoothing<<<grid_size, block_size>>>(
 //         input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>(),
 //         5, 6.0f);
-//     // binarise<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(),
+//     // binarise_gt<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(),
 //     // threshold);
 //     subtract_background<<<grid_size, block_size>>>(
 //         output_gpu_mat.ptr<uint8_t>());
