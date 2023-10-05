@@ -27,6 +27,6 @@ void set_ignore_region(std::pair<uint16_t, uint16_t> top_left,
                        std::pair<uint16_t, uint16_t> bottom_right);
 
 std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold);
-std::vector<Blob> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold);
+std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold);
 
 }  // namespace gpu

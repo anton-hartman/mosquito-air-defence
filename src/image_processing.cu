@@ -470,7 +470,7 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
     blob_centres.push_back({blobs[i].cen_x, blobs[i].cen_y});
   }
   if (blob_centres.size() == 0) {
-    return blob_centres.push_back({-1, -1});
+    blob_centres.push_back({-1, -1});
   }
 
   cv::putText(red_frame, "num blobs = " + std::to_string(num_blobs),
@@ -478,7 +478,7 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
               cv::Scalar(255, 255, 255), 2);
   cv::imshow("mosquitoes", red_frame);
   cv::waitKey(1);
-  return blobs;
+  return blob_centres;
 }
 
 // __global__ void subtract_background(uint8_t* device_frame) {

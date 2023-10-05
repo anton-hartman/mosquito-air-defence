@@ -115,6 +115,7 @@ void markup_frame() {
                 cv::Point(gpu::ignore_region_bottom_right.first,
                           gpu::ignore_region_bottom_right.second),
                 cv::Scalar(0, 255, 0), 2);
+
   utils::draw_target(frame, {C_X_DOUBLE, C_Y_DOUBLE}, cv::Scalar(0, 255, 255));
   utils::put_label(frame, "Camera Origin", {C_X_DOUBLE, C_Y_DOUBLE}, 0.5);
   utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
@@ -124,62 +125,63 @@ void markup_frame() {
   utils::draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
   utils::put_label(frame, "Belief", turret.get_belief_px(), 0.5);
   utils::draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
-  std::pair<uint16_t, uint16_t> set_pt = turret.get_setpoint_px();
-  utils::put_label(frame,
-                   "Setpoint (" + std::to_string(set_pt.first) + ", " +
-                       std::to_string(set_pt.second) + ")",
-                   std::pair<uint16_t, uint16_t>(10, 90), 0.5);
+
   std::pair<int32_t, int32_t> current_steps = turret.get_belief_steps();
   utils::put_label(frame,
                    "Belief steps (" + std::to_string(current_steps.first) +
                        ", " + std::to_string(current_steps.second) + ")",
-                   std::pair<uint16_t, uint16_t>(10, 30), 0.5);
+                   std::pair<uint16_t, uint16_t>(COLS - 200, 30), 0.5);
   std::pair<int32_t, int32_t> target_steps = turret.get_setpoint_steps();
   utils::put_label(frame,
                    "Target steps (" + std::to_string(target_steps.first) +
                        ", " + std::to_string(target_steps.second) + ")",
-                   std::pair<uint16_t, uint16_t>(10, 60), 0.5);
+                   std::pair<uint16_t, uint16_t>(COLS - 200, 60), 0.5);
+  std::pair<uint16_t, uint16_t> set_pt = turret.get_setpoint_px();
+  utils::put_label(frame,
+                   "    Setpoint (" + std::to_string(set_pt.first) + ", " +
+                       std::to_string(set_pt.second) + ")",
+                   std::pair<uint16_t, uint16_t>(COLS - 200, 90), 0.5);
 
   if (turret_stopped) {
-    cv::putText(frame, "Turret Disabled", cv::Point(COLS - 150, 50),
+    cv::putText(frame, "Turret Disabled", cv::Point(10, 50),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                 cv::LINE_AA);
   } else {
-    cv::putText(frame, "Turret Enabled", cv::Point(COLS - 150, 50),
+    cv::putText(frame, "Turret Enabled", cv::Point(10, 50),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
                 cv::LINE_AA);
   }
   if (!mos_detection_flag.load()) {
     if (manual_mode) {
-      cv::putText(frame, "Keyboard = Manual", cv::Point(COLS - 150, 80),
+      cv::putText(frame, "Keyboard = Manual", cv::Point(10, 70),
                   cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                   cv::LINE_AA);
     } else {
-      cv::putText(frame, "Keyboard = Auto", cv::Point(COLS - 150, 80),
+      cv::putText(frame, "Keyboard = Auto", cv::Point(10, 70),
                   cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
                   cv::LINE_AA);
     }
   } else {
-    cv::putText(frame, "Keyboard = OFF", cv::Point(COLS - 150, 80),
+    cv::putText(frame, "Keyboard = OFF", cv::Point(10, 70),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(100, 100, 100), 1,
                 cv::LINE_AA);
   }
   if (enable_feedback_flag.load()) {
-    cv::putText(frame, "Feedback Enabled", cv::Point(COLS - 150, 110),
+    cv::putText(frame, "Feedback Enabled", cv::Point(10, 90),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
                 cv::LINE_AA);
   } else {
-    cv::putText(frame, "Feedback Disabled", cv::Point(COLS - 150, 110),
+    cv::putText(frame, "Feedback Disabled", cv::Point(10, 90),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                 cv::LINE_AA);
   }
   if (mos_detection_flag.load()) {
-    cv::putText(frame, "Mos Detection = ON", cv::Point(COLS - 150, 130),
+    cv::putText(frame, "Mos Detection = ON", cv::Point(10, 110),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
                 cv::LINE_AA);
   } else {
-    cv::putText(frame, "Mos Detection = OFF", cv::Point(COLS - 150, 130),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+    cv::putText(frame, "Mos Detection = OFF", cv::Point(10, 110),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                 cv::LINE_AA);
   }
 }
@@ -219,13 +221,13 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     // Look into converting from steps to pixels for laser belief region. How
     // must distorition be accounted for?
 
-    laser_pos_px = gpu::detect_laser(red_channel, 230);
-    if (enable_feedback_flag.load()) {
-      turret.update_belief(laser_pos_px);
-    }
     if (mos_detection_flag.load()) {
       mosquitoes_px = gpu::detect_mosquitoes(red_channel, 100);
       turret.update_setpoint({mosquitoes_px.at(0).x, mosquitoes_px.at(0).y});
+    }
+    laser_pos_px = gpu::detect_laser(red_channel, 230);
+    if (enable_feedback_flag.load()) {
+      turret.update_belief(laser_pos_px);
     }
 
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -236,7 +238,7 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
     cv::putText(frame,
                 "FPS: " + std::to_string(1000 / duration) + " (" +
                     std::to_string(duration) + " ms)",
-                cv::Point(COLS - 150, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                cv::Point(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
                 cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
 
     markup_frame();
