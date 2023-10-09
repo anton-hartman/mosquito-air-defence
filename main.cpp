@@ -338,21 +338,21 @@ void user_input(void) {
       }
     } else if (kp_mode) {
       if (ch == 'w') {
-        K_P += 0.001;
+        K_P += 0.01;
       } else if (ch == 's') {
-        K_P -= 0.001;
+        K_P -= 0.01;
       }
     } else if (ki_mode) {
       if (ch == 'w') {
-        K_I += 0.00001;
+        K_I += 0.000000001;
       } else if (ch == 's') {
-        K_I -= 0.00001;
+        K_I -= 0.000000001;
       }
     } else if (kd_mode) {
       if (ch == 'w') {
-        K_D += 0.1;
+        K_D += 0.01;
       } else if (ch == 's') {
-        K_D -= 0.1;
+        K_D -= 0.01;
       }
     } else if (threshold_mode) {
       if (ch == 'm') {

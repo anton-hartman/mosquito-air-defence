@@ -133,16 +133,19 @@ void Stepper::run_stepper() {
         }
         std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
       }
-      if (direction == CLOCKWISE) {
-        current_steps.fetch_add(i);
-      } else {
-        current_steps.fetch_sub(i);
-      }
+      // if (direction == CLOCKWISE) {
+      //   current_steps.fetch_add(i);
+      // } else {
+      //   current_steps.fetch_sub(i);
+      // }
 
       if (new_feedback.load()) {
         correct_belief();
         new_feedback.store(false);
+      } else {
+        current_steps.store(target_steps.load());
       }
+
       if (new_setpoint.load()) {
         update_target_steps();
         new_setpoint.store(false);
