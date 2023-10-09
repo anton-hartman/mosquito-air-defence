@@ -19,6 +19,8 @@ Turret::Turret(void)
                 M1_ENABLE_PIN,
                 M1_DIR_PIN,
                 M1_STEP_PIN,
+                1,
+                0,
                 X_STEPPER_DEPTH,
                 TURRET_X_ORIGIN_PX,
                 C_X_DOUBLE,
@@ -27,6 +29,8 @@ Turret::Turret(void)
                 M2_ENABLE_PIN,
                 M2_DIR_PIN,
                 M2_STEP_PIN,
+                0,
+                1,
                 Y_STEPPER_DEPTH,
                 TURRET_Y_ORIGIN_PX,
                 C_Y_DOUBLE,
@@ -38,11 +42,6 @@ Turret::Turret(void)
   GPIO::setup(M2_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
   GPIO::setup(M2_DIR_PIN, GPIO::OUT, GPIO::HIGH);
   GPIO::setup(M2_STEP_PIN, GPIO::OUT, GPIO::LOW);
-}
-
-void Turret::set_manual_mode(const bool manual_mode) {
-  x_stepper.set_manual(manual_mode);
-  y_stepper.set_manual(manual_mode);
 }
 
 void Turret::save_steps_at_frame() {
@@ -100,6 +99,15 @@ std::pair<int32_t, int32_t> Turret::get_setpoint_steps(void) const {
                                      y_stepper.get_target_steps());
 }
 
+void Turret::home(const std::pair<int32_t, int32_t> detected_laser_px) {
+  x_stepper.set_target_px(detected_laser_px.first);
+  y_stepper.set_target_px(detected_laser_px.second);
+  x_stepper.set_detected_laser_px(detected_laser_px.first);
+  y_stepper.set_detected_laser_px(detected_laser_px.second);
+  x_stepper.home();
+  y_stepper.home();
+}
+
 void Turret::update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {
   if (setpoint_px.first < 0 or setpoint_px.second < 0 or
       setpoint_px.first > COLS or setpoint_px.second > ROWS) {
@@ -131,11 +139,11 @@ void Turret::keyboard_auto(int ch, int px) {
       update_setpoint(std::pair<uint16_t, uint16_t>(
           x_stepper.get_target_px(), y_stepper.get_target_px() + px));
       break;
-    case 'd':
+    case 'a':
       update_setpoint(std::pair<uint16_t, uint16_t>(
           x_stepper.get_target_px() - px, y_stepper.get_target_px()));
       break;
-    case 'a':
+    case 'd':
       update_setpoint(std::pair<uint16_t, uint16_t>(
           x_stepper.get_target_px() + px, y_stepper.get_target_px()));
       break;
@@ -147,16 +155,16 @@ void Turret::keyboard_auto(int ch, int px) {
 void Turret::keyboard_manual(int ch, int steps) {
   switch (ch) {
     case 'w':
-      y_stepper.increment_setpoint_in_steps(-steps);
+      y_stepper.step_manually(-steps);
       break;
     case 's':
-      y_stepper.increment_setpoint_in_steps(steps);
-      break;
-    case 'd':
-      x_stepper.increment_setpoint_in_steps(-steps);
+      y_stepper.step_manually(steps);
       break;
     case 'a':
-      x_stepper.increment_setpoint_in_steps(steps);
+      x_stepper.step_manually(-steps);
+      break;
+    case 'd':
+      x_stepper.step_manually(steps);
       break;
     default:
       break;

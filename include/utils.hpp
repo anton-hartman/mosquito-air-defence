@@ -9,6 +9,7 @@ namespace utils {
 
 extern std::atomic<bool> exit_flag;
 extern std::atomic<bool> run_flag;
+extern std::atomic<bool> manual_mode;
 
 /**
  * @param x uint16_t

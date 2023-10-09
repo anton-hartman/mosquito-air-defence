@@ -64,6 +64,9 @@ void init_gpu() {
   cudaMalloc((void**)&mos_d_frame_2, frame_size);
 
   initialize_struct_elem();
+
+  cudaMemcpyToSymbol(d_learning_rate, &learning_rate, sizeof(float));
+  cudaMalloc((void**)&d_background, frame_size);
 }
 
 void free_gpu() {
@@ -120,6 +123,19 @@ __global__ void binarise_lt(uint8_t* device_frame, uint8_t threshold) {
   if (x < d_COLS && y < d_ROWS) {
     device_frame[y * d_COLS + x] =
         device_frame[y * d_COLS + x] <= threshold ? 255 : 0;
+  }
+}
+
+__global__ void subtract_and_update_background(uint8_t* device_frame) {
+  int x = blockIdx.x * blockDim.x + threadIdx.x;
+  int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+  if (x < d_COLS && y < d_ROWS) {
+    d_background[y * d_COLS + x] =
+        d_learning_rate * device_frame[y * d_COLS + x] +
+        (1 - d_learning_rate) * d_background[y * d_COLS + x];
+    device_frame[y * d_COLS + x] =
+        abs(device_frame[y * d_COLS + x] - d_background[y * d_COLS + x]);
   }
 }
 
@@ -331,7 +347,6 @@ int get_blobs(cv::Mat frame, std::vector<Blob>& blobs) {
       }
 
       if (n_pixels < 20) {  // At least 20 pixels
-        std::cout << "Less than 20 px" << std::endl;
         continue;
       }
 
@@ -371,7 +386,7 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
                cv::Scalar(150, 255, 255), 2);
     cv::putText(red_frame, std::to_string(i),
                 cv::Point(blobs[i].cen_x + 10, blobs[i].cen_y + 10),
-                cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 2);
+                cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
   }
   cv::putText(red_frame,
               "laser pos = (" + std::to_string(laser_position.first) + ", " +
@@ -384,14 +399,21 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   return laser_position;
 }
 
-std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
+std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
+                                  uint8_t threshold,
+                                  bool bg_sub) {
   cudaError_t err = cudaMemcpy(mos_d_frame_1, red_frame.ptr(), frame_size,
                                cudaMemcpyHostToDevice);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
   gaussian_smoothing<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2, 5,
                                                 6.0f);
-  binarise_lt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
+  if (bg_sub) {
+    subtract_and_update_background<<<grid_size, block_size>>>(mos_d_frame_2);
+    binarise_gt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
+  } else {
+    binarise_lt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
+  }
   dilation<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
   erosion<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
   erosion<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
@@ -403,33 +425,22 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
 
   std::vector<Blob> blobs;
   int num_blobs = -2;
-  // num_blobs = get_blobs(red_frame.ptr(), blobs);
-  // std::vector<Pt> blob_centres;
-  // for (size_t i = 0; i < blobs.size(); i++) {
-  //   blob_centres.push_back({blobs[i].cen_x, blobs[i].cen_y});
-  // }
-
-  cv::Mat label_image;
+  num_blobs = get_blobs(red_frame, blobs);
   std::vector<Pt> blob_centres;
-  num_blobs = cv::connectedComponents(red_frame, label_image, 8, CV_16U);
-  cv::Mat label_image_8u;
-  label_image.convertTo(label_image_8u, CV_8UC1);
-
-  // Calculate moments for each label
-  std::vector<cv::Moments> moments(num_blobs);
-  for (int i = 0; i < num_blobs; i++) {
-    moments[i] = cv::moments(label_image_8u, i);
-  }
-
-  // Calculate center points for each label
-  blob_centres.resize(num_blobs);
-  for (int i = 0; i < num_blobs; i++) {
-    blob_centres[i] = {static_cast<int>(moments[i].m10 / moments[i].m00),
-                       static_cast<int>(moments[i].m01 / moments[i].m00)};
+  for (size_t i = 0; i < blobs.size(); i++) {
+    blob_centres.push_back({blobs[i].cen_x, blobs[i].cen_y});
   }
 
   if (blob_centres.size() == 0) {
     blob_centres.push_back({-1, -1});
+  }
+
+  for (size_t i = 0; i < blobs.size(); i++) {
+    cv::circle(red_frame, cv::Point(blobs[i].cen_x, blobs[i].cen_y), 20,
+               cv::Scalar(150, 255, 255), 2);
+    cv::putText(red_frame, std::to_string(i),
+                cv::Point(blobs[i].cen_x + 10, blobs[i].cen_y + 10),
+                cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
   }
 
   cv::putText(red_frame, "num blobs = " + std::to_string(num_blobs),
@@ -439,54 +450,5 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame, uint8_t threshold) {
   cv::waitKey(1);
   return blob_centres;
 }
-
-// __global__ void subtract_background(uint8_t* device_frame) {
-//   int x = blockIdx.x * blockDim.x + threadIdx.x;
-//   int y = blockIdx.y * blockDim.y + threadIdx.y;
-//
-//   if (x < d_COLS && y < d_ROWS) {
-//     background[y * d_COLS + x] =
-//         learning_rate * device_frame[y * d_COLS + x] +
-//         (1 - learning_rate) * background[y * d_COLS + x];
-//     device_frame[y * d_COLS + x] =
-//         device_frame[y * d_COLS + x] - background[y * d_COLS + x];
-//   }
-// }
-
-// class Subtractor {
-//  private:
-//   __constant__ cv::cuda::GpuMat background;
-//   __constant__ float learning_rate;
-//
-//  public:
-//   Subtractor(cv::Mat backgroud, float learning_rate)
-//       : learning_rate(learning_rate) {
-//     this->background.upload(backgroud);
-//   }
-//
-//   std::vector<Blob> detect_mosquitoes(cv::Mat red_frame) {
-//     cv::cuda::GpuMat input_gpu_mat;
-//     input_gpu_mat.upload(red_frame);
-//     cv::cuda::GpuMat output_gpu_mat(red_frame.size(), red_frame.type());
-//
-//     gaussian_smoothing<<<grid_size, block_size>>>(
-//         input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>(),
-//         5, 6.0f);
-//     // binarise_gt<<<grid_size, block_size>>>(output_gpu_mat.ptr<uint8_t>(),
-//     // threshold);
-//     subtract_background<<<grid_size, block_size>>>(
-//         output_gpu_mat.ptr<uint8_t>());
-//     closing(output_gpu_mat.ptr<uint8_t>(), input_gpu_mat.ptr<uint8_t>());
-//     opening(input_gpu_mat.ptr<uint8_t>(), output_gpu_mat.ptr<uint8_t>());
-//
-//     output_gpu_mat.download(red_frame);
-//     std::vector<Blob> blobs;
-//     get_blobs(red_frame, blobs);
-//
-//     cv::imshow("mosquitoes pre-processed", red_frame);
-//     cv::waitKey(1);
-//     return blobs;
-//   }
-// }
 
 }  // namespace gpu

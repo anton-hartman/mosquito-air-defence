@@ -44,3 +44,5 @@ struct Blob {
 extern double K_P;
 extern double K_I;
 extern double K_D;
+
+extern const float learning_rate;

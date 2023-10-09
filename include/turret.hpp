@@ -26,7 +26,6 @@ class Turret {
  public:
   Turret(void);
 
-  void set_manual_mode(const bool manual_mode);
   void save_steps_at_frame();
   void set_origin(const std::pair<uint16_t, uint16_t> turret_origin_px);
 
@@ -36,6 +35,7 @@ class Turret {
   std::pair<int32_t, int32_t> get_belief_steps(void) const;
   std::pair<int32_t, int32_t> get_setpoint_steps(void) const;
 
+  void home(const std::pair<int32_t, int32_t> detected_laser_px);
   void update_belief(const std::pair<int32_t, int32_t> detected_laser_px);
   void update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px);
 

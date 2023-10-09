@@ -13,6 +13,8 @@ Stepper::Stepper(std::string name,
                  uint8_t enable_pin,
                  uint8_t direction_pin,
                  uint8_t step_pin,
+                 uint8_t gpio_clockwise,
+                 uint8_t gpio_anticlockwise,
                  float depth,
                  uint16_t origin_px,
                  double c,
@@ -21,6 +23,8 @@ Stepper::Stepper(std::string name,
       enable_pin(enable_pin),
       direction_pin(direction_pin),
       step_pin(step_pin),
+      gpio_clockwise(gpio_clockwise),
+      gpio_anticlockwise(gpio_anticlockwise),
       depth(depth),
       origin_px(origin_px),
       principal_point(c),
@@ -34,9 +38,12 @@ Stepper::Stepper(std::string name,
       direction(CLOCKWISE),
       current_steps(0),
       target_steps(0),
-      manual(false) {
-  previous_error = 0;
-  integral = 0;
+      previous_error(0),
+      integral(0) {}
+
+void Stepper::home(void) {
+  current_steps.store(0);
+  target_steps.store(0);
 }
 
 void Stepper::enable_stepper(void) {
@@ -71,21 +78,21 @@ void Stepper::update_target_steps() {
   target_steps.store(pixel_to_steps(target_px.load()));
 }
 
-void Stepper::increment_setpoint_in_steps(const int32_t steps) {
-  // target_px.fetch_add(steps_to_pixel(steps));
-  target_steps.fetch_add(steps);
-}
-
-uint32_t Stepper::get_steps_and_set_direction() {
-  int32_t steps = target_steps.load() - current_steps.load();
+void Stepper::step_manually(const int32_t steps) {
   if (steps > 0) {
-    GPIO::output(direction_pin, GPIO::LOW);
+    GPIO::output(direction_pin, gpio_clockwise);
     direction.store(CLOCKWISE);
   } else {
-    GPIO::output(direction_pin, GPIO::HIGH);
+    GPIO::output(direction_pin, gpio_anticlockwise);
     direction.store(ANTI_CLOCKWISE);
   }
-  return abs(steps);
+  uint32_t delay_us = 1000 / MICROSTEPS;
+  for (uint32_t i = 0; i < abs(steps); i++) {
+    GPIO::output(step_pin, GPIO::HIGH);
+    std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
+    GPIO::output(step_pin, GPIO::LOW);
+    std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
+  }
 }
 
 uint32_t Stepper::get_pid_error_and_set_direction() {
@@ -98,10 +105,10 @@ uint32_t Stepper::get_pid_error_and_set_direction() {
   int32_t output = K_P * error + K_I * integral + K_D * derivative;
 
   if (output > 0) {
-    GPIO::output(direction_pin, GPIO::LOW);
+    GPIO::output(direction_pin, gpio_clockwise);
     direction.store(CLOCKWISE);
   } else {
-    GPIO::output(direction_pin, GPIO::HIGH);
+    GPIO::output(direction_pin, gpio_anticlockwise);
     direction.store(ANTI_CLOCKWISE);
   }
 
@@ -111,47 +118,38 @@ uint32_t Stepper::get_pid_error_and_set_direction() {
 void Stepper::run_stepper() {
   uint32_t steps;
   uint32_t i;
-  uint32_t auto_delay = 640000 / MICROSTEPS;
-  uint32_t manual_delay = 16000 / MICROSTEPS;
-  uint32_t delay_us = auto_delay / MICROSTEPS;
+  uint32_t auto_delay_us = 3000 / MICROSTEPS;
   while (!utils::exit_flag.load()) {
-    steps = get_pid_error_and_set_direction();
-    for (i = 0; i < steps; i++) {
-      GPIO::output(step_pin, GPIO::HIGH);
-      std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
-      GPIO::output(step_pin, GPIO::LOW);
-      if (new_setpoint.load() or new_feedback.load() or
-          !utils::run_flag.load() or utils::exit_flag.load()) {
-        break;
+    if (!utils::manual_mode.load()) {
+      steps = get_pid_error_and_set_direction();
+
+      for (i = 0; i < steps; i++) {
+        GPIO::output(step_pin, GPIO::HIGH);
+        std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
+        GPIO::output(step_pin, GPIO::LOW);
+        if (new_setpoint.load() or new_feedback.load() or
+            !utils::run_flag.load() or utils::exit_flag.load()) {
+          break;
+        }
+        std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
       }
-      std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
-    }
-    if (direction == CLOCKWISE) {
-      current_steps.fetch_add(i);
-    } else {
-      current_steps.fetch_sub(i);
-    }
+      if (direction == CLOCKWISE) {
+        current_steps.fetch_add(i);
+      } else {
+        current_steps.fetch_sub(i);
+      }
 
-    if (new_feedback.load()) {
-      correct_belief();
-      new_feedback.store(false);
-    }
-    if (new_setpoint.load()) {
-      update_target_steps();
-      new_setpoint.store(false);
-    }
-
-    if (manual.load()) {
-      delay_us = manual_delay / MICROSTEPS;
-    } else {
-      delay_us = auto_delay / MICROSTEPS;
+      if (new_feedback.load()) {
+        correct_belief();
+        new_feedback.store(false);
+      }
+      if (new_setpoint.load()) {
+        update_target_steps();
+        new_setpoint.store(false);
+      }
     }
   }
   stop_stepper();
-}
-
-void Stepper::set_manual(const bool manual) {
-  this->manual.store(manual);
 }
 
 void Stepper::set_origin_px(const uint16_t px) {

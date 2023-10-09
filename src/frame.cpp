@@ -56,6 +56,8 @@ const uint16_t C_Y = std::round(C_Y_DOUBLE);
 const uint16_t TURRET_X_ORIGIN_PX = 533;
 const uint16_t TURRET_Y_ORIGIN_PX = 332;
 
-double K_P = 0.5;
+double K_P = 0.01;
 double K_I = 0.0;
 double K_D = 0.0;
+
+const float learning_rate = 0.001;

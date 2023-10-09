@@ -15,6 +15,7 @@
 
 Turret turret;
 
+std::atomic<bool> utils::manual_mode(true);
 std::atomic<bool> utils::run_flag(true);
 std::atomic<bool> utils::exit_flag(false);
 std::atomic<bool> enable_feedback_flag(false);
@@ -23,10 +24,10 @@ std::atomic<bool> mos_detection_flag(false);
 cv::VideoCapture cap;
 cv::Mat frame;
 
-int manual_mode = 1;
 bool turret_stopped = true;
 
 int laser_threshold = 230;
+bool mos_bg_sub = true;
 int mos_threshold = 70;
 
 // Laser co-ordinates plus uncertainty in pixels
@@ -169,7 +170,7 @@ void markup_frame() {
                 cv::LINE_AA);
   }
   if (!mos_detection_flag.load()) {
-    if (manual_mode) {
+    if (utils::manual_mode.load()) {
       cv::putText(frame, "Keyboard = Manual", cv::Point(10, 70),
                   cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                   cv::LINE_AA);
@@ -202,13 +203,18 @@ void markup_frame() {
                 cv::LINE_AA);
   }
 
-  cv::putText(frame, "Mos Threshold = " + std::to_string(mos_threshold),
+  cv::putText(frame, "Laser Threshold = " + std::to_string(laser_threshold),
               cv::Point(10, 130), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  cv::putText(frame,
+              "Mos Threshold = " + std::to_string(mos_threshold) +
+                  "Bg Sub = " + std::to_string(mos_bg_sub),
+              cv::Point(10, 150), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   cv::putText(frame,
               "PID = (" + std::to_string(K_P) + ", " + std::to_string(K_I) +
                   ", " + std::to_string(K_D) + ")",
-              cv::Point(10, 150), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Point(10, 170), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 }
 
@@ -244,12 +250,10 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
 
     // cv::Mat undistorted_frame;
     // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
-    // Look into converting from steps to pixels for laser belief region. How
-    // must distorition be accounted for?
 
     if (mos_detection_flag.load()) {
-      mosquitoes_px =
-          gpu::detect_mosquitoes(red_channel.clone(), mos_threshold);
+      mosquitoes_px = gpu::detect_mosquitoes(red_channel.clone(), mos_threshold,
+                                             mos_bg_sub);
       turret.update_setpoint({mosquitoes_px.at(0).x, mosquitoes_px.at(0).y});
     }
     laser_pos_px = gpu::detect_laser(red_channel, laser_threshold);
@@ -302,7 +306,7 @@ void user_input(void) {
   bool kd_mode = false;
 
   bool adjust_size = false;
-  int steps = 21 * MICROSTEPS;
+  int steps = 31 * MICROSTEPS;
   int px = 110;
   char ch;
   while (!utils::exit_flag.load()) {
@@ -334,15 +338,15 @@ void user_input(void) {
       }
     } else if (kp_mode) {
       if (ch == 'w') {
-        K_P += 0.1;
+        K_P += 0.001;
       } else if (ch == 's') {
-        K_P -= 0.1;
+        K_P -= 0.001;
       }
     } else if (ki_mode) {
       if (ch == 'w') {
-        K_I += 0.001;
+        K_I += 0.00001;
       } else if (ch == 's') {
-        K_I -= 0.001;
+        K_I -= 0.00001;
       }
     } else if (kd_mode) {
       if (ch == 'w') {
@@ -381,14 +385,12 @@ void user_input(void) {
         }
       }
     } else if (ch == 'k') {
-      turret.set_manual_mode(false);
-      manual_mode = false;
+      utils::manual_mode.store(false);
       mos_detection_flag.store(!mos_detection_flag.load());
       std::cout << "Mosquito detection: " << mos_detection_flag.load()
                 << std::endl;
     } else if (ch == 'h') {
-      turret.update_belief(laser_pos_px);
-      turret.update_setpoint(laser_pos_px);
+      turret.home(laser_pos_px);
     } else if (turret_stopped and (ch == 'e' or ch == 'w' or ch == 'a' or
                                    ch == 's' or ch == 'd')) {
       turret_stopped = false;
@@ -404,15 +406,12 @@ void user_input(void) {
                 << laser_pos_px.second << std::endl;
     } else if (ch == 'm') {
       utils::run_flag.store(false);
-      manual_mode = !manual_mode;
-      if (manual_mode) {
-        turret.set_manual_mode(true);
+      utils::manual_mode.store(!utils::manual_mode.load());
+      if (utils::manual_mode.load()) {
         std::cout << "Manual" << std::endl;
         enable_feedback_flag.store(false);
         std::cout << "Feedback off" << std::endl;
-
       } else {
-        turret.set_manual_mode(false);
         std::cout << "Auto" << std::endl;
       }
       utils::run_flag.store(true);
@@ -425,14 +424,14 @@ void user_input(void) {
       }
     } else if (ch == 'c') {
       adjust_size = !adjust_size;
-    } else if (manual_mode and adjust_size) {
+    } else if (utils::manual_mode.load() and adjust_size) {
       if (ch == 'w') {
         steps += 2 * MICROSTEPS;
       } else if (ch == 's') {
         steps -= 2 * MICROSTEPS;
       }
       std::cout << "Steps per click: " << steps << std::endl;
-    } else if (!manual_mode and adjust_size) {
+    } else if (!utils::manual_mode.load() and adjust_size) {
       if (ch == 'w') {
         px += 100;
       } else if (ch == 's') {
@@ -440,7 +439,7 @@ void user_input(void) {
       }
       std::cout << "Pixels per click: " << steps << std::endl;
     } else if (!mos_detection_flag.load()) {
-      if (manual_mode) {
+      if (utils::manual_mode.load()) {
         turret.keyboard_manual(ch, steps);
       } else {
         turret.keyboard_auto(ch, px);

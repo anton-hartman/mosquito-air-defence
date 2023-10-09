@@ -17,6 +17,9 @@ class Stepper {
   const uint8_t direction_pin;
   const uint8_t step_pin;
 
+  const uint8_t gpio_clockwise;
+  const uint8_t gpio_anticlockwise;
+
   const double depth;               // mm
   std::atomic<uint16_t> origin_px;  // The origin of the turret in pixels
 
@@ -31,7 +34,6 @@ class Stepper {
   std::atomic<uint16_t> detected_laser_px;
   std::atomic<bool> new_setpoint;
   std::atomic<bool> new_feedback;
-  std::atomic<bool> manual;
 
   std::atomic<int8_t> direction;
   std::atomic<int32_t> steps_at_detection;
@@ -45,10 +47,6 @@ class Stepper {
   int32_t pixel_to_steps(const uint16_t& px) const;
   uint16_t steps_to_pixel(const int32_t& steps) const;
 
-  /**
-   * @return The absolute value of the steps to take and sets the direction
-   */
-  uint32_t get_steps_and_set_direction();
   uint32_t get_pid_error_and_set_direction();
 
   void correct_belief();
@@ -59,6 +57,8 @@ class Stepper {
           uint8_t enable_pin,
           uint8_t direction_pin,
           uint8_t step_pin,
+          uint8_t gpio_clockwise,
+          uint8_t gpio_anticlockwise,
           float depth,
           uint16_t origin_px,
           double c,
@@ -69,12 +69,9 @@ class Stepper {
   void enable_stepper(void);
   void save_steps();
 
-  /**
-   * @note Should only be used for testing
-   */
-  void increment_setpoint_in_steps(const int32_t steps);
+  void step_manually(const int32_t steps);
 
-  void set_manual(const bool manual);
+  void home(void);
   void set_origin_px(const uint16_t px);
   void set_target_px(const uint16_t px);
   void set_detected_laser_px(const uint16_t px);
