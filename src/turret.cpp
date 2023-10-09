@@ -131,11 +131,11 @@ void Turret::keyboard_auto(int ch, int px) {
       update_setpoint(std::pair<uint16_t, uint16_t>(
           x_stepper.get_target_px(), y_stepper.get_target_px() + px));
       break;
-    case 'a':
+    case 'd':
       update_setpoint(std::pair<uint16_t, uint16_t>(
           x_stepper.get_target_px() - px, y_stepper.get_target_px()));
       break;
-    case 'd':
+    case 'a':
       update_setpoint(std::pair<uint16_t, uint16_t>(
           x_stepper.get_target_px() + px, y_stepper.get_target_px()));
       break;
@@ -152,10 +152,10 @@ void Turret::keyboard_manual(int ch, int steps) {
     case 's':
       y_stepper.increment_setpoint_in_steps(steps);
       break;
-    case 'a':
+    case 'd':
       x_stepper.increment_setpoint_in_steps(-steps);
       break;
-    case 'd':
+    case 'a':
       x_stepper.increment_setpoint_in_steps(steps);
       break;
     default:

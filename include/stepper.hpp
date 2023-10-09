@@ -6,7 +6,7 @@
 #include <string>
 
 const double FULL_STEP_ANGLE_DEG = 0.17578125;
-const uint8_t MICROSTEPS = 16;
+const uint8_t MICROSTEPS = 32;
 const double MICROSTEP_ANGLE_DEG = FULL_STEP_ANGLE_DEG / MICROSTEPS;
 const double MICROSTEP_ANGLE_RAD = MICROSTEP_ANGLE_DEG * M_PI / 180;
 

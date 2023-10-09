@@ -302,7 +302,7 @@ void user_input(void) {
   bool kd_mode = false;
 
   bool adjust_size = false;
-  int steps = 105;
+  int steps = 21 * MICROSTEPS;
   int px = 110;
   char ch;
   while (!utils::exit_flag.load()) {
@@ -346,9 +346,9 @@ void user_input(void) {
       }
     } else if (kd_mode) {
       if (ch == 'w') {
-        K_D += 0.01;
+        K_D += 0.1;
       } else if (ch == 's') {
-        K_D -= 0.01;
+        K_D -= 0.1;
       }
     } else if (threshold_mode) {
       if (ch == 'm') {
@@ -427,9 +427,9 @@ void user_input(void) {
       adjust_size = !adjust_size;
     } else if (manual_mode and adjust_size) {
       if (ch == 'w') {
-        steps += 20;
+        steps += 2 * MICROSTEPS;
       } else if (ch == 's') {
-        steps -= 20;
+        steps -= 2 * MICROSTEPS;
       }
       std::cout << "Steps per click: " << steps << std::endl;
     } else if (!manual_mode and adjust_size) {

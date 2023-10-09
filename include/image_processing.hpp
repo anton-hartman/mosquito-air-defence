@@ -19,9 +19,9 @@ extern const size_t frame_size;
 void init_gpu();
 void free_gpu();
 
-__global__ void binarise_gt(uint8_t* d_frame_1, uint8_t threshold);
-__global__ void erosion(uint8_t* input, uint8_t* output);
-__global__ void dilation(uint8_t* input, uint8_t* output);
+// __global__ void binarise_gt(uint8_t* d_frame_1, uint8_t threshold);
+// __global__ void erosion(uint8_t* input, uint8_t* output);
+// __global__ void dilation(uint8_t* input, uint8_t* output);
 
 void set_ignore_region(std::pair<uint16_t, uint16_t> top_left,
                        std::pair<uint16_t, uint16_t> bottom_right);

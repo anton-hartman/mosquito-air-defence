@@ -281,89 +281,30 @@ std::pair<uint16_t, uint16_t> distinguish_laser_only_2(
     return std::make_pair(x2, y2);
 }
 
-std::pair<uint16_t, uint16_t> distinguish_laser_only_2(
-    const std::vector<Pt>& pts) {
-  if (pts.size() == 1) {
-    return std::make_pair(pts.at(0).x, pts.at(0).y);
-  } else if (pts.size() < 1) {
-    return std::make_pair(-1, -1);
-  }
-
-  std::vector<Pt> two_pts;
-  int blob_count = 0;
-  for (size_t i = 0; i < pts.size(); i++) {
-    if (is_blob_in_ignore_region({pts[i].x, pts[i].y}, ignore_region_top_left,
-                                 ignore_region_bottom_right)) {
-      continue;
-    } else {
-      two_pts.push_back(pts[i]);
-      blob_count++;
-    }
-
-    if (blob_count == 2) {
-      break;
-    }
-  }
-
-  if (two_pts.size() == 1) {
-    return std::make_pair(two_pts[0].x, two_pts[0].y);
-  } else if (two_pts.size() < 1) {
-    return std::make_pair(-2, -2);
-  }
-
-  uint16_t x1 = two_pts[0].x;
-  uint16_t y1 = two_pts[0].y;
-  uint16_t x2 = two_pts[1].x;
-  uint16_t y2 = two_pts[1].y;
-
-  // When both blobs are at or below the camera origin, then the one closer to
-  // the origin of the camera is the laser.
-  if (y1 >= C_Y && y2 >= C_Y) {
-    if (y1 < y2) {
-      // y1 is closer to the camera origin
-      return std::make_pair(x1, y1);
-    } else {
-      return std::make_pair(x2, y2);
-    }
-  }
-
-  // When both blobs are at or above the camera origin, then the one farther
-  // from the origin of the camera is the laser.
-  if (y1 <= C_Y && y2 <= C_Y) {
-    if (y1 < y2) {
-      // y1 is further from the camera origin
-      return std::make_pair(x1, y1);
-    } else {
-      return std::make_pair(x2, y2);
-    }
-  }
-
-  // When blobs are on either side of the camera origin
-  if (y1 < C_Y)
-    return std::make_pair(x1, y1);
-  else
-    return std::make_pair(x2, y2);
-}
-
-int get_blobs(uint8_t* frame, std::vector<Blob>& blobs) {
-  int i, j, k, l, r = ROWS, c = COLS, id = 1;
-  std::vector<std::vector<int>> pixel_ID(r, std::vector<int>(c, -1));
+int get_blobs(cv::Mat frame, std::vector<Blob>& blobs) {
+  int i, j, k, l, r = frame.rows, c = frame.cols, id = 1;
   // Stores ID of a pixel; -1 means unvisited
-  std::queue<Pt> open_list;
-  // Breadth-First-Search hence queue of points
+  std::vector<std::vector<int>> pixel_ID(r, std::vector<int>(c, -1));
+  std::queue<Pt> open_list;  // Breadth-First-Search hence queue of points
+
   for (i = 1; i < r - 1; i++) {
     for (j = 1; j < c - 1; j++) {
-      if (frame[i * COLS + j] == 0 || pixel_ID[i][j] > -1) {
+      if (i >= r || j >= c || frame.at<uint8_t>(i, j) == 0 ||
+          pixel_ID[i][j] > -1) {
         continue;
       }
       Pt start = {j, i};
       open_list.push(start);
       int sum_x = 0, sum_y = 0, n_pixels = 0, max_x = 0, max_y = 0;
       int min_x = c + 1, min_y = r + 1;
+      // Dequeue the element at the head of the queue
       while (!open_list.empty()) {
-        // Dequeue the element at the head of the queue
         Pt top = open_list.front();
         open_list.pop();
+        if (top.y >= r || top.x >= c) {
+          continue;
+        }
+
         pixel_ID[top.y][top.x] = id;
         n_pixels++;
         // To obtain the bounding box of the blob w.r.t the original image
@@ -373,11 +314,13 @@ int get_blobs(uint8_t* frame, std::vector<Blob>& blobs) {
         max_y = (top.y > max_y) ? top.y : max_y;
         sum_y += top.y;
         sum_x += top.x;
-        // Add the 8-connected neighbours that are yet to be visited, to the
+
+        // Add the 8 - connected neighbours that are yet to be visited, to the
         // queue
         for (k = top.y - 1; k <= top.y + 1; k++) {
           for (l = top.x - 1; l <= top.x + 1; l++) {
-            if (frame[k * COLS + l] == 0 || pixel_ID[k][l] > -1) {
+            if (k < 0 || l < 0 || k >= r || l >= c ||
+                frame.at<uint8_t>(k, l) == 0 || pixel_ID[k][l] > -1) {
               continue;
             }
             Pt next = {l, k};
@@ -388,6 +331,7 @@ int get_blobs(uint8_t* frame, std::vector<Blob>& blobs) {
       }
 
       if (n_pixels < 20) {  // At least 20 pixels
+        std::cout << "Less than 20 px" << std::endl;
         continue;
       }
 
@@ -399,91 +343,6 @@ int get_blobs(uint8_t* frame, std::vector<Blob>& blobs) {
     }
   }
   return blobs.size();
-}
-
-int get_blobs(cv::Mat frame, std::vector<Blob>& blobs) {
-  // std::cout << "frame size = " << frame.size() << std::endl;
-  // std::cout << "frame row and col = " << frame.rows << " " << frame.cols
-  //           << std::endl;
-  // std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-
-  int i, j, k, l, r = frame.rows, c = frame.cols, id = 1;
-  // int i, j, k, l, r = ROWS, c = COLS, id = 1;
-  std::vector<std::vector<int>> pixel_ID(r, std::vector<int>(c, -1));
-  // Stores ID of a pixel; -1 means unvisited
-  std::queue<Pt> open_list;
-  // Breadth-First-Search hence queue of points
-  for (i = 1; i < r - 1; i++) {
-    for (j = 1; j < c - 1; j++) {
-      if (frame.at<uint8_t>(i, j) == 0 || pixel_ID[i][j] > -1) {
-        // if (frame[i * COLS + j] == 0 || pixel_ID[i][j] > -1) {
-        continue;
-      }
-      Pt start = {j, i};
-      open_list.push(start);
-      int sum_x = 0, sum_y = 0, n_pixels = 0, max_x = 0, max_y = 0;
-      int min_x = c + 1, min_y = r + 1;
-      // std::cout << "zero" << std::endl;
-      while (!open_list.empty()) {
-        // Dequeue the element at the head of the queue
-        Pt top = open_list.front();
-        open_list.pop();
-        pixel_ID[top.y][top.x] = id;
-        n_pixels++;
-
-        // To obtain the bounding box of the blob w.r.t the original image
-        min_x = (top.x < min_x) ? top.x : min_x;
-        min_y = (top.y < min_y) ? top.y : min_y;
-        max_x = (top.x > max_x) ? top.x : max_x;
-        max_y = (top.y > max_y) ? top.y : max_y;
-        sum_y += top.y;
-        sum_x += top.x;
-        // std::cout << "one" << std::endl;
-
-        // Add the 8-connected neighbours that are yet to be visited, to the
-        // queue
-        // for (k = top.y - 1; k <= top.y + 1; k++) {
-        for (k = top.y - 1; k < top.y; k++) {
-          // std::cout << "1.5" << std::endl;
-          for (l = top.x - 1; l <= top.x + 1; l++) {
-            // if (k >= r) {
-            //   std::cout << "row naai" << std::endl;
-            // }
-            // if (l >= c) {
-            //   std::cout << "col naai" << std::endl;
-            // }
-            // if (k >= r || l >= c) {
-            //   std::cout << "out of bounds" << std::endl;
-            //   std::cout << "k = " << k << " l = " << l << std::endl;
-            //   continue;
-            // }
-            if (frame.at<uint8_t>(k, l) == 0 || pixel_ID[k][l] > -1) {
-              // if (frame[k * COLS + l] == 0 || pixel_ID[k][l] > -1) {
-              // std::cout << "1.6" << std::endl;
-              continue;
-            }
-            // std::cout << "two" << std::endl;
-            Pt next = {l, k};
-            pixel_ID[k][l] = id;
-            open_list.push(next);
-          }
-        }
-      }
-
-      if (n_pixels < 20) {  // At least 20 pixels
-        continue;
-      }
-
-      std::cout << "three" << std::endl;
-      Blob nextcentre = {
-          min_x,    max_x, min_y, max_y, sum_x / n_pixels, sum_y / n_pixels,
-          n_pixels, id};
-      blobs.push_back(nextcentre);
-      id++;
-    }
-  }
-  return blobs.size();
-  // return -3;
 }
 
 std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
@@ -503,30 +362,17 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
   int num_blobs = -2;
-  // std::vector<Blob> blobs;
-  // num_blobs = get_blobs(red_frame.ptr(), blobs);
+  std::vector<Blob> blobs;
+  num_blobs = get_blobs(red_frame, blobs);
+  laser_position = distinguish_laser_only_2(blobs);
 
-  cv::Mat label_image;
-  std::vector<Pt> centres;
-  num_blobs = cv::connectedComponents(red_frame, label_image, 8, CV_16U);
-  cv::Mat label_image_8u;
-  label_image.convertTo(label_image_8u, CV_8UC1);
-
-  // Calculate moments for each label
-  std::vector<cv::Moments> moments(num_blobs);
-  for (int i = 0; i < num_blobs; i++) {
-    moments[i] = cv::moments(label_image_8u, i);
+  for (size_t i = 0; i < blobs.size(); i++) {
+    cv::circle(red_frame, cv::Point(blobs[i].cen_x, blobs[i].cen_y), 20,
+               cv::Scalar(150, 255, 255), 2);
+    cv::putText(red_frame, std::to_string(i),
+                cv::Point(blobs[i].cen_x + 10, blobs[i].cen_y + 10),
+                cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 2);
   }
-
-  // Calculate center points for each label
-  centres.resize(num_blobs);
-  for (int i = 0; i < num_blobs; i++) {
-    centres[i] = {static_cast<int>(moments[i].m10 / moments[i].m00),
-                  static_cast<int>(moments[i].m01 / moments[i].m00)};
-  }
-
-  laser_position = distinguish_laser_only_2(centres);
-
   cv::putText(red_frame,
               "laser pos = (" + std::to_string(laser_position.first) + ", " +
                   std::to_string(laser_position.second) +
