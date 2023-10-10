@@ -29,6 +29,10 @@ const int diameter = 2 * struct_elem_size + 1;
 __constant__ uint8_t d_structuring_element[diameter * diameter];
 __constant__ int d_struct_elem_size;
 
+// For mosquito detection with background subtraction
+__constant__ float d_learning_rate;
+uint8_t* d_background;
+
 std::pair<int32_t, int32_t> laser_position = std::make_pair(-2, -2);
 
 void create_structuring_element(uint8_t* struct_elem, int struct_elem_size) {
@@ -65,7 +69,7 @@ void init_gpu() {
 
   initialize_struct_elem();
 
-  cudaMemcpyToSymbol(d_learning_rate, &learning_rate, sizeof(float));
+  // cudaMemcpyToSymbol(d_learning_rate, &learning_rate, sizeof(float));
   cudaMalloc((void**)&d_background, frame_size);
 }
 
@@ -126,16 +130,16 @@ __global__ void binarise_lt(uint8_t* device_frame, uint8_t threshold) {
   }
 }
 
-__global__ void subtract_and_update_background(uint8_t* device_frame) {
+__global__ void subtract_and_update_background(uint8_t* device_frame,
+                                               uint8_t* bg_frame) {
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (x < d_COLS && y < d_ROWS) {
-    d_background[y * d_COLS + x] =
-        d_learning_rate * device_frame[y * d_COLS + x] +
-        (1 - d_learning_rate) * d_background[y * d_COLS + x];
+    bg_frame[y * d_COLS + x] = d_learning_rate * device_frame[y * d_COLS + x] +
+                               (1 - d_learning_rate) * bg_frame[y * d_COLS + x];
     device_frame[y * d_COLS + x] =
-        abs(device_frame[y * d_COLS + x] - d_background[y * d_COLS + x]);
+        device_frame[y * d_COLS + x] - bg_frame[y * d_COLS + x];
   }
 }
 
@@ -399,6 +403,15 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   return laser_position;
 }
 
+void set_background(const cv::Mat& frame) {
+  cudaMemcpy(d_background, frame.ptr(), frame_size, cudaMemcpyHostToDevice);
+  // cudaMemcpyToSymbol(d_background, frame.ptr(), frame_size);
+}
+
+void set_learning_rate(const float& learning_rate) {
+  cudaMemcpyToSymbol(d_learning_rate, &learning_rate, sizeof(float));
+}
+
 std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
                                   uint8_t threshold,
                                   bool bg_sub) {
@@ -409,7 +422,12 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
   gaussian_smoothing<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2, 5,
                                                 6.0f);
   if (bg_sub) {
-    subtract_and_update_background<<<grid_size, block_size>>>(mos_d_frame_2);
+    subtract_and_update_background<<<grid_size, block_size>>>(mos_d_frame_2,
+                                                              d_background);
+    cv::Mat temp(ROWS, COLS, CV_8UC1);
+    cudaMemcpy(temp.ptr(), d_background, frame_size, cudaMemcpyDeviceToHost);
+    cv::imshow("background", temp);
+    cv::waitKey(1);
     binarise_gt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
   } else {
     binarise_lt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);

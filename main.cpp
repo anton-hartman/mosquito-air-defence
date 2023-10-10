@@ -23,12 +23,14 @@ std::atomic<bool> mos_detection_flag(false);
 
 cv::VideoCapture cap;
 cv::Mat frame;
+cv::Mat red_channel;
+float learning_rate = 0.1;
 
 bool turret_stopped = true;
 
 int laser_threshold = 230;
 bool mos_bg_sub = true;
-int mos_threshold = 70;
+int mos_threshold = 30;
 
 // Laser co-ordinates plus uncertainty in pixels
 utils::Circle laser_belief_region_px;
@@ -47,7 +49,7 @@ void exit_handler(int signo) {
 
 cv::VideoCapture init_system(void) {
   std::cout << "Using pipeline: \n\t" << pipeline << std::endl;
-  cv::VideoCapture cap(pipeline);
+  cv::VideoCapture cap(pipeline, cv::CAP_GSTREAMER);
 
   if (!cap.isOpened()) {
     std::cerr << "Error opening cv video capture" << std::endl;
@@ -218,9 +220,48 @@ void markup_frame() {
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 }
 
-void process_video(cv::VideoCapture& cap, Detection& detector) {
+void test_framerate(cv::VideoCapture& cap) {
+  if (!cap.isOpened()) {
+    std::cerr << "Error: Could not open video stream." << std::endl;
+    return;
+  }
+
+  cv::Mat frame;
+  int frame_count = 0;
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  while (!utils::exit_flag.load()) {
+    if (!cap.read(frame)) {
+      std::cerr << "Error: Could not read frame." << std::endl;
+      break;
+    }
+
+    frame_count++;
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            end_time - start_time)
+                            .count();
+
+    if (elapsed_time >= 1000) {  // Calculate FPS every second
+      float fps = static_cast<float>(frame_count) / (elapsed_time / 1000.0f);
+      std::cout << "FPS: " << fps << std::endl;
+
+      // Reset frame count and elapsed time
+      frame_count = 0;
+      start_time = std::chrono::high_resolution_clock::now();
+    }
+
+    // Do something with the frame (e.g., display it)
+    cv::imshow("Frame", frame);
+    if (cv::waitKey(1) == 27) {
+      break;  // Exit if the 'ESC' key is pressed
+    }
+  }
+}
+
+void process_video(cv::VideoCapture& cap) {
   std::vector<cv::Mat> channels;
-  cv::Mat red_channel;
 
   gpu::init_gpu();
 
@@ -230,8 +271,11 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
   bool save_img = false;
   int save_counter = 0;
 
+  gpu::set_learning_rate(learning_rate);
+
+  auto start_time = std::chrono::high_resolution_clock::now();
   while (!utils::exit_flag.load()) {
-    auto start_time = std::chrono::high_resolution_clock::now();
+    // auto start_time = std::chrono::high_resolution_clock::now();
 
     cap >> frame;
     turret.save_steps_at_frame();
@@ -261,18 +305,23 @@ void process_video(cv::VideoCapture& cap, Detection& detector) {
       turret.update_belief(laser_pos_px);
     }
 
+    markup_frame();
+
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                         end_time - start_time)
                         .count();
 
+    start_time = std::chrono::high_resolution_clock::now();
+
+    // std::cout << "FPS: " + std::to_string(1000 / duration) + " (" +
+    //                  std::to_string(duration) + " ms)"
+    //           << std::endl;
     cv::putText(frame,
                 "FPS: " + std::to_string(1000 / duration) + " (" +
                     std::to_string(duration) + " ms)",
                 cv::Point(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
                 cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
-
-    markup_frame();
 
     cv::imshow("frame", frame);
     char key = static_cast<char>(cv::waitKey(1));
@@ -319,7 +368,18 @@ void user_input(void) {
       break;
     }
 
-    if (ch == 't') {
+    if (ch == 'p') {
+      learning_rate += 0.01;
+      gpu::set_learning_rate(learning_rate);
+      std::cout << "Learning rate: " << learning_rate << std::endl;
+    } else if (ch == 'l') {
+      learning_rate -= 0.01;
+      gpu::set_learning_rate(learning_rate);
+      std::cout << "Learning rate: " << learning_rate << std::endl;
+    } else if (ch == 'g') {
+      gpu::set_background(red_channel);
+      std::cout << "Background set to curret frame" << std::endl;
+    } else if (ch == 't') {
       threshold_mode = !threshold_mode;
       if (threshold_mode) {
         std::cout << "Threshold mode on" << std::endl;
@@ -344,9 +404,9 @@ void user_input(void) {
       }
     } else if (ki_mode) {
       if (ch == 'w') {
-        K_I += 0.000000001;
+        K_I += 0.00001;
       } else if (ch == 's') {
-        K_I -= 0.000000001;
+        K_I -= 0.00001;
       }
     } else if (kd_mode) {
       if (ch == 'w') {
@@ -460,17 +520,16 @@ int main(void) {
   cv::VideoCapture cap = init_system();
   cv::Mat initial_frame;
   cap >> initial_frame;
-  float alpha = 0.1;
-  Detection detector(initial_frame, alpha);
+  // gpu::set_background(initial_frame);
 
   // Launch the threads
   std::thread user_input_thread(user_input);
-  std::thread video_thread(process_video, std::ref(cap), std::ref(detector));
+  std::thread video_thread(process_video, std::ref(cap));
+  // std::thread video_thread(test_framerate, std::ref(cap));
   std::thread turret_horizontal_thread(turret_horizontal);
   std::thread turret_vertical_thread(turret_vertical);
 
   std::cout << "Threads launched" << std::endl;
-  // Join the threads (or use detach based on requirements)
   video_thread.join();
   std::cout << "Video thread joined" << std::endl;
   turret_horizontal_thread.join();
@@ -478,6 +537,7 @@ int main(void) {
   turret_vertical_thread.join();
   std::cout << "Turret vertical thread joined" << std::endl;
   user_input_thread.detach();
+  std::cout << "User input thread detched" << std::endl;
 
   cudaDeviceReset();
   exit(0);

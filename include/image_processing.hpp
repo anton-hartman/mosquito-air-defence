@@ -12,10 +12,6 @@ extern std::pair<uint16_t, uint16_t> ignore_region_bottom_right;
 __constant__ int d_COLS;
 __constant__ int d_ROWS;
 
-// For mosquito detection with background subtraction
-__constant__ uint8_t* d_background;
-__constant__ float d_learning_rate;
-
 extern const dim3 block_size;
 extern const dim3 grid_size;
 extern const size_t frame_size;
@@ -30,5 +26,7 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold);
 std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
                                   uint8_t threshold,
                                   bool bg_sub = true);
+void set_background(const cv::Mat& frame);
+void set_learning_rate(const float& learning_rate);
 
 }  // namespace gpu
