@@ -2,6 +2,7 @@
 #include <iostream>
 #include <thread>
 #include "../include/image_processing.hpp"
+#include "../include/tracking.hpp"
 
 namespace gpu {
 
@@ -448,6 +449,8 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
   for (size_t i = 0; i < blobs.size(); i++) {
     blob_centres.push_back({blobs[i].cen_x, blobs[i].cen_y});
   }
+
+  tracking::track_mosquito(blob_centres.at(0));
 
   if (blob_centres.size() == 0) {
     blob_centres.push_back({-1, -1});
