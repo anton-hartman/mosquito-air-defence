@@ -2,10 +2,12 @@
  * Reference:
  * https://machinelearningspace.com/2d-object-tracking-using-kalman-filter/
  */
+#pragma once
 
 #include <cmath>
 // #include <iostream>
 #include <math.h>
+#include <opencv2/core.hpp>
 
 #include <Eigen/Dense>
 

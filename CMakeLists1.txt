@@ -1,30 +1,28 @@
 cmake_minimum_required(VERSION 3.10)
 project(MosquitoAirDefence)
 
-# Set the language standards
+# Set the C++ standard
 set(CMAKE_CXX_STANDARD 14)
+
 enable_language(CUDA)
 
-# Find required packages
 find_package(CUDA REQUIRED)
 find_package(JetsonGPIO REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+
 # Include directories
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${OpenCV_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS} 
     ${CUDA_INCLUDE_DIRS}
     ${CUDA_TOOLKIT_ROOT_DIR}/include
 )
 
-# Automatically include all source and header files from specific directories (Optional)
-# file(GLOB SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cu)
-# file(GLOB HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
-
-# Explicitly list all source and header files
+# List all source and header files
 set(SOURCE_FILES
+    # src/camera_calibration.cpp
     main.cpp
     src/frame.cpp
     src/stepper.cpp
@@ -33,7 +31,9 @@ set(SOURCE_FILES
     src/detection.cpp
     src/image_processing.cu
     src/tracking.cpp
-    src/kalman.cpp
+
+    # src/blob_detection.cpp
+    # src/two_pass_algorithm.cpp
 )
 
 set(HEADER_FILES
@@ -43,17 +43,18 @@ set(HEADER_FILES
     include/utils.hpp
     include/detection.hpp
     include/image_processing.hpp
+    include/kalman_filter_2d.hpp
     include/tracking.hpp
-    include/kalman.hpp
 
-    # include/kalman_filter_2d.hpp
-    )
+    # include/blob_detection.hpp
+    # include/two_pass_algorithm.hpp
+)
 
 # Add executable
-add_executable(mosquito_air_defence ${SOURCE_FILES} ${HEADER_FILES})
+add_executable(mosquito-air-defence ${SOURCE_FILES} ${HEADER_FILES})
 
 # Link libraries
-target_link_libraries(mosquito_air_defence
+target_link_libraries(mosquito-air-defence
     JetsonGPIO::JetsonGPIO
     ${CURSES_LIBRARIES}
     ${OpenCV_LIBS}

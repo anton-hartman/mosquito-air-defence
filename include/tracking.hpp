@@ -2,10 +2,12 @@
 
 #include <vector>
 #include "frame.hpp"
+#include "kalman_filter_2d.hpp"
 
 class Tracking {
  private:
-  int num_tracks = 0;
+  int num_trackers = 0;
+  std::vector<KalmanFilter2D> kalman_trackers;
 
   void init_kalman();
   Pt track_mosquito(Pt blob_centre);
