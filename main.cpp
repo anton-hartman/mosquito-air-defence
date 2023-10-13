@@ -410,6 +410,9 @@ void user_input(void) {
       }
     } else if (ch == 'k') {
       utils::manual_mode.store(false);
+      std::vector<cv::Mat> initial_channels;
+      cv::split(frame, initial_channels);
+      gpu::set_background(initial_channels[2]);
       mos_detection_flag.store(!mos_detection_flag.load());
       std::cout << "Mosquito detection: " << mos_detection_flag.load()
                 << std::endl;

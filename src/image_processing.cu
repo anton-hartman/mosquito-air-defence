@@ -24,7 +24,7 @@ uint8_t* d_frame_2;
 uint8_t* mos_d_frame_1;
 uint8_t* mos_d_frame_2;
 
-const int struct_elem_size = 2;
+const int struct_elem_size = 1;
 const int diameter = 2 * struct_elem_size + 1;
 __constant__ uint8_t d_structuring_element[diameter * diameter];
 __constant__ int d_struct_elem_size;
@@ -350,7 +350,7 @@ int get_blobs(cv::Mat frame, std::vector<Blob>& blobs) {
         }
       }
 
-      if (n_pixels < 20) {  // At least 20 pixels
+      if (n_pixels < 5) {  // At least 20 pixels
         continue;
       }
 
@@ -438,10 +438,10 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
   } else {
     binarise_lt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
   }
-  // dilation<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
-  // erosion<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
-  // erosion<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
-  // dilation<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
+  dilation<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
+  erosion<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
+  erosion<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
+  dilation<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
 
   err = cudaMemcpy(red_frame.ptr(), mos_d_frame_2, frame_size,
                    cudaMemcpyDeviceToHost);

@@ -22,7 +22,7 @@ const std::string height = "720";
 // const std::string right = "1280";
 // const std::string bottom = "720";
 
-const std::string left = "100";
+const std::string left = "120";
 const std::string top = "200";  // top = bottom because of flip
 const std::string right = "1160";
 const std::string bottom = "540";
@@ -40,8 +40,8 @@ const int ROWS = std::stoi(cropped_height);
 
 const std::string pipeline =
     // "gainrange=\"3 4\" ispdigitalgainrange=\"6 7\" awblock=false "
-    // "nvarguscamerasrc sensor-id=0 tnr-mode=2 tnr-strength=1 "
-    "nvarguscamerasrc sensor-id=0 "
+    "nvarguscamerasrc sensor-id=0 tnr-mode=1 tnr-strength=0 "
+    // "nvarguscamerasrc sensor-id=0 "
     "exposuretimerange=\"100000000 100000001\" "
     "! video/x-raw(memory:NVMM), width=" +
     width + ", height=" + height +
