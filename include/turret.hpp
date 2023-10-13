@@ -5,7 +5,17 @@
 #include <cstdint>
 #include <utility>
 #include "stepper.hpp"
-#include "two_pass_algorithm.hpp"
+
+constexpr double FULL_STEP_ANGLE_DEG = 0.17578125;
+extern uint8_t MICROSTEPS;
+extern double MICROSTEP_ANGLE_DEG;
+extern double MICROSTEP_ANGLE_RAD;
+
+void set_microsteps(uint8_t microsteps);
+
+extern double K_P;
+extern double K_I;
+extern double K_D;
 
 class Turret {
  public:
@@ -19,7 +29,6 @@ class Turret {
 
  private:
   std::atomic<bool> run_flag;
-
   Stepper x_stepper;
   Stepper y_stepper;
 

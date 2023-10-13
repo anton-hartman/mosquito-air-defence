@@ -16,7 +16,7 @@ Stepper::Stepper(std::string name,
                  uint8_t gpio_clockwise,
                  uint8_t gpio_anticlockwise,
                  float depth,
-                 uint16_t origin_px,
+                 uint16_t turret_origin_px,
                  double c,
                  double f)
     : name(name),
@@ -26,7 +26,7 @@ Stepper::Stepper(std::string name,
       gpio_clockwise(gpio_clockwise),
       gpio_anticlockwise(gpio_anticlockwise),
       depth(depth),
-      origin_px(origin_px),
+      turret_origin_px(turret_origin_px),
       principal_point(c),
       focal_length(f),
       pos_step_limit(1'000'000),
@@ -35,7 +35,7 @@ Stepper::Stepper(std::string name,
       detected_laser_px(0),
       new_setpoint(false),
       new_feedback(false),
-      direction(CLOCKWISE),
+      prev_direction(gpio_clockwise),
       current_steps(0),
       target_steps(0),
       previous_error(0),
@@ -48,6 +48,8 @@ void Stepper::home(void) {
 
 void Stepper::enable_stepper(void) {
   GPIO::output(enable_pin, GPIO::HIGH);
+  integral = 0;
+  previous_error = 0;
 }
 
 void Stepper::stop_stepper(void) {
@@ -55,13 +57,13 @@ void Stepper::stop_stepper(void) {
 }
 
 int32_t Stepper::pixel_to_steps(const uint16_t& px) const {
-  double mm = (px - origin_px) * Turret::CAMERA_DEPTH / focal_length;
+  double mm = (px - turret_origin_px) * Turret::CAMERA_DEPTH / focal_length;
   return std::atan2(mm, depth) / MICROSTEP_ANGLE_RAD;
 }
 
 uint16_t Stepper::steps_to_pixel(const int32_t& steps) const {
   double mm = depth * std::tan(steps * MICROSTEP_ANGLE_RAD);
-  return (mm * focal_length / Turret::CAMERA_DEPTH) + origin_px;
+  return (mm * focal_length / Turret::CAMERA_DEPTH) + turret_origin_px;
 }
 
 void Stepper::save_steps() {
@@ -81,10 +83,8 @@ void Stepper::update_target_steps() {
 void Stepper::step_manually(const int32_t steps) {
   if (steps > 0) {
     GPIO::output(direction_pin, gpio_clockwise);
-    direction.store(CLOCKWISE);
   } else {
     GPIO::output(direction_pin, gpio_anticlockwise);
-    direction.store(ANTI_CLOCKWISE);
   }
   uint32_t delay_us = 1000 / MICROSTEPS;
   for (uint32_t i = 0; i < abs(steps); i++) {
@@ -95,49 +95,68 @@ void Stepper::step_manually(const int32_t steps) {
   }
 }
 
-uint32_t Stepper::get_pid_error_and_set_direction() {
-  int32_t error = target_steps.load() - current_steps.load();
+uint32_t Stepper::get_pid_error_and_set_direction(
+    const double& elapsed_time_ms) {
+  double error = target_steps.load() - current_steps.load();
 
-  integral += error;
-  int32_t derivative = error - previous_error;
+  integral += error * elapsed_time_ms;
+  double derivative = (error - previous_error) / elapsed_time_ms;
   previous_error = error;
 
-  int32_t output = K_P * error + K_I * integral + K_D * derivative;
+  double output = K_P * error + K_I * integral + K_D * derivative;
 
   if (output > 0) {
     GPIO::output(direction_pin, gpio_clockwise);
-    direction.store(CLOCKWISE);
+    // if (prev_direction.load() != gpio_clockwise) {
+    //   if (!backlash_steps()) {
+    //     return 0;
+    //   }
+    // }
   } else {
     GPIO::output(direction_pin, gpio_anticlockwise);
-    direction.store(ANTI_CLOCKWISE);
+    // if (prev_direction.load() != gpio_anticlockwise) {
+    //   if (!backlash_steps()) {
+    //     return 0;
+    //   }
+    // }
   }
 
   return abs(output);
 }
 
-void Stepper::run_stepper() {
-  uint32_t steps;
-  uint32_t i;
+// bool Stepper::backlash_steps() {
+//   int32_t backlash_steps = 100;
+//   return step(backlash_steps);
+// }
+
+bool Stepper::step(const uint32_t& steps) {
   uint32_t auto_delay_us = 3000 / MICROSTEPS;
+  for (uint32_t i = 0; i < steps; i++) {
+    GPIO::output(step_pin, GPIO::HIGH);
+    std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
+    GPIO::output(step_pin, GPIO::LOW);
+    if (new_setpoint.load() or new_feedback.load() or !utils::run_flag.load() or
+        utils::exit_flag.load()) {
+      return false;
+    }
+    std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
+  }
+  return true;
+}
+
+void Stepper::run_stepper() {
+  auto start_time = std::chrono::high_resolution_clock::now();
   while (!utils::exit_flag.load()) {
     if (!utils::manual_mode.load()) {
-      steps = get_pid_error_and_set_direction();
+      auto end_time = std::chrono::high_resolution_clock::now();
+      double elapsed_time_ms =
+          std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
+              end_time - start_time)
+              .count();
+      uint32_t steps = get_pid_error_and_set_direction(elapsed_time_ms);
+      start_time = end_time;
 
-      for (i = 0; i < steps; i++) {
-        GPIO::output(step_pin, GPIO::HIGH);
-        std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
-        GPIO::output(step_pin, GPIO::LOW);
-        if (new_setpoint.load() or new_feedback.load() or
-            !utils::run_flag.load() or utils::exit_flag.load()) {
-          break;
-        }
-        std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
-      }
-      // if (direction == CLOCKWISE) {
-      //   current_steps.fetch_add(i);
-      // } else {
-      //   current_steps.fetch_sub(i);
-      // }
+      step(steps);
 
       if (new_feedback.load()) {
         correct_belief();
@@ -156,7 +175,7 @@ void Stepper::run_stepper() {
 }
 
 void Stepper::set_origin_px(const uint16_t px) {
-  origin_px.store(px);
+  turret_origin_px.store(px);
 }
 
 void Stepper::set_target_px(const uint16_t px) {
@@ -170,7 +189,7 @@ void Stepper::set_detected_laser_px(const uint16_t px) {
 }
 
 uint16_t Stepper::get_origin_px(void) const {
-  return origin_px.load();
+  return turret_origin_px.load();
 }
 
 uint16_t Stepper::get_target_px(void) const {

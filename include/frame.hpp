@@ -29,8 +29,6 @@ extern const uint16_t TURRET_Y_ORIGIN_PX;
 
 struct Pt {
   int x, y;
-
-  // Pt(int x, int y) : x(x), y(y) {}
 };
 
 struct Blob {
@@ -40,7 +38,3 @@ struct Blob {
   int n_pixels;
   int ID;
 };
-
-extern double K_P;
-extern double K_I;
-extern double K_D;

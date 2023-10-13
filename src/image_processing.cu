@@ -116,7 +116,7 @@ __global__ void binarise_gt(uint8_t* device_frame, uint8_t threshold) {
 
   if (x < d_COLS && y < d_ROWS) {
     device_frame[y * d_COLS + x] =
-        device_frame[y * d_COLS + x] >= threshold ? 255 : 0;
+        device_frame[y * d_COLS + x] > threshold ? 255 : 0;
   }
 }
 
@@ -126,7 +126,7 @@ __global__ void binarise_lt(uint8_t* device_frame, uint8_t threshold) {
 
   if (x < d_COLS && y < d_ROWS) {
     device_frame[y * d_COLS + x] =
-        device_frame[y * d_COLS + x] <= threshold ? 255 : 0;
+        device_frame[y * d_COLS + x] < threshold ? 255 : 0;
   }
 }
 
@@ -139,7 +139,7 @@ __global__ void subtract_and_update_background(uint8_t* device_frame,
     bg_frame[y * d_COLS + x] = d_learning_rate * device_frame[y * d_COLS + x] +
                                (1 - d_learning_rate) * bg_frame[y * d_COLS + x];
     device_frame[y * d_COLS + x] =
-        device_frame[y * d_COLS + x] - bg_frame[y * d_COLS + x];
+        abs(bg_frame[y * d_COLS + x] - device_frame[y * d_COLS + x]);
   }
 }
 
@@ -405,7 +405,6 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
 
 void set_background(const cv::Mat& frame) {
   cudaMemcpy(d_background, frame.ptr(), frame_size, cudaMemcpyHostToDevice);
-  // cudaMemcpyToSymbol(d_background, frame.ptr(), frame_size);
 }
 
 void set_learning_rate(const float& learning_rate) {
@@ -415,12 +414,14 @@ void set_learning_rate(const float& learning_rate) {
 std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
                                   uint8_t threshold,
                                   bool bg_sub) {
-  cudaError_t err = cudaMemcpy(mos_d_frame_1, red_frame.ptr(), frame_size,
+  // cudaError_t err = cudaMemcpy(mos_d_frame_1, red_frame.ptr(), frame_size,
+  //                              cudaMemcpyHostToDevice);
+  cudaError_t err = cudaMemcpy(mos_d_frame_2, red_frame.ptr(), frame_size,
                                cudaMemcpyHostToDevice);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
-  gaussian_smoothing<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2, 5,
-                                                6.0f);
+  // gaussian_smoothing<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2,
+  // 5, 6.0f);
   if (bg_sub) {
     subtract_and_update_background<<<grid_size, block_size>>>(mos_d_frame_2,
                                                               d_background);
@@ -428,14 +429,19 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
     cudaMemcpy(temp.ptr(), d_background, frame_size, cudaMemcpyDeviceToHost);
     cv::imshow("background", temp);
     cv::waitKey(1);
+
+    cudaMemcpy(temp.ptr(), mos_d_frame_2, frame_size, cudaMemcpyDeviceToHost);
+    cv::imshow("subtracted", temp);
+    cv::waitKey(1);
+
     binarise_gt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
   } else {
     binarise_lt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
   }
-  dilation<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
-  erosion<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
-  erosion<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
-  dilation<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
+  // dilation<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
+  // erosion<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
+  // erosion<<<grid_size, block_size>>>(mos_d_frame_2, mos_d_frame_1);
+  // dilation<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2);
 
   err = cudaMemcpy(red_frame.ptr(), mos_d_frame_2, frame_size,
                    cudaMemcpyDeviceToHost);

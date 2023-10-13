@@ -24,7 +24,7 @@ std::atomic<bool> mos_detection_flag(false);
 cv::VideoCapture cap;
 cv::Mat frame;
 cv::Mat red_channel;
-float learning_rate = 0.1;
+float learning_rate = 0.0;
 
 bool turret_stopped = true;
 
@@ -218,6 +218,9 @@ void markup_frame() {
                   ", " + std::to_string(K_D) + ")",
               cv::Point(10, 170), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  cv::putText(frame, "Learning rate = " + std::to_string(learning_rate),
+              cv::Point(10, 190), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 }
 
 void test_framerate(cv::VideoCapture& cap) {
@@ -349,18 +352,14 @@ void user_input(void) {
   std::cout << "Turret disabled" << std::endl;
 
   bool threshold_mode = false;
-  bool mos_threshold_mode = false;
-  bool kp_mode = false;
-  bool ki_mode = false;
-  bool kd_mode = false;
-
-  bool adjust_size = false;
-  int steps = 31 * MICROSTEPS;
+  int steps = 1 * MICROSTEPS;
   int px = 110;
   char ch;
+  std::string str_input;
   while (!utils::exit_flag.load()) {
     std::cout << "Enter a character: ";
-    std::cin >> ch;  // Read a character from standard input
+    std::cin >> ch;
+    std::cin.ignore();  // Discard the newline character from the input stream
 
     if (ch == 'q') {
       std::cout << "Exit with keypress = q" << std::endl;
@@ -368,14 +367,19 @@ void user_input(void) {
       break;
     }
 
-    if (ch == 'p') {
-      learning_rate += 0.01;
-      gpu::set_learning_rate(learning_rate);
-      std::cout << "Learning rate: " << learning_rate << std::endl;
+    if (ch == 'n') {
+      std::cout << "Enter microsteps: ";
+      std::getline(std::cin, str_input);
+      int microsteps = std::stoi(str_input);
+      set_microsteps(microsteps);
+      std::cout << "Microsteps: " << str_input << std::endl;
     } else if (ch == 'l') {
-      learning_rate -= 0.01;
+      std::cout << "Enter learning rate: ";
+      std::getline(std::cin, str_input);
+      learning_rate = std::stof(str_input);
       gpu::set_learning_rate(learning_rate);
-      std::cout << "Learning rate: " << learning_rate << std::endl;
+      std::cout << "Learning rate: " << std::to_string(learning_rate)
+                << std::endl;
     } else if (ch == 'g') {
       gpu::set_background(red_channel);
       std::cout << "Background set to curret frame" << std::endl;
@@ -384,65 +388,25 @@ void user_input(void) {
       if (threshold_mode) {
         std::cout << "Threshold mode on" << std::endl;
       } else {
-        mos_threshold_mode = false;
-        kp_mode = false;
-        ki_mode = false;
-        kd_mode = false;
         std::cout << "Threshold mode off" << std::endl;
-      }
-    } else if (mos_threshold_mode) {
-      if (ch == 'w') {
-        mos_threshold += 10;
-      } else if (ch == 's') {
-        mos_threshold -= 10;
-      }
-    } else if (kp_mode) {
-      if (ch == 'w') {
-        K_P += 0.01;
-      } else if (ch == 's') {
-        K_P -= 0.01;
-      }
-    } else if (ki_mode) {
-      if (ch == 'w') {
-        K_I += 0.00001;
-      } else if (ch == 's') {
-        K_I -= 0.00001;
-      }
-    } else if (kd_mode) {
-      if (ch == 'w') {
-        K_D += 0.01;
-      } else if (ch == 's') {
-        K_D -= 0.01;
       }
     } else if (threshold_mode) {
       if (ch == 'm') {
-        mos_threshold_mode = !mos_threshold_mode;
-        if (mos_threshold_mode) {
-          std::cout << "Mosquito threshold mode on" << std::endl;
-        } else {
-          std::cout << "Mosquito threshold mode off" << std::endl;
-        }
+        std::cout << "Enter mosquito threshold: ";
+        std::getline(std::cin, str_input);
+        mos_threshold = std::stoi(str_input);
       } else if (ch == 'p') {
-        kp_mode = !kp_mode;
-        if (kp_mode) {
-          std::cout << "Kp mode on" << std::endl;
-        } else {
-          std::cout << "Kp mode off" << std::endl;
-        }
+        std::cout << "Enter P: ";
+        std::getline(std::cin, str_input);
+        K_P = std::stoi(str_input);
       } else if (ch == 'i') {
-        ki_mode = !ki_mode;
-        if (ki_mode) {
-          std::cout << "Ki mode on" << std::endl;
-        } else {
-          std::cout << "Ki mode off" << std::endl;
-        }
+        std::cout << "Enter I: ";
+        std::getline(std::cin, str_input);
+        K_I = std::stoi(str_input);
       } else if (ch == 'd') {
-        kd_mode = !kd_mode;
-        if (kd_mode) {
-          std::cout << "Kd mode on" << std::endl;
-        } else {
-          std::cout << "Kd mode off" << std::endl;
-        }
+        std::cout << "Enter D: ";
+        std::getline(std::cin, str_input);
+        K_D = std::stoi(str_input);
       }
     } else if (ch == 'k') {
       utils::manual_mode.store(false);
@@ -483,21 +447,15 @@ void user_input(void) {
         std::cout << "Feedback off" << std::endl;
       }
     } else if (ch == 'c') {
-      adjust_size = !adjust_size;
-    } else if (utils::manual_mode.load() and adjust_size) {
-      if (ch == 'w') {
-        steps += 2 * MICROSTEPS;
-      } else if (ch == 's') {
-        steps -= 2 * MICROSTEPS;
+      if (utils::manual_mode.load()) {
+        std::cout << "Enter manual step size: ";
+        std::getline(std::cin, str_input);
+        steps = std::stoi(str_input);
+      } else {
+        std::cout << "Enter pixel step size: ";
+        std::getline(std::cin, str_input);
+        px = std::stoi(str_input);
       }
-      std::cout << "Steps per click: " << steps << std::endl;
-    } else if (!utils::manual_mode.load() and adjust_size) {
-      if (ch == 'w') {
-        px += 100;
-      } else if (ch == 's') {
-        px -= 100;
-      }
-      std::cout << "Pixels per click: " << steps << std::endl;
     } else if (!mos_detection_flag.load()) {
       if (utils::manual_mode.load()) {
         turret.keyboard_manual(ch, steps);
@@ -517,10 +475,14 @@ void turret_vertical(void) {
 }
 
 int main(void) {
+  set_microsteps(32);
   cv::VideoCapture cap = init_system();
   cv::Mat initial_frame;
   cap >> initial_frame;
-  // gpu::set_background(initial_frame);
+
+  std::vector<cv::Mat> initial_channels;
+  cv::split(initial_frame, initial_channels);
+  gpu::set_background(initial_channels[2]);
 
   // Launch the threads
   std::thread user_input_thread(user_input);
