@@ -1,4 +1,7 @@
 #include "../include/kalman.hpp"
+#include "../include/frame.hpp"
+
+int Kalman::id_counter = 0;
 
 Kalman::Kalman(double dt_,
                double u_x_,
@@ -6,7 +9,11 @@ Kalman::Kalman(double dt_,
                double sigma_a,
                double sigma_z_x,
                double sigma_z_y)
-    : dt(dt_), std_acc(sigma_a), std_meas_x(sigma_z_x), std_meas_y(sigma_z_y) {
+    : dt(dt_),
+      std_acc(sigma_a),
+      std_meas_x(sigma_z_x),
+      std_meas_y(sigma_z_y),
+      id(id_counter++) {
   u[0] = u_x_;
   u[1] = u_y_;
 
@@ -58,11 +65,12 @@ Eigen::Vector2d Kalman::predict(void) {
   // P = (A * P * A') + Q
   P = A * P * A.transpose() + Q;
 
+  predicted_centre = eigen_to_pt_d(x.head(2));
   return x.head(2);  // (Eigen::Vector2d)x(Eigen::seq(0, 2));
 }
 
 // Measurement update equations:
-Eigen::Vector2d Kalman::update(cv::Point pt) {
+Eigen::Vector2d Kalman::update(Pt pt) {
   // Calculating Kalman gain (K):
   Eigen::Matrix2d S = (H * P * H.transpose()) + R;
   Eigen::Matrix<double, 4, 2> K = (P * H.transpose()) * S.inverse();
@@ -98,4 +106,8 @@ Eigen::Matrix4d Kalman::get_Q() {
 
 Eigen::Matrix2d Kalman::get_R() {
   return R;
+}
+
+Pt_d Kalman::get_predicted_centre() const {
+  return Pt_d(predicted_centre, id);
 }

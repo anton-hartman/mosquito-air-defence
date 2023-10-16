@@ -2,17 +2,25 @@
 
 #include <vector>
 #include "frame.hpp"
+#include "hungarian.hpp"
 #include "kalman.hpp"
-// #include "kalman_interface.hpp"
 
 class Tracking {
- public:
-  int num_trackers = 0;
+ private:
   std::vector<Kalman> kalman_trackers;
+  HungarianAlgorithm hungarian;
 
   void add_kalman();
-  Pt track_mosquito(Pt blob_centre);
-  // Pt track_mosquitos(std::vector<Pt> blob_centres);
+  std::vector<std::vector<double>> get_cost_matrix(
+      const std::vector<Pt>& blob_centres);
+  double euclidean_distance(const Pt_d& predicted, const Pt& detected);
 
+ public:
+  /**
+   * @brief Associate detections with predictions and update trackers
+   */
   void associate_and_update(const std::vector<Pt>& blob_centres);
+  void predict_centres();
+  std::vector<Pt> get_predicted_centres() const;
+  Pt get_predicted_centre(const int& id) const;
 };

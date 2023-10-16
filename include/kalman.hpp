@@ -7,8 +7,23 @@
 #include <Eigen/Dense>
 #include <cmath>
 #include <opencv2/core.hpp>
+#include "frame.hpp"
 
 class Kalman {
+ private:
+  int id;
+  static int id_counter;
+  Pt_d predicted_centre;
+
+  Pt_d eigen_to_pt_d(const Eigen::Vector2d& vec) {
+    return Pt_d(vec(0), vec(1));
+  };
+
+  Pt eigen_to_pt(const Eigen::Vector2d& vec) {
+    return Pt(static_cast<int>(std::round(vec(0))),
+              static_cast<int>(std::round(vec(1))));
+  };
+
  private:
   double dt;          // Time for one cycle
   Eigen::Vector2d u;  // Control input
@@ -48,7 +63,7 @@ class Kalman {
   Eigen::Vector2d predict(void);
 
   // Measurement update equations:
-  Eigen::Vector2d update(cv::Point pt);
+  Eigen::Vector2d update(Pt pt);
 
   // Getters:
   Eigen::Matrix4d get_A();
@@ -59,4 +74,7 @@ class Kalman {
   Eigen::Matrix4d get_Q();
 
   Eigen::Matrix2d get_R();
+
+  int get_id() const { return id; };
+  Pt_d get_predicted_centre() const;
 };

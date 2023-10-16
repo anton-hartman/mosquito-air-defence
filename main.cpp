@@ -15,6 +15,7 @@
 
 Turret turret;
 
+std::atomic<int> debug(DEBUG_ON);
 std::atomic<bool> utils::manual_mode(true);
 std::atomic<bool> utils::run_flag(true);
 std::atomic<bool> utils::exit_flag(false);
@@ -301,6 +302,8 @@ void process_video(cv::VideoCapture& cap) {
     if (mos_detection_flag.load()) {
       mosquitoes_px = gpu::detect_mosquitoes(red_channel.clone(), mos_threshold,
                                              mos_bg_sub);
+
+      // gpu::get_tracked_mosquitoes(mosquitoes_px);
       turret.update_setpoint({mosquitoes_px.at(0).x, mosquitoes_px.at(0).y});
     }
     laser_pos_px = gpu::detect_laser(red_channel, laser_threshold);
@@ -367,19 +370,36 @@ void user_input(void) {
       break;
     }
 
-    if (ch == 'n') {
+    if (ch == 'u') {
+      std::cout << "Enter debug mode (0 = off, 1 = on, 2 = user display): ";
+      std::getline(std::cin, str_input);
+      try {
+        debug.store(std::stoi(str_input));
+        std::cout << "debug mode = " << str_input << std::endl;
+      } catch (std::invalid_argument& e) {
+        std::cout << "Invalid argument" << std::endl;
+      }
+    } else if (ch == 'n') {
       std::cout << "Enter microsteps: ";
       std::getline(std::cin, str_input);
-      int microsteps = std::stoi(str_input);
-      set_microsteps(microsteps);
-      std::cout << "Microsteps: " << str_input << std::endl;
+      try {
+        int microsteps = std::stoi(str_input);
+        set_microsteps(microsteps);
+        std::cout << "Microsteps: " << str_input << std::endl;
+      } catch (std::invalid_argument& e) {
+        std::cout << "Invalid argument" << std::endl;
+      }
     } else if (ch == 'l') {
       std::cout << "Enter learning rate: ";
       std::getline(std::cin, str_input);
-      learning_rate = std::stof(str_input);
-      gpu::set_learning_rate(learning_rate);
-      std::cout << "Learning rate: " << std::to_string(learning_rate)
-                << std::endl;
+      try {
+        learning_rate = std::stof(str_input);
+        gpu::set_learning_rate(learning_rate);
+        std::cout << "Learning rate: " << std::to_string(learning_rate)
+                  << std::endl;
+      } catch (std::invalid_argument& e) {
+        std::cout << "Invalid argument" << std::endl;
+      }
     } else if (ch == 'g') {
       gpu::set_background(red_channel);
       std::cout << "Background set to curret frame" << std::endl;
@@ -394,19 +414,35 @@ void user_input(void) {
       if (ch == 'm') {
         std::cout << "Enter mosquito threshold: ";
         std::getline(std::cin, str_input);
-        mos_threshold = std::stoi(str_input);
+        try {
+          mos_threshold = std::stoi(str_input);
+        } catch (std::invalid_argument& e) {
+          std::cout << "Invalid argument" << std::endl;
+        }
       } else if (ch == 'p') {
         std::cout << "Enter P: ";
-        std::getline(std::cin, str_input);
-        K_P = std::stoi(str_input);
+        try {
+          std::getline(std::cin, str_input);
+          K_P = std::stoi(str_input);
+        } catch (std::invalid_argument& e) {
+          std::cout << "Invalid argument" << std::endl;
+        }
       } else if (ch == 'i') {
         std::cout << "Enter I: ";
-        std::getline(std::cin, str_input);
-        K_I = std::stoi(str_input);
+        try {
+          std::getline(std::cin, str_input);
+          K_I = std::stoi(str_input);
+        } catch (std::invalid_argument& e) {
+          std::cout << "Invalid argument" << std::endl;
+        }
       } else if (ch == 'd') {
         std::cout << "Enter D: ";
-        std::getline(std::cin, str_input);
-        K_D = std::stoi(str_input);
+        try {
+          std::getline(std::cin, str_input);
+          K_D = std::stoi(str_input);
+        } catch (std::invalid_argument& e) {
+          std::cout << "Invalid argument" << std::endl;
+        }
       }
     } else if (ch == 'k') {
       utils::manual_mode.store(false);
@@ -453,11 +489,19 @@ void user_input(void) {
       if (utils::manual_mode.load()) {
         std::cout << "Enter manual step size: ";
         std::getline(std::cin, str_input);
-        steps = std::stoi(str_input);
+        try {
+          steps = std::stoi(str_input);
+        } catch (std::invalid_argument& e) {
+          std::cout << "Invalid argument" << std::endl;
+        }
       } else {
         std::cout << "Enter pixel step size: ";
         std::getline(std::cin, str_input);
-        px = std::stoi(str_input);
+        try {
+          px = std::stoi(str_input);
+        } catch (std::invalid_argument& e) {
+          std::cout << "Invalid argument" << std::endl;
+        }
       }
     } else if (!mos_detection_flag.load()) {
       if (utils::manual_mode.load()) {

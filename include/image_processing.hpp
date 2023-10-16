@@ -29,4 +29,7 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
 void set_background(const cv::Mat& frame);
 void set_learning_rate(const float& learning_rate);
 
+void track_mosquitoes(const std::vector<Pt>& blob_centres);
+std::vector<Pt> get_tracked_mosquitoes(const std::vector<Pt>& blob_centres);
+Pt get_tracked_mosquito(const std::vector<Pt>& blob_centres);
 }  // namespace gpu

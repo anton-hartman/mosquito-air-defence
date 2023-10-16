@@ -389,21 +389,23 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   num_blobs = get_blobs(red_frame, blobs);
   laser_position = distinguish_laser_only_2(blobs);
 
-  for (size_t i = 0; i < blobs.size(); i++) {
-    cv::circle(red_frame, cv::Point(blobs[i].cen_x, blobs[i].cen_y), 20,
-               cv::Scalar(150, 255, 255), 2);
-    cv::putText(red_frame, std::to_string(i),
-                cv::Point(blobs[i].cen_x + 10, blobs[i].cen_y + 10),
-                cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
+  if (debug.load() == DEBUG_ON) {
+    for (size_t i = 0; i < blobs.size(); i++) {
+      cv::circle(red_frame, cv::Point(blobs[i].cen_x, blobs[i].cen_y), 20,
+                 cv::Scalar(150, 255, 255), 2);
+      cv::putText(red_frame, std::to_string(i),
+                  cv::Point(blobs[i].cen_x + 10, blobs[i].cen_y + 10),
+                  cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
+    }
+    cv::putText(red_frame,
+                "laser pos = (" + std::to_string(laser_position.first) + ", " +
+                    std::to_string(laser_position.second) +
+                    ")  num blobs = " + std::to_string(num_blobs),
+                cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+                cv::Scalar(255, 255, 255), 2);
+    cv::imshow("cv::Mat processed", red_frame);
+    cv::waitKey(1);
   }
-  cv::putText(red_frame,
-              "laser pos = (" + std::to_string(laser_position.first) + ", " +
-                  std::to_string(laser_position.second) +
-                  ")  num blobs = " + std::to_string(num_blobs),
-              cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
-              cv::Scalar(255, 255, 255), 2);
-  cv::imshow("cv::Mat processed", red_frame);
-  cv::waitKey(1);
   return laser_position;
 }
 
@@ -462,23 +464,51 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
   if (blob_centres.size() == 0) {
     blob_centres.push_back({-1, -1});
   }
-  tracker.track_mosquito(blob_centres.at(0));
-  tracker.associate_and_update(blob_centres);
 
-  for (size_t i = 0; i < blobs.size(); i++) {
-    cv::circle(red_frame, cv::Point(blobs[i].cen_x, blobs[i].cen_y), 20,
-               cv::Scalar(150, 255, 255), 2);
-    cv::putText(red_frame, std::to_string(i),
-                cv::Point(blobs[i].cen_x + 10, blobs[i].cen_y + 10),
-                cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
+  std::vector<Pt> predicted_mos = get_tracked_mosquitoes(blob_centres);
+
+  if (debug.load() == DEBUG_ON) {
+    for (int i = 0; i < predicted_mos.size(); i++) {
+      cv::circle(red_frame,
+                 cv::Point(predicted_mos.at(i).x, predicted_mos.at(i).y), 10,
+                 cv::Scalar(100, 255, 255), 2);
+      cv::putText(
+          red_frame, std::to_string(predicted_mos.at(i).id),
+          cv::Point(predicted_mos.at(i).x + 10, predicted_mos.at(i).y + 10),
+          cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
+    }
+
+    for (size_t i = 0; i < blobs.size(); i++) {
+      cv::circle(red_frame, cv::Point(blobs[i].cen_x, blobs[i].cen_y), 20,
+                 cv::Scalar(150, 255, 255), 2);
+      cv::putText(red_frame, std::to_string(i),
+                  cv::Point(blobs[i].cen_x + 10, blobs[i].cen_y + 10),
+                  cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
+    }
+
+    cv::putText(red_frame, "num blobs = " + std::to_string(num_blobs),
+                cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+                cv::Scalar(255, 255, 255), 2);
+    cv::imshow("mosquitoes", red_frame);
+    cv::waitKey(1);
   }
-
-  cv::putText(red_frame, "num blobs = " + std::to_string(num_blobs),
-              cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
-              cv::Scalar(255, 255, 255), 2);
-  cv::imshow("mosquitoes", red_frame);
-  cv::waitKey(1);
   return blob_centres;
+}
+
+void track_mosquitoes(const std::vector<Pt>& blob_centres) {
+  tracker.associate_and_update(blob_centres);
+  // tracker.predict_centres();
+}
+
+std::vector<Pt> get_tracked_mosquitoes(const std::vector<Pt>& blob_centres) {
+  track_mosquitoes(blob_centres);
+  // return tracker.get_predicted_centres();
+  return std::vector<Pt>();
+}
+
+Pt get_tracked_mosquito(const std::vector<Pt>& blob_centres) {
+  track_mosquitoes(blob_centres);
+  return tracker.get_predicted_centre(-1);
 }
 
 }  // namespace gpu

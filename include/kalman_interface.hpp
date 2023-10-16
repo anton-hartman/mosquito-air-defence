@@ -2,6 +2,7 @@
 #pragma once
 
 #include <opencv2/opencv.hpp>
+#include "frame.hpp"
 
 // Function declarations from kalman.hpp without Eigen dependencies
 class Kalman {
@@ -13,6 +14,6 @@ class Kalman {
          double sigma_z_x,
          double sigma_z_y);
   void predict();
-  void update(cv::Point pt);
+  void update(Pt pt);
   // Other Eigen-independent member functions if needed
 };
