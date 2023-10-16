@@ -2,9 +2,12 @@
 #include <iostream>
 #include <thread>
 #include "../include/image_processing.hpp"
-#include "../include/tracking.hpp"
+// #include "../include/tracking.hpp"
+#include "../include/tracking_interface.hpp"
 
 namespace gpu {
+
+Tracking tracker;
 
 std::pair<uint16_t, uint16_t> ignore_region_top_left = {523, 293};
 std::pair<uint16_t, uint16_t> ignore_region_bottom_right = {553, 316};
@@ -450,11 +453,11 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
     blob_centres.push_back({blobs[i].cen_x, blobs[i].cen_y});
   }
 
-  // tracking::track_mosquito(blob_centres.at(0));
-
   if (blob_centres.size() == 0) {
     blob_centres.push_back({-1, -1});
   }
+  tracker.track_mosquito(blob_centres.at(0));
+  tracker.associate_and_update(blob_centres);
 
   for (size_t i = 0; i < blobs.size(); i++) {
     cv::circle(red_frame, cv::Point(blobs[i].cen_x, blobs[i].cen_y), 20,

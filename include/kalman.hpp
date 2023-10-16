@@ -4,8 +4,6 @@
  */
 #pragma once
 
-#include <math.h>
-// #define EIGEN_USE_GPU
 #include <Eigen/Dense>
 #include <cmath>
 #include <opencv2/core.hpp>

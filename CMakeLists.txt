@@ -34,6 +34,7 @@ set(SOURCE_FILES
     src/image_processing.cu
     src/tracking.cpp
     src/kalman.cpp
+    src/hungarian.cpp
 )
 
 set(HEADER_FILES
@@ -45,6 +46,9 @@ set(HEADER_FILES
     include/image_processing.hpp
     include/tracking.hpp
     include/kalman.hpp
+    include/kalman_interface.hpp
+    include/tracking_interface.hpp
+    include/hungarian.hpp
 
     # include/kalman_filter_2d.hpp
     )
