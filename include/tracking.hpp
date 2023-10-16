@@ -3,11 +3,11 @@
 #include <vector>
 #include "frame.hpp"
 #include "hungarian.hpp"
-#include "kalman.hpp"
+#include "mos.hpp"
 
 class Tracking {
  private:
-  std::vector<Kalman> kalman_trackers;
+  std::vector<Mos> mos_trackers;
   HungarianAlgorithm hungarian;
 
   void add_kalman();

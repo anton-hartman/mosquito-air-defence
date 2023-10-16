@@ -2,8 +2,7 @@
 #include <iostream>
 #include <thread>
 #include "../include/image_processing.hpp"
-// #include "../include/tracking.hpp"
-#include "../include/tracking_interface.hpp"
+#include "../include/tracking.hpp"
 
 namespace gpu {
 

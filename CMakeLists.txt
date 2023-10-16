@@ -27,31 +27,28 @@ include_directories(
 set(SOURCE_FILES
     main.cpp
     src/frame.cpp
-    src/stepper.cpp
-    src/turret.cpp
-    src/utils.cpp
-    src/detection.cpp
-    src/image_processing.cu
+    # src/stepper.cpp
+    # src/turret.cpp
+    # src/utils.cpp
+    # src/detection.cpp
+    # src/image_processing.cu
     src/tracking.cpp
     src/kalman.cpp
     src/hungarian.cpp
 )
 
 set(HEADER_FILES
+    include/mos.hpp
     include/frame.hpp
-    include/stepper.hpp
-    include/turret.hpp
-    include/utils.hpp
-    include/detection.hpp
-    include/image_processing.hpp
+    # include/stepper.hpp
+    # include/turret.hpp
+    # include/utils.hpp
+    # include/detection.hpp
+    # include/image_processing.hpp
     include/tracking.hpp
     include/kalman.hpp
-    include/kalman_interface.hpp
-    include/tracking_interface.hpp
     include/hungarian.hpp
-
-    # include/kalman_filter_2d.hpp
-    )
+)
 
 # Add executable
 add_executable(mosquito_air_defence ${SOURCE_FILES} ${HEADER_FILES})
