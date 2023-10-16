@@ -13,6 +13,20 @@
 #define M2_DIR_PIN 18
 #define M2_STEP_PIN 12
 
+uint8_t MICROSTEPS;
+double MICROSTEP_ANGLE_DEG;
+double MICROSTEP_ANGLE_RAD;
+
+void set_microsteps(uint8_t microsteps) {
+  MICROSTEPS = microsteps;
+  MICROSTEP_ANGLE_DEG = FULL_STEP_ANGLE_DEG / MICROSTEPS;
+  MICROSTEP_ANGLE_RAD = MICROSTEP_ANGLE_DEG * M_PI / 180;
+}
+
+double K_P = 0.05;
+double K_I = 0.0;
+double K_D = 0.2;
+
 Turret::Turret(void)
     : run_flag(true),
       x_stepper("x_stepper",
@@ -111,7 +125,7 @@ void Turret::home(const std::pair<int32_t, int32_t> detected_laser_px) {
 void Turret::update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {
   if (setpoint_px.first < 0 or setpoint_px.second < 0 or
       setpoint_px.first > COLS or setpoint_px.second > ROWS) {
-    std::cout << "Invalid setpoint" << std::endl;
+    // std::cout << "Invalid setpoint" << std::endl;
     return;
   }
   x_stepper.set_target_px(setpoint_px.first);
@@ -122,7 +136,7 @@ void Turret::update_belief(
     const std::pair<int32_t, int32_t> detected_laser_px) {
   if (detected_laser_px.first < 0 or detected_laser_px.second < 0 or
       detected_laser_px.first > COLS or detected_laser_px.second > ROWS) {
-    std::cout << "Invalid belief" << std::endl;
+    // std::cout << "Invalid belief" << std::endl;
     return;
   }
   x_stepper.set_detected_laser_px(detected_laser_px.first);
