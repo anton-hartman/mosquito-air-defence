@@ -403,15 +403,15 @@ void user_input(void) {
         } else if (ch == 'p') {
           std::cout << "Enter P: ";
           std::getline(std::cin, str_input);
-          K_P = std::stoi(str_input);
+          K_P = std::stof(str_input);
         } else if (ch == 'i') {
           std::cout << "Enter I: ";
           std::getline(std::cin, str_input);
-          K_I = std::stoi(str_input);
+          K_I = std::stof(str_input);
         } else if (ch == 'd') {
           std::cout << "Enter D: ";
           std::getline(std::cin, str_input);
-          K_D = std::stoi(str_input);
+          K_D = std::stof(str_input);
         }
       } else if (ch == 'k') {
         utils::manual_mode.store(false);

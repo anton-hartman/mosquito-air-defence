@@ -35,7 +35,6 @@ Stepper::Stepper(std::string name,
       detected_laser_px(0),
       new_setpoint(false),
       new_feedback(false),
-      prev_direction(gpio_clockwise),
       current_steps(0),
       target_steps(0),
       previous_error(0),
@@ -107,30 +106,15 @@ uint32_t Stepper::get_pid_error_and_set_direction(
 
   if (output > 0) {
     GPIO::output(direction_pin, gpio_clockwise);
-    // if (prev_direction.load() != gpio_clockwise) {
-    //   if (!backlash_steps()) {
-    //     return 0;
-    //   }
-    // }
   } else {
     GPIO::output(direction_pin, gpio_anticlockwise);
-    // if (prev_direction.load() != gpio_anticlockwise) {
-    //   if (!backlash_steps()) {
-    //     return 0;
-    //   }
-    // }
   }
 
   return abs(output);
 }
 
-// bool Stepper::backlash_steps() {
-//   int32_t backlash_steps = 100;
-//   return step(backlash_steps);
-// }
-
 bool Stepper::step(const uint32_t& steps) {
-  uint32_t auto_delay_us = 3000 / MICROSTEPS;
+  uint32_t auto_delay_us = 2000 / MICROSTEPS;
   for (uint32_t i = 0; i < steps; i++) {
     GPIO::output(step_pin, GPIO::HIGH);
     std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));

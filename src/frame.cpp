@@ -75,8 +75,8 @@ const double C_Y_DOUBLE = 240.0948537167988;
 const uint16_t C_X = std::round(C_X_DOUBLE);
 const uint16_t C_Y = std::round(C_Y_DOUBLE);
 
-const uint16_t TURRET_X_ORIGIN_PX = 533;
-const uint16_t TURRET_Y_ORIGIN_PX = 332;
+const uint16_t TURRET_X_ORIGIN_PX = 550;
+const uint16_t TURRET_Y_ORIGIN_PX = 334;
 
 // double K_P = 0.05;
 // double K_I = 0.0;

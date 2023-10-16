@@ -5,8 +5,8 @@
 
 namespace gpu {
 
-std::pair<uint16_t, uint16_t> ignore_region_top_left = {523, 293};
-std::pair<uint16_t, uint16_t> ignore_region_bottom_right = {553, 316};
+std::pair<uint16_t, uint16_t> ignore_region_top_left = {525, 268};
+std::pair<uint16_t, uint16_t> ignore_region_bottom_right = {578, 305};
 
 void set_ignore_region(std::pair<uint16_t, uint16_t> top_left,
                        std::pair<uint16_t, uint16_t> bottom_right) {

@@ -30,7 +30,6 @@ class Stepper {
   std::atomic<bool> new_setpoint;
   std::atomic<bool> new_feedback;
 
-  std::atomic<int8_t> prev_direction;
   std::atomic<int32_t> steps_at_detection;
   std::atomic<int32_t> current_steps;
   std::atomic<int32_t> target_steps;

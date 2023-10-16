@@ -25,7 +25,7 @@ void set_microsteps(uint8_t microsteps) {
 
 double K_P = 0.05;
 double K_I = 0.0;
-double K_D = 0.2;
+double K_D = 0.0;
 
 Turret::Turret(void)
     : run_flag(true),
