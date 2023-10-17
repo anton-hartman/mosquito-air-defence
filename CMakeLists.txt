@@ -27,19 +27,16 @@ set(SOURCE_FILES
     src/frame.cpp
     src/stepper.cpp
     src/turret.cpp
-    src/utils.cpp
-    src/detection.cpp
     src/image_processing.cu
 )
 
 set(HEADER_FILES
     include/frame.hpp
+    include/sys_flags.hpp
     include/pt.hpp
     include/camera.hpp
     include/stepper.hpp
     include/turret.hpp
-    include/utils.hpp
-    include/detection.hpp
     include/image_processing.hpp
 )
 

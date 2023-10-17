@@ -3,7 +3,7 @@
 #include "../include/camera.hpp"
 #include "../include/frame.hpp"
 #include "../include/stepper.hpp"
-#include "../include/utils.hpp"
+#include "../include/sys_flags.hpp"
 
 #define M1_ENABLE_PIN 32
 #define M1_DIR_PIN 33

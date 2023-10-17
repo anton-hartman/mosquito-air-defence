@@ -7,12 +7,11 @@
 #include <thread>
 #include <vector>
 #include "include/camera.hpp"
-#include "include/detection.hpp"
 #include "include/frame.hpp"
 #include "include/image_processing.hpp"
 #include "include/pt.hpp"
+#include "include/sys_flags.hpp"
 #include "include/turret.hpp"
-#include "include/utils.hpp"
 
 const double F_X = 1279.13149855341;
 const double F_Y = 1246.965909876756;
@@ -23,9 +22,9 @@ const int C_Y = std::round(C_Y_DOUBLE);
 const int TURRET_X_ORIGIN_PX = 550;
 const int TURRET_Y_ORIGIN_PX = 334;
 
-std::atomic<bool> utils::keyboard_manual_mode(true);
-std::atomic<bool> utils::run_flag(true);
-std::atomic<bool> utils::exit_flag(false);
+std::atomic<bool> sys::keyboard_manual_mode(true);
+std::atomic<bool> sys::run_flag(true);
+std::atomic<bool> sys::exit_flag(false);
 std::atomic<bool> enable_feedback_flag(false);
 std::atomic<bool> mos_detection_flag(false);
 
@@ -49,7 +48,7 @@ void exit_handler(int signo) {
   if (cap.isOpened()) {
     cap.release();
   }
-  utils::exit_flag.store(true);
+  sys::exit_flag.store(true);
 }
 
 cv::VideoCapture init_system(void) {
@@ -111,6 +110,17 @@ std::pair<cv::Point, cv::Point> get_bounding_box() {
   return std::make_pair(top_left_pt, bottom_right_pt);
 }
 
+void draw_target(cv::Mat& frame, const Pt& target, const cv::Scalar& colour) {
+  // Length of the perpendicular lines for target and setpoint
+  int line_length = 50;
+  // Draw a horizontal line passing through the target point
+  cv::line(frame, cv::Point(target.x - line_length, target.y),
+           cv::Point(target.x + line_length, target.y), colour, 2);
+  // Draw a vertical line passing through the target point
+  cv::line(frame, cv::Point(target.x, target.y - line_length),
+           cv::Point(target.x, target.y + line_length), colour, 2);
+}
+
 void markup_frame() {
   cv::rectangle(
       frame,
@@ -119,27 +129,27 @@ void markup_frame() {
                 gpu::ignore_region_bottom_right.y),
       cv::Scalar(0, 255, 0), 2);
 
-  utils::draw_target(
-      frame, Pt{static_cast<int>((C_X_DOUBLE)), static_cast<int>(C_Y_DOUBLE)},
-      cv::Scalar(0, 255, 255));
+  draw_target(frame,
+              Pt{static_cast<int>((C_X_DOUBLE)), static_cast<int>(C_Y_DOUBLE)},
+              cv::Scalar(0, 255, 255));
   cv::putText(frame, "Camera Origin", cv::Point(C_X_DOUBLE, C_Y_DOUBLE),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
-  utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
+  draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
   cv::putText(frame, "Turret Origin",
               cv::Point(turret.get_origin_px().x, turret.get_origin_px().y),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
-  utils::draw_target(frame, laser_pt_px, cv::Scalar(0, 0, 255));
+  draw_target(frame, laser_pt_px, cv::Scalar(0, 0, 255));
   cv::putText(
       frame, "Detected Laser", cv::Point(laser_pt_px.x, laser_pt_px.y + 20),
       cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-  utils::draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
+  draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
   cv::putText(frame, "Belief",
               cv::Point(turret.get_belief_px().x, turret.get_belief_px().y),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
-  utils::draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
+  draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
 
   Pt current_steps = turret.get_belief_steps();
   cv::putText(frame,
@@ -172,7 +182,7 @@ void markup_frame() {
                 cv::LINE_AA);
   }
   if (!mos_detection_flag.load()) {
-    if (utils::keyboard_manual_mode.load()) {
+    if (sys::keyboard_manual_mode.load()) {
       cv::putText(frame, "Keyboard = Manual", cv::Point(10, 70),
                   cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                   cv::LINE_AA);
@@ -233,7 +243,7 @@ void test_framerate(cv::VideoCapture& cap) {
   int frame_count = 0;
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  while (!utils::exit_flag.load()) {
+  while (!sys::exit_flag.load()) {
     if (!cap.read(frame)) {
       std::cerr << "Error: Could not read frame." << std::endl;
       break;
@@ -274,7 +284,7 @@ void process_video(cv::VideoCapture& cap) {
   int save_counter = 0;
 
   auto start_time = std::chrono::high_resolution_clock::now();
-  while (!utils::exit_flag.load()) {
+  while (!sys::exit_flag.load()) {
     cap >> frame;
     turret.save_steps_at_frame();
     if (frame.empty()) {
@@ -332,7 +342,7 @@ void process_video(cv::VideoCapture& cap) {
     cv::imshow("frame", frame);
     char key = static_cast<char>(cv::waitKey(1));
     if (key == 'q') {
-      utils::exit_flag.store(true);
+      sys::exit_flag.store(true);
     } else if (key == 'b') {
       std::pair<cv::Point, cv::Point> points = get_bounding_box();
       gpu::set_ignore_region({points.first.x, points.first.y},
@@ -358,7 +368,7 @@ void user_input(void) {
   char ch;
   std::string str_input;
 
-  while (!utils::exit_flag.load()) {
+  while (!sys::exit_flag.load()) {
     if (edit_mode) {
       std::cout << "Edit mode (? = info, e = exit):" << std::endl;
     } else {
@@ -374,7 +384,7 @@ void user_input(void) {
 
     if (ch == 'q') {
       std::cout << "Exit with keypress = q" << std::endl;
-      utils::exit_flag.store(true);
+      sys::exit_flag.store(true);
       break;
     }
 
@@ -472,7 +482,7 @@ void user_input(void) {
           std::cout << "Turret feedback off" << std::endl;
         }
       } else if (ch == 'c') {
-        if (utils::keyboard_manual_mode.load()) {
+        if (sys::keyboard_manual_mode.load()) {
           std::cout << "Enter step size: ";
           std::getline(std::cin, str_input);
           steps = std::stoi(str_input);
@@ -482,8 +492,8 @@ void user_input(void) {
           px = std::stoi(str_input);
         }
       } else if (ch == 'm') {
-        utils::keyboard_manual_mode.store(!utils::keyboard_manual_mode.load());
-        if (utils::keyboard_manual_mode.load()) {
+        sys::keyboard_manual_mode.store(!sys::keyboard_manual_mode.load());
+        if (sys::keyboard_manual_mode.load()) {
           std::cout << "Keyboard manual mode" << std::endl;
           enable_feedback_flag.store(false);
           std::cout << "Turret feedback off" << std::endl;
@@ -492,7 +502,7 @@ void user_input(void) {
         }
       } else if (ch == 'k') {
         if (!mos_detection_flag.load()) {
-          utils::keyboard_manual_mode.store(false);
+          sys::keyboard_manual_mode.store(false);
           std::vector<cv::Mat> initial_channels;
           cv::split(frame, initial_channels);
           gpu::set_background(initial_channels[2]);
@@ -506,7 +516,7 @@ void user_input(void) {
         }
       } else if (ch == 'w' or ch == 'a' or ch == 's' or ch == 'd') {
         if (!mos_detection_flag.load()) {
-          if (utils::keyboard_manual_mode.load()) {
+          if (sys::keyboard_manual_mode.load()) {
             turret.keyboard_manual(ch, steps);
           } else {
             turret.keyboard_auto(ch, px);

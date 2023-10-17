@@ -4,7 +4,7 @@
 #include <thread>
 #include "../include/frame.hpp"
 #include "../include/turret.hpp"
-#include "../include/utils.hpp"
+#include "../include/sys_flags.hpp"
 
 const int8_t CLOCKWISE = 1;
 const int8_t ANTI_CLOCKWISE = -1;
@@ -119,8 +119,8 @@ bool Stepper::step(const uint32_t& steps) {
     GPIO::output(step_pin, GPIO::HIGH);
     std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
     GPIO::output(step_pin, GPIO::LOW);
-    if (new_setpoint.load() or new_feedback.load() or !utils::run_flag.load() or
-        utils::exit_flag.load()) {
+    if (new_setpoint.load() or new_feedback.load() or !sys::run_flag.load() or
+        sys::exit_flag.load()) {
       return false;
     }
     std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
@@ -130,8 +130,8 @@ bool Stepper::step(const uint32_t& steps) {
 
 void Stepper::run_stepper() {
   auto start_time = std::chrono::high_resolution_clock::now();
-  while (!utils::exit_flag.load()) {
-    if (!utils::keyboard_manual_mode.load()) {
+  while (!sys::exit_flag.load()) {
+    if (!sys::keyboard_manual_mode.load()) {
       auto end_time = std::chrono::high_resolution_clock::now();
       double elapsed_time_ms =
           std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
