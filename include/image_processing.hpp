@@ -27,6 +27,6 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
                                   uint8_t threshold,
                                   bool bg_sub = true);
 void set_background(const cv::Mat& frame);
-void set_learning_rate(const float& bg_learning_rate);
+void set_bg_learning_rate(const float& bg_learning_rate);
 
 }  // namespace gpu

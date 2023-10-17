@@ -1,9 +1,8 @@
 #include "../include/turret.hpp"
 #include <JetsonGPIO.h>
-#include "../include/camera.hpp"
 #include "../include/frame.hpp"
+#include "../include/mads.hpp"
 #include "../include/stepper.hpp"
-#include "../include/sys_flags.hpp"
 
 #define M1_ENABLE_PIN 32
 #define M1_DIR_PIN 33
@@ -28,17 +27,16 @@ double K_I = 0.0;
 double K_D = 0.0;
 
 Turret::Turret(void)
-    : run_flag(true),
-      x_stepper("x_stepper",
+    : x_stepper("x_stepper",
                 M1_ENABLE_PIN,
                 M1_DIR_PIN,
                 M1_STEP_PIN,
                 1,
                 0,
                 X_STEPPER_DEPTH,
-                TURRET_X_ORIGIN_PX,
-                C_X_DOUBLE,
-                F_X),
+                mads::TURRET_X_ORIGIN_PX,
+                mads::C_X_DOUBLE,
+                mads::F_X),
       y_stepper("y_stepper",
                 M2_ENABLE_PIN,
                 M2_DIR_PIN,
@@ -46,9 +44,9 @@ Turret::Turret(void)
                 0,
                 1,
                 Y_STEPPER_DEPTH,
-                TURRET_Y_ORIGIN_PX,
-                C_Y_DOUBLE,
-                F_Y) {
+                mads::TURRET_Y_ORIGIN_PX,
+                mads::C_Y_DOUBLE,
+                mads::F_Y) {
   GPIO::setmode(GPIO::BOARD);
   GPIO::setup(M1_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
   GPIO::setup(M1_DIR_PIN, GPIO::OUT, GPIO::HIGH);
@@ -56,15 +54,6 @@ Turret::Turret(void)
   GPIO::setup(M2_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
   GPIO::setup(M2_DIR_PIN, GPIO::OUT, GPIO::HIGH);
   GPIO::setup(M2_STEP_PIN, GPIO::OUT, GPIO::LOW);
-  GPIO::setup(LASER_PIN, GPIO::OUT, GPIO::LOW);
-}
-
-void Turret::enable_laser(void) {
-  GPIO::output(LASER_PIN, GPIO::HIGH);
-}
-
-void Turret::disable_laser(void) {
-  GPIO::output(LASER_PIN, GPIO::LOW);
 }
 
 void Turret::save_steps_at_frame(void) {

@@ -15,6 +15,3 @@ extern const int COLS;
 extern const int ROWS;
 
 extern const std::string pipeline;
-
-extern const int TURRET_X_ORIGIN_PX;
-extern const int TURRET_Y_ORIGIN_PX;

@@ -1,0 +1,39 @@
+#pragma once
+
+#include <JetsonGPIO.h>
+#include <atomic>
+
+enum Control { MANUAL, FULL_AUTO, KEYBOARD_AUTO };
+
+class mads {
+ private:
+  static std::atomic<bool> laser;
+
+ public:
+  static constexpr int LASER_PIN = 11;
+  static constexpr double F_X = 1279.13149855341;
+  static constexpr double F_Y = 1246.965909876756;
+  static constexpr double C_X_DOUBLE = 457.9588295305912;
+  static constexpr double C_Y_DOUBLE = 240.0948537167988;
+  static const int C_X;
+  static const int C_Y;
+  static constexpr int TURRET_X_ORIGIN_PX = 550;
+  static constexpr int TURRET_Y_ORIGIN_PX = 334;
+
+  static std::atomic<bool> exit_flag;
+  static std::atomic<Control> control;
+  static std::atomic<bool> feedback;
+  static std::atomic<bool> turret_stopped;
+
+  static void set_laser(bool on) {
+    if (on) {
+      GPIO::output(LASER_PIN, GPIO::HIGH);
+      laser.store(true);
+    } else {
+      GPIO::output(LASER_PIN, GPIO::LOW);
+      laser.store(false);
+    }
+  }
+
+  static bool get_laser_state(void) { return laser.load(); }
+};

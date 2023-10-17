@@ -1,10 +1,9 @@
-#include <JetsonGPIO.h>
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include "../include/camera.hpp"
 #include "../include/frame.hpp"
 #include "../include/image_processing.hpp"
+#include "../include/mads.hpp"
 
 namespace gpu {
 
@@ -232,7 +231,7 @@ Pt distinguish_laser_only_2(const std::vector<Pt>& pts) {
 
   // When both lasers are at or below the camera origin, then the one closer to
   // the origin of the camera is the laser.
-  if (y1 >= C_Y && y2 >= C_Y) {
+  if (y1 >= mads::C_Y && y2 >= mads::C_Y) {
     if (y1 < y2) {
       // y1 is closer to the camera origin
       return {x1, y1};
@@ -243,7 +242,7 @@ Pt distinguish_laser_only_2(const std::vector<Pt>& pts) {
 
   // When both lasers are at or above the camera origin, then the one farther
   // from the origin of the camera is the laser.
-  if (y1 <= C_Y && y2 <= C_Y) {
+  if (y1 <= mads::C_Y && y2 <= mads::C_Y) {
     if (y1 < y2) {
       // y1 is further from the camera origin
       return {x1, y1};
@@ -253,7 +252,7 @@ Pt distinguish_laser_only_2(const std::vector<Pt>& pts) {
   }
 
   // When lasers are on either side of the camera origin
-  if (y1 < C_Y)
+  if (y1 < mads::C_Y)
     return {x1, y1};
   else
     return {x2, y2};
@@ -360,7 +359,7 @@ void set_background(const cv::Mat& frame) {
   cudaMemcpy(d_background, frame.ptr(), frame_size, cudaMemcpyHostToDevice);
 }
 
-void set_learning_rate(const float& bg_learning_rate) {
+void set_bg_learning_rate(const float& bg_learning_rate) {
   cudaMemcpyToSymbol(d_learning_rate, &bg_learning_rate, sizeof(float));
 }
 

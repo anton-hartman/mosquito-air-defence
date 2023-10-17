@@ -22,9 +22,6 @@ class Stepper {
   const double principal_point;  // principal point (usually the image center).
   const double focal_length;     // focal lengths in pixel units.
 
-  int32_t pos_step_limit;
-  int32_t neg_step_limit;
-
   std::atomic<uint16_t> target_px;
   std::atomic<uint16_t> detected_laser_px;
   std::atomic<bool> new_setpoint;
@@ -78,7 +75,6 @@ class Stepper {
   void correct_belief();
   void update_target_steps();
   bool step(const uint32_t& steps);
-  bool backlash_steps();
 
  public:
   Stepper(std::string name,

@@ -18,8 +18,6 @@ extern double K_D;
 
 class Turret {
  public:
-  static constexpr int LASER_PIN = 11;
-
   static const int TANK_DEPTH = 318;
   static const int CAMERA_DEPTH = 793 + TANK_DEPTH;  // mm
   static const int TURRET_DEPTH = 395 + TANK_DEPTH;
@@ -29,14 +27,11 @@ class Turret {
       TURRET_DEPTH + VERTICAL_DISTANCE_BETWEEN_MIRRORS;
 
  private:
-  std::atomic<bool> run_flag;
   Stepper x_stepper;
   Stepper y_stepper;
 
  public:
   Turret(void);
-  static void enable_laser(void);
-  static void disable_laser(void);
 
   void save_steps_at_frame(void);
   void set_origin(const Pt turret_origin_px);

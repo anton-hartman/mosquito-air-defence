@@ -3,7 +3,7 @@
 #include <chrono>
 #include <thread>
 #include "../include/frame.hpp"
-#include "../include/sys_flags.hpp"
+#include "../include/mads.hpp"
 #include "../include/turret.hpp"
 
 const int8_t CLOCKWISE = 1;
@@ -29,8 +29,6 @@ Stepper::Stepper(std::string name,
       turret_origin_px(turret_origin_px),
       principal_point(c),
       focal_length(f),
-      pos_step_limit(1'000'000),
-      neg_step_limit(-1'000'000),
       target_px(150),
       detected_laser_px(0),
       new_setpoint(false),
@@ -119,8 +117,7 @@ bool Stepper::step(const uint32_t& steps) {
     GPIO::output(step_pin, GPIO::HIGH);
     std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
     GPIO::output(step_pin, GPIO::LOW);
-    if (new_setpoint.load() or new_feedback.load() or !sys::run_flag.load() or
-        sys::exit_flag.load()) {
+    if (new_setpoint.load() or new_feedback.load() or mads::exit_flag.load()) {
       return false;
     }
     std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));
@@ -130,8 +127,8 @@ bool Stepper::step(const uint32_t& steps) {
 
 void Stepper::run_stepper() {
   auto start_time = std::chrono::high_resolution_clock::now();
-  while (!sys::exit_flag.load()) {
-    if (!sys::keyboard_manual_mode.load()) {
+  while (!mads::exit_flag.load()) {
+    if (mads::control.load() != Control::MANUAL) {
       auto end_time = std::chrono::high_resolution_clock::now();
       double elapsed_time_ms =
           std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(

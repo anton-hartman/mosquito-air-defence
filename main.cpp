@@ -6,28 +6,11 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "include/camera.hpp"
 #include "include/frame.hpp"
 #include "include/image_processing.hpp"
+#include "include/mads.hpp"
 #include "include/pt.hpp"
-#include "include/sys_flags.hpp"
 #include "include/turret.hpp"
-
-const double F_X = 1279.13149855341;
-const double F_Y = 1246.965909876756;
-const double C_X_DOUBLE = 457.9588295305912;
-const double C_Y_DOUBLE = 240.0948537167988;
-const int C_X = std::round(C_X_DOUBLE);
-const int C_Y = std::round(C_Y_DOUBLE);
-const int TURRET_X_ORIGIN_PX = 550;
-const int TURRET_Y_ORIGIN_PX = 334;
-
-std::atomic<bool> sys::keyboard_manual_mode(true);
-std::atomic<bool> sys::run_flag(true);
-std::atomic<bool> sys::exit_flag(false);
-std::atomic<bool> enable_feedback_flag(false);
-std::atomic<bool> mos_detection_flag(false);
-std::atomic<bool> sys::laser_state(false);
 
 Turret turret;
 cv::VideoCapture cap;
@@ -35,7 +18,6 @@ cv::Mat frame;
 cv::Mat red_channel;
 
 float bg_learning_rate = 0.0;
-bool turret_stopped = true;
 bool mos_bg_sub = true;
 int laser_threshold = 200;
 int mos_threshold = 30;
@@ -49,7 +31,7 @@ void exit_handler(int signo) {
   if (cap.isOpened()) {
     cap.release();
   }
-  sys::exit_flag.store(true);
+  mads::exit_flag.store(true);
 }
 
 cv::VideoCapture init_system(void) {
@@ -60,7 +42,7 @@ cv::VideoCapture init_system(void) {
     std::cerr << "Error opening cv video capture" << std::endl;
     exit(-1);
   }
-
+  GPIO::setup(mads::LASER_PIN, GPIO::OUT, GPIO::LOW);
   signal(SIGINT, exit_handler);
   return cap;
 }
@@ -127,10 +109,8 @@ void markup_frame() {
                 gpu::ignore_region_bottom_right.cv_pt(), cv::Scalar(0, 255, 0),
                 2);
 
-  draw_target(frame,
-              Pt{static_cast<int>((C_X_DOUBLE)), static_cast<int>(C_Y_DOUBLE)},
-              cv::Scalar(0, 255, 255));
-  cv::putText(frame, "Camera Origin", cv::Point(C_X_DOUBLE, C_Y_DOUBLE),
+  draw_target(frame, Pt{mads::C_X, mads::C_Y}, cv::Scalar(0, 255, 255));
+  cv::putText(frame, "Camera Origin", cv::Point(mads::C_X, mads::C_Y),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
   draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
@@ -168,7 +148,7 @@ void markup_frame() {
               cv::Point(COLS - 230, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 
-  if (turret_stopped) {
+  if (mads::turret_stopped.load()) {
     cv::putText(frame, "Turret Disabled", cv::Point(10, 50),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                 cv::LINE_AA);
@@ -177,36 +157,27 @@ void markup_frame() {
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
                 cv::LINE_AA);
   }
-  if (!mos_detection_flag.load()) {
-    if (sys::keyboard_manual_mode.load()) {
-      cv::putText(frame, "Keyboard = Manual", cv::Point(10, 70),
-                  cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
-                  cv::LINE_AA);
-    } else {
-      cv::putText(frame, "Keyboard = Auto", cv::Point(10, 70),
-                  cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
-                  cv::LINE_AA);
-    }
-  } else {
-    cv::putText(frame, "Keyboard = OFF", cv::Point(10, 70),
+
+  if (mads::control.load() == Control::MANUAL) {
+    cv::putText(frame, "Control = MANUAL", cv::Point(10, 70),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(50, 50, 50), 1,
                 cv::LINE_AA);
+  } else if (mads::control.load() == Control::KEYBOARD_AUTO) {
+    cv::putText(frame, "Control = KEYBOARD_AUTO", cv::Point(10, 70),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
+                cv::LINE_AA);
+  } else {
+    cv::putText(frame, "Control = FULL_AUTO", cv::Point(10, 70),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
+                cv::LINE_AA);
   }
-  if (enable_feedback_flag.load()) {
+
+  if (mads::feedback.load()) {
     cv::putText(frame, "Feedback Enabled", cv::Point(10, 90),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
                 cv::LINE_AA);
   } else {
     cv::putText(frame, "Feedback Disabled", cv::Point(10, 90),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
-                cv::LINE_AA);
-  }
-  if (mos_detection_flag.load()) {
-    cv::putText(frame, "Mos Detection = ON", cv::Point(10, 110),
-                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 255, 0), 1,
-                cv::LINE_AA);
-  } else {
-    cv::putText(frame, "Mos Detection = OFF", cv::Point(10, 110),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                 cv::LINE_AA);
   }
@@ -227,7 +198,8 @@ void markup_frame() {
   cv::putText(frame, "Learning rate = " + std::to_string(bg_learning_rate),
               cv::Point(10, 190), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-  cv::putText(frame, "Laser = (" + std::to_string(sys::get_laser_state()) + ")",
+  cv::putText(frame,
+              "Laser = (" + std::to_string(mads::get_laser_state()) + ")",
               cv::Point(10, 210), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 }
@@ -242,7 +214,7 @@ void test_framerate(cv::VideoCapture& cap) {
   int frame_count = 0;
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  while (!sys::exit_flag.load()) {
+  while (!mads::exit_flag.load()) {
     if (!cap.read(frame)) {
       std::cerr << "Error: Could not read frame." << std::endl;
       break;
@@ -294,10 +266,30 @@ void remove_laser_pts(const std::vector<Pt>& laser_pts,
   }
 }
 
+// void laser_toggle_frame(cv::VideoCapture& cap) {
+//   while (!mads::exit_flag.load()) {
+//     cap >> frame;
+//     if (frame.empty()) {
+//       std::cout << "Frame is empty, exiting." << std::endl;
+//       exit(0);
+//     }
+
+//     if (mads::get_laser_state()) {
+//       cv::imshow("with laser", frame);
+//       cv::waitKey(1);
+//       mads::set_laser(false);
+//     } else {
+//       cv::imshow("without laser", frame);
+//       cv::waitKey(1);
+//       sys::set_laser(true);
+//     }
+//   }
+// }
+
 void process_video(cv::VideoCapture& cap) {
   std::vector<cv::Mat> channels;
   gpu::init_gpu();
-  gpu::set_learning_rate(bg_learning_rate);
+  gpu::set_bg_learning_rate(bg_learning_rate);
   std::cout << "ROWS: " << ROWS << std::endl;
   std::cout << "COLS: " << COLS << std::endl;
 
@@ -305,7 +297,7 @@ void process_video(cv::VideoCapture& cap) {
   int save_counter = 0;
 
   auto start_time = std::chrono::high_resolution_clock::now();
-  while (!sys::exit_flag.load()) {
+  while (!mads::exit_flag.load()) {
     cap >> frame;
     turret.save_steps_at_frame();
     if (frame.empty()) {
@@ -324,7 +316,7 @@ void process_video(cv::VideoCapture& cap) {
     // cv::Mat undistorted_frame;
     // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
 
-    if (mos_detection_flag.load()) {
+    if (mads::control.load() == Control::FULL_AUTO) {
       mos_pts_px = gpu::detect_mosquitoes(red_channel.clone(), mos_threshold,
                                           mos_bg_sub);
       std::vector<Pt> laser_pts =
@@ -351,7 +343,7 @@ void process_video(cv::VideoCapture& cap) {
       std::vector<Pt> laser_pts =
           gpu::detect_laser(red_channel, laser_threshold);
       laser_pt_px = gpu::distinguish_laser_only_2(laser_pts);
-      if (enable_feedback_flag.load()) {
+      if (mads::feedback.load()) {
         turret.update_belief(laser_pt_px);
       }
     }
@@ -377,7 +369,7 @@ void process_video(cv::VideoCapture& cap) {
     cv::imshow("frame", frame);
     char key = static_cast<char>(cv::waitKey(1));
     if (key == 'q') {
-      sys::exit_flag.store(true);
+      mads::exit_flag.store(true);
     } else if (key == 'b') {
       std::pair<cv::Point, cv::Point> points = get_bounding_box();
       gpu::set_ignore_region({points.first.x, points.first.y},
@@ -403,14 +395,16 @@ void user_input(void) {
   char ch;
   std::string str_input;
 
-  while (!sys::exit_flag.load()) {
+  while (!mads::exit_flag.load()) {
     if (edit_mode) {
       std::cout << "Edit mode (? = info, e = exit):" << std::endl;
     } else {
-      if (!mos_detection_flag.load()) {
-        std::cout << "Manual control mode (? = info, e = edit mode): ";
+      if (mads::control.load() == Control::MANUAL) {
+        std::cout << "MANUAL control mode (? = info, e = edit mode): ";
+      } else if (mads::control.load() == Control::KEYBOARD_AUTO) {
+        std::cout << "KEYBOARD_AUTO control mode (? = info, e = edit mode): ";
       } else {
-        std::cout << "Auto control mode (? = info, e = edit mode): ";
+        std::cout << "FULL_AUTO control mode (? = info, e = edit mode): ";
       }
     }
 
@@ -419,7 +413,7 @@ void user_input(void) {
 
     if (ch == 'q') {
       std::cout << "Exit with keypress = q" << std::endl;
-      sys::exit_flag.store(true);
+      mads::exit_flag.store(true);
       break;
     }
 
@@ -470,7 +464,7 @@ void user_input(void) {
           std::cout << "Enter background learning rate: ";
           std::getline(std::cin, str_input);
           bg_learning_rate = std::stof(str_input);
-          gpu::set_learning_rate(bg_learning_rate);
+          gpu::set_bg_learning_rate(bg_learning_rate);
           std::cout << "Learning rate: " << std::to_string(bg_learning_rate)
                     << std::endl;
         }
@@ -490,24 +484,25 @@ void user_input(void) {
         std::cout << "Background set to curret frame" << std::endl;
       } else if (ch == 'h') {
         turret.home(laser_pt_px);
-      } else if (turret_stopped and (ch == 'e' or ch == 'w' or ch == 'a' or
-                                     ch == 's' or ch == 'd')) {
-        turret_stopped = false;
+      } else if (mads::turret_stopped.load() and
+                 (ch == 'e' or ch == 'w' or ch == 'a' or ch == 's' or
+                  ch == 'd')) {
+        mads::turret_stopped.store(false);
         turret.start_turret();
         std::cout << "Turret started" << std::endl;
       } else if (ch == 'z') {
-        if (turret_stopped) {
-          turret_stopped = false;
+        if (mads::turret_stopped.load()) {
+          mads::turret_stopped.store(false);
           turret.start_turret();
           std::cout << "Turret started" << std::endl;
         } else {
-          turret_stopped = true;
+          mads::turret_stopped.store(true);
           turret.stop_turret();
           std::cout << "Turret stopped" << std::endl;
         }
       } else if (ch == 'l') {
-        sys::set_laser(!sys::get_laser_state());
-        if (sys::get_laser_state()) {
+        mads::set_laser(!mads::get_laser_state());
+        if (mads::get_laser_state()) {
           std::cout << "Laser on" << std::endl;
         } else {
           std::cout << "Laser off" << std::endl;
@@ -517,14 +512,14 @@ void user_input(void) {
         std::cout << "Turrt origin set to: " << laser_pt_px.x << ", "
                   << laser_pt_px.y << std::endl;
       } else if (ch == 'f') {
-        enable_feedback_flag.store(!enable_feedback_flag.load());
-        if (enable_feedback_flag.load()) {
+        mads::feedback.store(!mads::feedback.load());
+        if (mads::feedback.load()) {
           std::cout << "Turret feedback on" << std::endl;
         } else {
           std::cout << "Turret feedback off" << std::endl;
         }
       } else if (ch == 'c') {
-        if (sys::keyboard_manual_mode.load()) {
+        if (mads::control.load() == Control::MANUAL) {
           std::cout << "Enter step size: ";
           std::getline(std::cin, str_input);
           steps = std::stoi(str_input);
@@ -534,35 +529,27 @@ void user_input(void) {
           px = std::stoi(str_input);
         }
       } else if (ch == 'm') {
-        sys::keyboard_manual_mode.store(!sys::keyboard_manual_mode.load());
-        if (sys::keyboard_manual_mode.load()) {
-          std::cout << "Keyboard manual mode" << std::endl;
-          enable_feedback_flag.store(false);
-          std::cout << "Turret feedback off" << std::endl;
+        if (mads::control.load() != Control::MANUAL) {
+          mads::control.store(Control::MANUAL);
+          mads::feedback.store(false);
+          std::cout << "MANUAL control = Turret feedback OFF" << std::endl;
         } else {
-          std::cout << "Keyboard auto mode" << std::endl;
+          mads::control.store(Control::KEYBOARD_AUTO);
         }
       } else if (ch == 'k') {
-        if (!mos_detection_flag.load()) {
-          sys::keyboard_manual_mode.store(false);
+        if (mads::control.load() != Control::FULL_AUTO) {
           // std::vector<cv::Mat> initial_channels;
           // cv::split(frame, initial_channels);
           // gpu::set_background(initial_channels[2]);
-          mos_detection_flag.store(true);
-          std::cout << "Mosquito kill mode on " << mos_detection_flag.load()
-                    << std::endl;
+          mads::control.store(Control::FULL_AUTO);
         } else {
-          mos_detection_flag.store(false);
-          std::cout << "Mosquito kill mode off " << mos_detection_flag.load()
-                    << std::endl;
+          mads::control.store(Control::MANUAL);
         }
       } else if (ch == 'w' or ch == 'a' or ch == 's' or ch == 'd') {
-        if (!mos_detection_flag.load()) {
-          if (sys::keyboard_manual_mode.load()) {
-            turret.keyboard_manual(ch, steps);
-          } else {
-            turret.keyboard_auto(ch, px);
-          }
+        if (mads::control.load() == Control::MANUAL) {
+          turret.keyboard_manual(ch, steps);
+        } else if (mads::control.load() == Control::KEYBOARD_AUTO) {
+          turret.keyboard_auto(ch, px);
         } else {
           std::cout
               << "Cannot manually move turret while mosquito detection is on"
@@ -586,18 +573,18 @@ void turret_vertical(void) {
 }
 
 int main(void) {
-  set_microsteps(32);
-  sys::set_laser(false);
   cv::VideoCapture cap = init_system();
+  set_microsteps(32);
   cv::Mat initial_frame;
   cap >> initial_frame;
 
   std::vector<cv::Mat> initial_channels;
   cv::split(initial_frame, initial_channels);
   gpu::set_background(initial_channels[2]);
-  sys::set_laser(true);
+  mads::set_laser(true);
 
   std::thread user_input_thread(user_input);
+  // std::thread video_thread(laser_toggle_frame, std::ref(cap));
   std::thread video_thread(process_video, std::ref(cap));
   // std::thread video_thread(test_framerate, std::ref(cap));
   std::thread turret_horizontal_thread(turret_horizontal);
