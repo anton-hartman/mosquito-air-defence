@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <string>
 
 extern const std::string width;
@@ -17,24 +16,5 @@ extern const int ROWS;
 
 extern const std::string pipeline;
 
-extern const double F_X;
-extern const double F_Y;
-extern const double C_X_DOUBLE;
-extern const double C_Y_DOUBLE;
-extern const uint16_t C_X;
-extern const uint16_t C_Y;
-
-extern const uint16_t TURRET_X_ORIGIN_PX;
-extern const uint16_t TURRET_Y_ORIGIN_PX;
-
-struct Pt {
-  int x, y;
-};
-
-struct Blob {
-  int min_x, max_x;
-  int min_y, max_y;
-  int cen_x, cen_y;
-  int n_pixels;
-  int ID;
-};
+extern const int TURRET_X_ORIGIN_PX;
+extern const int TURRET_Y_ORIGIN_PX;

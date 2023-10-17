@@ -1,38 +1,16 @@
 #pragma once
 
 #include <atomic>
-#include <cstdint>
 #include <opencv2/opencv.hpp>
-#include <utility>
+#include "pt.hpp"
 
 namespace utils {
 
 extern std::atomic<bool> exit_flag;
 extern std::atomic<bool> run_flag;
-extern std::atomic<bool> manual_mode;
+extern std::atomic<bool> keyboard_manual_mode;
 
-/**
- * @param x uint16_t
- * @param y uint16_t
- * @param radius uint16_t
- */
-struct Circle {
-  uint16_t x;
-  uint16_t y;
-  uint16_t radius;
-
-  Circle() {}
-
-  Circle(uint16_t x, uint16_t y, uint16_t radius)
-      : x(x), y(y), radius(radius) {}
-
-  Circle(std::pair<uint16_t, uint16_t> center)
-      : x(center.first), y(center.second) {}
-};
-
-void draw_target(cv::Mat& frame,
-                 const std::pair<uint16_t, uint16_t>& target,
-                 const cv::Scalar& colour);
+void draw_target(cv::Mat& frame, const Pt& target, const cv::Scalar& colour);
 
 /**
  * @brief Puts a text label on an image.
@@ -49,7 +27,7 @@ void draw_target(cv::Mat& frame,
  */
 void put_label(cv::Mat& img,
                const std::string& label,
-               const std::pair<uint16_t, uint16_t>& origin,
+               const Pt& origin,
                const double& font_scale = 1);
 
 /**

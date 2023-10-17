@@ -1,6 +1,6 @@
-
 #include "../include/turret.hpp"
 #include <JetsonGPIO.h>
+#include "../include/camera.hpp"
 #include "../include/frame.hpp"
 #include "../include/stepper.hpp"
 #include "../include/utils.hpp"
@@ -13,11 +13,11 @@
 #define M2_DIR_PIN 18
 #define M2_STEP_PIN 12
 
-uint8_t MICROSTEPS;
+int MICROSTEPS;
 double MICROSTEP_ANGLE_DEG;
 double MICROSTEP_ANGLE_RAD;
 
-void set_microsteps(uint8_t microsteps) {
+void set_microsteps(int microsteps) {
   MICROSTEPS = microsteps;
   MICROSTEP_ANGLE_DEG = FULL_STEP_ANGLE_DEG / MICROSTEPS;
   MICROSTEP_ANGLE_RAD = MICROSTEP_ANGLE_DEG * M_PI / 180;
@@ -63,9 +63,9 @@ void Turret::save_steps_at_frame() {
   y_stepper.save_steps();
 }
 
-void Turret::set_origin(const std::pair<uint16_t, uint16_t> turret_origin_px) {
-  x_stepper.set_origin_px(turret_origin_px.first);
-  y_stepper.set_origin_px(turret_origin_px.second);
+void Turret::set_origin(const Pt turret_origin_px) {
+  x_stepper.set_origin_px(turret_origin_px.x);
+  y_stepper.set_origin_px(turret_origin_px.y);
   update_belief(turret_origin_px);
   update_setpoint(turret_origin_px);
 }
@@ -88,78 +88,70 @@ void Turret::start_turret(void) {
   y_stepper.enable_stepper();
 }
 
-std::pair<uint16_t, uint16_t> Turret::get_origin_px(void) const {
-  return std::pair<uint16_t, uint16_t>(x_stepper.get_origin_px(),
-                                       y_stepper.get_origin_px());
+Pt Turret::get_origin_px(void) const {
+  return Pt{x_stepper.get_origin_px(), y_stepper.get_origin_px()};
 }
 
-std::pair<uint16_t, uint16_t> Turret::get_belief_px(void) const {
-  return std::pair<uint16_t, uint16_t>(x_stepper.get_current_px(),
-                                       y_stepper.get_current_px());
+Pt Turret::get_belief_px(void) const {
+  return Pt{x_stepper.get_current_px(), y_stepper.get_current_px()};
 }
 
-std::pair<uint16_t, uint16_t> Turret::get_setpoint_px(void) const {
-  return std::pair<uint16_t, uint16_t>(x_stepper.get_target_px(),
-                                       y_stepper.get_target_px());
+Pt Turret::get_setpoint_px(void) const {
+  return Pt{x_stepper.get_target_px(), y_stepper.get_target_px()};
 }
 
-std::pair<int32_t, int32_t> Turret::get_belief_steps(void) const {
-  return std::pair<int32_t, int32_t>(x_stepper.get_current_steps(),
-                                     y_stepper.get_current_steps());
+Pt Turret::get_belief_steps(void) const {
+  return Pt{x_stepper.get_current_steps(), y_stepper.get_current_steps()};
 }
 
-std::pair<int32_t, int32_t> Turret::get_setpoint_steps(void) const {
-  return std::pair<int32_t, int32_t>(x_stepper.get_target_steps(),
-                                     y_stepper.get_target_steps());
+Pt Turret::get_setpoint_steps(void) const {
+  return Pt{x_stepper.get_target_steps(), y_stepper.get_target_steps()};
 }
 
-void Turret::home(const std::pair<int32_t, int32_t> detected_laser_px) {
-  x_stepper.set_target_px(detected_laser_px.first);
-  y_stepper.set_target_px(detected_laser_px.second);
-  x_stepper.set_detected_laser_px(detected_laser_px.first);
-  y_stepper.set_detected_laser_px(detected_laser_px.second);
+void Turret::home(const Pt detected_laser_px) {
+  x_stepper.set_target_px(detected_laser_px.x);
+  y_stepper.set_target_px(detected_laser_px.y);
+  x_stepper.set_detected_laser_px(detected_laser_px.x);
+  y_stepper.set_detected_laser_px(detected_laser_px.y);
   x_stepper.home();
   y_stepper.home();
 }
 
-void Turret::update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px) {
-  if (setpoint_px.first < 0 or setpoint_px.second < 0 or
-      setpoint_px.first > COLS or setpoint_px.second > ROWS) {
-    // std::cout << "Invalid setpoint" << std::endl;
+void Turret::update_setpoint(const Pt setpoint_px) {
+  if (setpoint_px.x < 0 or setpoint_px.y < 0 or setpoint_px.x > COLS or
+      setpoint_px.y > ROWS) {
     return;
   }
-  x_stepper.set_target_px(setpoint_px.first);
-  y_stepper.set_target_px(setpoint_px.second);
+  x_stepper.set_target_px(setpoint_px.x);
+  y_stepper.set_target_px(setpoint_px.y);
 }
 
-void Turret::update_belief(
-    const std::pair<int32_t, int32_t> detected_laser_px) {
-  if (detected_laser_px.first < 0 or detected_laser_px.second < 0 or
-      detected_laser_px.first > COLS or detected_laser_px.second > ROWS) {
-    // std::cout << "Invalid belief" << std::endl;
+void Turret::update_belief(const Pt detected_laser_px) {
+  if (detected_laser_px.x < 0 or detected_laser_px.y < 0 or
+      detected_laser_px.x > COLS or detected_laser_px.y > ROWS) {
     return;
   }
-  x_stepper.set_detected_laser_px(detected_laser_px.first);
-  y_stepper.set_detected_laser_px(detected_laser_px.second);
+  x_stepper.set_detected_laser_px(detected_laser_px.x);
+  y_stepper.set_detected_laser_px(detected_laser_px.y);
 }
 
 void Turret::keyboard_auto(int ch, int px) {
   switch (ch) {
     case 'w':
-      update_setpoint(std::pair<uint16_t, uint16_t>(
-          x_stepper.get_target_px(), y_stepper.get_target_px() - px));
+      update_setpoint(
+          Pt{x_stepper.get_target_px(), y_stepper.get_target_px() - px});
       break;
     case 's':
-      update_setpoint(std::pair<uint16_t, uint16_t>(
-          x_stepper.get_target_px(), y_stepper.get_target_px() + px));
+      update_setpoint(
+          Pt{x_stepper.get_target_px(), y_stepper.get_target_px() + px});
       break;
     case 'a':
-      update_setpoint(std::pair<uint16_t, uint16_t>(
-          x_stepper.get_target_px() - px, y_stepper.get_target_px()));
+      update_setpoint(
+          Pt{x_stepper.get_target_px() - px, y_stepper.get_target_px()});
       break;
     case 'd':
-      update_setpoint(std::pair<uint16_t, uint16_t>(
-          x_stepper.get_target_px() + px, y_stepper.get_target_px()));
+      update_setpoint(
+          Pt{x_stepper.get_target_px() + px, y_stepper.get_target_px()});
       break;
     default:
       break;

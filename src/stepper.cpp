@@ -131,7 +131,7 @@ bool Stepper::step(const uint32_t& steps) {
 void Stepper::run_stepper() {
   auto start_time = std::chrono::high_resolution_clock::now();
   while (!utils::exit_flag.load()) {
-    if (!utils::manual_mode.load()) {
+    if (!utils::keyboard_manual_mode.load()) {
       auto end_time = std::chrono::high_resolution_clock::now();
       double elapsed_time_ms =
           std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(

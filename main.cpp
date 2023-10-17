@@ -5,37 +5,42 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <thread>
-#include <utility>
 #include <vector>
+#include "include/camera.hpp"
 #include "include/detection.hpp"
 #include "include/frame.hpp"
 #include "include/image_processing.hpp"
+#include "include/pt.hpp"
 #include "include/turret.hpp"
 #include "include/utils.hpp"
 
-Turret turret;
+const double F_X = 1279.13149855341;
+const double F_Y = 1246.965909876756;
+const double C_X_DOUBLE = 457.9588295305912;
+const double C_Y_DOUBLE = 240.0948537167988;
+const int C_X = std::round(C_X_DOUBLE);
+const int C_Y = std::round(C_Y_DOUBLE);
+const int TURRET_X_ORIGIN_PX = 550;
+const int TURRET_Y_ORIGIN_PX = 334;
 
-std::atomic<bool> utils::manual_mode(true);
+std::atomic<bool> utils::keyboard_manual_mode(true);
 std::atomic<bool> utils::run_flag(true);
 std::atomic<bool> utils::exit_flag(false);
 std::atomic<bool> enable_feedback_flag(false);
 std::atomic<bool> mos_detection_flag(false);
 
+Turret turret;
 cv::VideoCapture cap;
 cv::Mat frame;
 cv::Mat red_channel;
-float learning_rate = 0.0;
 
+float bg_learning_rate = 0.0;
 bool turret_stopped = true;
-
-int laser_threshold = 230;
 bool mos_bg_sub = true;
+int laser_threshold = 200;
 int mos_threshold = 30;
-
-// Laser co-ordinates plus uncertainty in pixels
-utils::Circle laser_belief_region_px;
-std::pair<int32_t, int32_t> laser_pos_px;
-std::vector<Pt> mosquitoes_px;
+Pt laser_pt_px;
+std::vector<Pt> mosquitoe_pts_px;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -75,10 +80,8 @@ bool save_frame_as_jpeg(const cv::Mat& frame, int& counter) {
   return true;
 }
 
-// Global variables
 bool drawing = false;
 cv::Point top_left_pt, bottom_right_pt;
-
 // Mouse callback function
 void draw_rectangle(int event, int x, int y, int flags, void* param) {
   if (event == cv::EVENT_LBUTTONDOWN) {
@@ -95,70 +98,67 @@ void draw_rectangle(int event, int x, int y, int flags, void* param) {
 std::pair<cv::Point, cv::Point> get_bounding_box() {
   // Make a deep copy of the global frame
   cv::Mat local_frame = frame.clone();
-
   cv::namedWindow("Draw a rectangle");
-
   // Assign draw_rectangle function to mouse callback
   cv::setMouseCallback("Draw a rectangle", draw_rectangle, &local_frame);
-
   while (true) {
     cv::imshow("Draw a rectangle", local_frame);
-
     // Exit when 'Esc' is pressed
     if (cv::waitKey(1) == 27)
       break;
   }
-
   cv::destroyAllWindows();
-
   return std::make_pair(top_left_pt, bottom_right_pt);
 }
 
 void markup_frame() {
-  cv::rectangle(frame,
-                cv::Point(gpu::ignore_region_top_left.first,
-                          gpu::ignore_region_top_left.second),
-                cv::Point(gpu::ignore_region_bottom_right.first,
-                          gpu::ignore_region_bottom_right.second),
-                cv::Scalar(0, 255, 0), 2);
+  cv::rectangle(
+      frame,
+      cv::Point(gpu::ignore_region_top_left.x, gpu::ignore_region_top_left.y),
+      cv::Point(gpu::ignore_region_bottom_right.x,
+                gpu::ignore_region_bottom_right.y),
+      cv::Scalar(0, 255, 0), 2);
 
-  utils::draw_target(frame, {C_X_DOUBLE, C_Y_DOUBLE}, cv::Scalar(0, 255, 255));
+  utils::draw_target(
+      frame, Pt{static_cast<int>((C_X_DOUBLE)), static_cast<int>(C_Y_DOUBLE)},
+      cv::Scalar(0, 255, 255));
   cv::putText(frame, "Camera Origin", cv::Point(C_X_DOUBLE, C_Y_DOUBLE),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
   utils::draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
-  cv::putText(
-      frame, "Turret Origin",
-      cv::Point(turret.get_origin_px().first, turret.get_origin_px().second),
-      cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-  utils::draw_target(frame, laser_pos_px, cv::Scalar(0, 0, 255));
-  cv::putText(frame, "Detected Laser",
-              cv::Point(laser_pos_px.first, laser_pos_px.second + 20),
+  cv::putText(frame, "Turret Origin",
+              cv::Point(turret.get_origin_px().x, turret.get_origin_px().y),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
-  utils::draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
+  utils::draw_target(frame, laser_pt_px, cv::Scalar(0, 0, 255));
   cv::putText(
-      frame, "Belief",
-      cv::Point(turret.get_belief_px().first, turret.get_belief_px().second),
+      frame, "Detected Laser", cv::Point(laser_pt_px.x, laser_pt_px.y + 20),
       cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  utils::draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
+  cv::putText(frame, "Belief",
+              cv::Point(turret.get_belief_px().x, turret.get_belief_px().y),
+              cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
+              cv::LINE_AA);
   utils::draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
 
-  std::pair<int32_t, int32_t> current_steps = turret.get_belief_steps();
+  Pt current_steps = turret.get_belief_steps();
   cv::putText(frame,
-              "Belief steps (" + std::to_string(current_steps.first) + ", " +
-                  std::to_string(current_steps.second) + ")",
+              "Belief steps (" + std::to_string(current_steps.x) + ", " +
+                  std::to_string(current_steps.y) + ")",
               cv::Point(COLS - 230, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-  std::pair<int32_t, int32_t> target_steps = turret.get_setpoint_steps();
+
+  Pt target_steps = turret.get_setpoint_steps();
   cv::putText(frame,
-              "Target steps (" + std::to_string(target_steps.first) + ", " +
-                  std::to_string(target_steps.second) + ")",
+              "Target steps (" + std::to_string(target_steps.x) + ", " +
+                  std::to_string(target_steps.y) + ")",
               cv::Point(COLS - 230, 50), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-  std::pair<uint16_t, uint16_t> set_pt = turret.get_setpoint_px();
+
+  Pt setpoint = turret.get_setpoint_px();
   cv::putText(frame,
-              "Setpoint (" + std::to_string(set_pt.first) + ", " +
-                  std::to_string(set_pt.second) + ")",
+              "Setpoint (" + std::to_string(setpoint.x) + ", " +
+                  std::to_string(setpoint.y) + ")",
               cv::Point(COLS - 230, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 
@@ -172,7 +172,7 @@ void markup_frame() {
                 cv::LINE_AA);
   }
   if (!mos_detection_flag.load()) {
-    if (utils::manual_mode.load()) {
+    if (utils::keyboard_manual_mode.load()) {
       cv::putText(frame, "Keyboard = Manual", cv::Point(10, 70),
                   cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                   cv::LINE_AA);
@@ -210,7 +210,7 @@ void markup_frame() {
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   cv::putText(frame,
               "Mos Threshold = " + std::to_string(mos_threshold) +
-                  "Bg Sub = " + std::to_string(mos_bg_sub),
+                  " Bg Sub = (" + std::to_string(mos_bg_sub) + ")",
               cv::Point(10, 150), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   cv::putText(frame,
@@ -218,7 +218,7 @@ void markup_frame() {
                   ", " + std::to_string(K_D) + ")",
               cv::Point(10, 170), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-  cv::putText(frame, "Learning rate = " + std::to_string(learning_rate),
+  cv::putText(frame, "Learning rate = " + std::to_string(bg_learning_rate),
               cv::Point(10, 190), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 }
@@ -265,21 +265,16 @@ void test_framerate(cv::VideoCapture& cap) {
 
 void process_video(cv::VideoCapture& cap) {
   std::vector<cv::Mat> channels;
-
   gpu::init_gpu();
-
+  gpu::set_learning_rate(bg_learning_rate);
   std::cout << "ROWS: " << ROWS << std::endl;
   std::cout << "COLS: " << COLS << std::endl;
 
   bool save_img = false;
   int save_counter = 0;
 
-  gpu::set_learning_rate(learning_rate);
-
   auto start_time = std::chrono::high_resolution_clock::now();
   while (!utils::exit_flag.load()) {
-    // auto start_time = std::chrono::high_resolution_clock::now();
-
     cap >> frame;
     turret.save_steps_at_frame();
     if (frame.empty()) {
@@ -299,13 +294,21 @@ void process_video(cv::VideoCapture& cap) {
     // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
 
     if (mos_detection_flag.load()) {
-      mosquitoes_px = gpu::detect_mosquitoes(red_channel.clone(), mos_threshold,
-                                             mos_bg_sub);
-      turret.update_setpoint({mosquitoes_px.at(0).x, mosquitoes_px.at(0).y});
-    }
-    laser_pos_px = gpu::detect_laser(red_channel, laser_threshold);
-    if (enable_feedback_flag.load()) {
-      turret.update_belief(laser_pos_px);
+      mosquitoe_pts_px = gpu::detect_mosquitoes(red_channel.clone(),
+                                                mos_threshold, mos_bg_sub);
+      std::vector<Pt> laser_pts =
+          gpu::detect_laser(red_channel, laser_threshold);
+      laser_pt_px = gpu::distinguish_laser_only_2(laser_pts);
+      turret.update_belief(laser_pt_px);
+      turret.update_setpoint(
+          {mosquitoe_pts_px.at(0).x, mosquitoe_pts_px.at(0).y});
+    } else {
+      std::vector<Pt> laser_pts =
+          gpu::detect_laser(red_channel, laser_threshold);
+      laser_pt_px = gpu::distinguish_laser_only_2(laser_pts);
+      if (enable_feedback_flag.load()) {
+        turret.update_belief(laser_pt_px);
+      }
     }
 
     markup_frame();
@@ -349,15 +352,23 @@ void process_video(cv::VideoCapture& cap) {
 }
 
 void user_input(void) {
-  std::cout << "Turret disabled" << std::endl;
-
-  bool threshold_mode = false;
+  bool edit_mode = false;
   int steps = 1 * MICROSTEPS;
   int px = 110;
   char ch;
   std::string str_input;
+
   while (!utils::exit_flag.load()) {
-    std::cout << "Enter a character: ";
+    if (edit_mode) {
+      std::cout << "Edit mode (? = info, e = exit):" << std::endl;
+    } else {
+      if (!mos_detection_flag.load()) {
+        std::cout << "Manual control mode (? = info, e = edit mode): ";
+      } else {
+        std::cout << "Auto control mode (? = info, e = edit mode): ";
+      }
+    }
+
     std::cin >> ch;
     std::cin.ignore();  // Discard the newline character from the input stream
 
@@ -368,31 +379,23 @@ void user_input(void) {
     }
 
     try {
-      if (ch == 'n') {
-        std::cout << "Enter microsteps: ";
-        std::getline(std::cin, str_input);
-        int microsteps = std::stoi(str_input);
-        set_microsteps(microsteps);
-        std::cout << "Microsteps: " << str_input << std::endl;
-      } else if (ch == 'r') {
-        std::cout << "Enter learning rate: ";
-        std::getline(std::cin, str_input);
-        learning_rate = std::stof(str_input);
-        gpu::set_learning_rate(learning_rate);
-        std::cout << "Learning rate: " << std::to_string(learning_rate)
-                  << std::endl;
-      } else if (ch == 'g') {
-        gpu::set_background(red_channel);
-        std::cout << "Background set to curret frame" << std::endl;
-      } else if (ch == 't') {
-        threshold_mode = !threshold_mode;
-        if (threshold_mode) {
-          std::cout << "Threshold mode on" << std::endl;
+      if (ch == 'e') {
+        edit_mode = !edit_mode;
+        if (edit_mode) {
+          std::cout << "Edit mode on" << std::endl;
         } else {
-          std::cout << "Threshold mode off" << std::endl;
+          std::cout << "Edit mode off" << std::endl;
         }
-      } else if (threshold_mode) {
-        if (ch == 'l') {
+      } else if (edit_mode) {
+        if (ch == '?') {
+          std::cout << "l = laser threshold" << std::endl;
+          std::cout << "m = mosquito threshold" << std::endl;
+          std::cout << "p = K_P gain" << std::endl;
+          std::cout << "i = K_I gain" << std::endl;
+          std::cout << "d = K_D gain" << std::endl;
+          std::cout << "n = microsteps" << std::endl;
+          std::cout << "b = background learning rate" << std::endl;
+        } else if (ch == 'l') {
           std::cout << "Enter laser threshold: ";
           std::getline(std::cin, str_input);
           laser_threshold = std::stoi(str_input);
@@ -412,51 +415,65 @@ void user_input(void) {
           std::cout << "Enter D: ";
           std::getline(std::cin, str_input);
           K_D = std::stof(str_input);
+        } else if (ch == 'n') {
+          std::cout << "Enter microsteps: ";
+          std::getline(std::cin, str_input);
+          int microsteps = std::stoi(str_input);
+          set_microsteps(microsteps);
+          std::cout << "Microsteps: " << str_input << std::endl;
+        } else if (ch == 'b') {
+          std::cout << "Enter background learning rate: ";
+          std::getline(std::cin, str_input);
+          bg_learning_rate = std::stof(str_input);
+          gpu::set_learning_rate(bg_learning_rate);
+          std::cout << "Learning rate: " << std::to_string(bg_learning_rate)
+                    << std::endl;
         }
-      } else if (ch == 'k') {
-        utils::manual_mode.store(false);
-        std::vector<cv::Mat> initial_channels;
-        cv::split(frame, initial_channels);
-        gpu::set_background(initial_channels[2]);
-        mos_detection_flag.store(!mos_detection_flag.load());
-        std::cout << "Mosquito detection: " << mos_detection_flag.load()
+      } else if (ch == '?') {
+        std::cout << "g = set background" << std::endl;
+        std::cout << "k = toggle kill mosquitoes (disables keyboard control)"
                   << std::endl;
+        std::cout << "h = home turret" << std::endl;
+        std::cout << "z = enable/disable turret" << std::endl;
+        std::cout << "o = set turret origin" << std::endl;
+        std::cout << "m = toggle manual/auto keyboard mode" << std::endl;
+        std::cout << "f = toggle turret feedback" << std::endl;
+        std::cout << "c = set step size" << std::endl;
+        std::cout << "w, a, s, d = move turret" << std::endl;
+      } else if (ch == 'g') {
+        gpu::set_background(red_channel);
+        std::cout << "Background set to curret frame" << std::endl;
       } else if (ch == 'h') {
-        turret.home(laser_pos_px);
+        turret.home(laser_pt_px);
       } else if (turret_stopped and (ch == 'e' or ch == 'w' or ch == 'a' or
                                      ch == 's' or ch == 'd')) {
         turret_stopped = false;
         turret.start_turret();
         std::cout << "Turret started" << std::endl;
-      } else if (!turret_stopped and ch == 'e') {
-        turret_stopped = true;
-        turret.stop_turret();
-        std::cout << "Turret stopped" << std::endl;
-      } else if (ch == 'o') {
-        turret.set_origin(laser_pos_px);
-        std::cout << "Origin set to: " << laser_pos_px.first << ", "
-                  << laser_pos_px.second << std::endl;
-      } else if (ch == 'm') {
-        utils::run_flag.store(false);
-        utils::manual_mode.store(!utils::manual_mode.load());
-        if (utils::manual_mode.load()) {
-          std::cout << "Manual" << std::endl;
-          enable_feedback_flag.store(false);
-          std::cout << "Feedback off" << std::endl;
+      } else if (ch == 'z') {
+        if (turret_stopped) {
+          turret_stopped = false;
+          turret.start_turret();
+          std::cout << "Turret started" << std::endl;
         } else {
-          std::cout << "Auto" << std::endl;
+          turret_stopped = true;
+          turret.stop_turret();
+          std::cout << "Turret stopped" << std::endl;
         }
-        utils::run_flag.store(true);
+      } else if (ch == 'o') {
+        turret.set_origin(laser_pt_px);
+        std::cout << "Turrt origin set to: " << laser_pt_px.x << ", "
+                  << laser_pt_px.y << std::endl;
       } else if (ch == 'f') {
         enable_feedback_flag.store(!enable_feedback_flag.load());
         if (enable_feedback_flag.load()) {
-          std::cout << "Feedback on" << std::endl;
+          std::cout << "Turret feedback on" << std::endl;
         } else {
-          std::cout << "Feedback off" << std::endl;
+          std::cout << "Turret feedback off" << std::endl;
         }
       } else if (ch == 'c') {
-        if (utils::manual_mode.load()) {
-          std::cout << "Enter manual step size: ";
+        if (utils::keyboard_manual_mode.load()) {
+          std::cout << "Enter step size: ";
           std::getline(std::cin, str_input);
           steps = std::stoi(str_input);
         } else {
@@ -464,12 +481,43 @@ void user_input(void) {
           std::getline(std::cin, str_input);
           px = std::stoi(str_input);
         }
-      } else if (!mos_detection_flag.load()) {
-        if (utils::manual_mode.load()) {
-          turret.keyboard_manual(ch, steps);
+      } else if (ch == 'm') {
+        utils::keyboard_manual_mode.store(!utils::keyboard_manual_mode.load());
+        if (utils::keyboard_manual_mode.load()) {
+          std::cout << "Keyboard manual mode" << std::endl;
+          enable_feedback_flag.store(false);
+          std::cout << "Turret feedback off" << std::endl;
         } else {
-          turret.keyboard_auto(ch, px);
+          std::cout << "Keyboard auto mode" << std::endl;
         }
+      } else if (ch == 'k') {
+        if (!mos_detection_flag.load()) {
+          utils::keyboard_manual_mode.store(false);
+          std::vector<cv::Mat> initial_channels;
+          cv::split(frame, initial_channels);
+          gpu::set_background(initial_channels[2]);
+          mos_detection_flag.store(true);
+          std::cout << "Mosquito kill mode on " << mos_detection_flag.load()
+                    << std::endl;
+        } else {
+          mos_detection_flag.store(false);
+          std::cout << "Mosquito kill mode off " << mos_detection_flag.load()
+                    << std::endl;
+        }
+      } else if (ch == 'w' or ch == 'a' or ch == 's' or ch == 'd') {
+        if (!mos_detection_flag.load()) {
+          if (utils::keyboard_manual_mode.load()) {
+            turret.keyboard_manual(ch, steps);
+          } else {
+            turret.keyboard_auto(ch, px);
+          }
+        } else {
+          std::cout
+              << "Cannot manually move turret while mosquito detection is on"
+              << std::endl;
+        }
+      } else {
+        std::cout << "Invalid input" << std::endl;
       }
     } catch (std::invalid_argument& e) {
       std::cout << "Invalid argument" << std::endl;
@@ -495,7 +543,6 @@ int main(void) {
   cv::split(initial_frame, initial_channels);
   gpu::set_background(initial_channels[2]);
 
-  // Launch the threads
   std::thread user_input_thread(user_input);
   std::thread video_thread(process_video, std::ref(cap));
   // std::thread video_thread(test_framerate, std::ref(cap));

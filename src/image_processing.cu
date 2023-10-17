@@ -1,18 +1,14 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include "../include/camera.hpp"
+#include "../include/frame.hpp"
 #include "../include/image_processing.hpp"
 
 namespace gpu {
 
-std::pair<uint16_t, uint16_t> ignore_region_top_left = {525, 268};
-std::pair<uint16_t, uint16_t> ignore_region_bottom_right = {578, 305};
-
-void set_ignore_region(std::pair<uint16_t, uint16_t> top_left,
-                       std::pair<uint16_t, uint16_t> bottom_right) {
-  ignore_region_top_left = top_left;
-  ignore_region_bottom_right = bottom_right;
-}
+Pt ignore_region_top_left = Pt{525, 268};
+Pt ignore_region_bottom_right = Pt{578, 305};
 
 dim3 const block_size(16, 8);
 dim3 const grid_size((COLS + block_size.x - 1) / block_size.x,
@@ -23,17 +19,18 @@ uint8_t* d_frame_1;
 uint8_t* d_frame_2;
 uint8_t* mos_d_frame_1;
 uint8_t* mos_d_frame_2;
+__constant__ float d_learning_rate;
+uint8_t* d_background;
 
 const int struct_elem_size = 1;
 const int diameter = 2 * struct_elem_size + 1;
 __constant__ uint8_t d_structuring_element[diameter * diameter];
 __constant__ int d_struct_elem_size;
 
-// For mosquito detection with background subtraction
-__constant__ float d_learning_rate;
-uint8_t* d_background;
-
-std::pair<int32_t, int32_t> laser_position = std::make_pair(-2, -2);
+void set_ignore_region(Pt top_left, Pt bottom_right) {
+  ignore_region_top_left = top_left;
+  ignore_region_bottom_right = bottom_right;
+}
 
 void create_structuring_element(uint8_t* struct_elem, int struct_elem_size) {
   int diameter = 2 * struct_elem_size + 1;
@@ -69,7 +66,6 @@ void init_gpu() {
 
   initialize_struct_elem();
 
-  // cudaMemcpyToSymbol(d_learning_rate, &learning_rate, sizeof(float));
   cudaMalloc((void**)&d_background, frame_size);
 }
 
@@ -187,121 +183,79 @@ __global__ void dilation(uint8_t* input, uint8_t* output) {
   }
 }
 
-bool is_blob_in_ignore_region(
-    const std::pair<uint16_t, uint16_t>& blob,
-    const std::pair<uint16_t, uint16_t>& ignore_region_top_left,
-    const std::pair<uint16_t, uint16_t>& ignore_region_bottom_right) {
-  uint16_t x = blob.first;
-  uint16_t y = blob.second;
-  return x >= ignore_region_top_left.first &&
-         x <= ignore_region_bottom_right.first &&
-         y >= ignore_region_top_left.second &&
-         y <= ignore_region_bottom_right.second;
+bool is_pt_in_ignore_region(const Pt& pt,
+                            const Pt& ignore_region_top_left,
+                            const Pt& ignore_region_bottom_right) {
+  int x = pt.x;
+  int y = pt.y;
+  return (x >= ignore_region_top_left.x && x <= ignore_region_bottom_right.x &&
+          y >= ignore_region_top_left.y && y <= ignore_region_bottom_right.y);
 }
 
-std::pair<uint16_t, uint16_t> distinguish_laser(
-    const std::vector<Blob>& blobs) {
-  if (blobs.size() == 1)
-    return std::make_pair(blobs.at(0).cen_x, blobs.at(0).cen_y);
-
-  std::pair<int32_t, int32_t> result = std::make_pair(-1, -1);
-  double minDist = std::numeric_limits<double>::infinity();
-  double maxDist = -1;
-
-  for (size_t i = 0; i < blobs.size(); i++) {
-    uint16_t x = blobs[i].cen_x;
-    uint16_t y = blobs[i].cen_y;
-
-    if (is_blob_in_ignore_region(std::make_pair(x, y), ignore_region_top_left,
-                                 ignore_region_bottom_right)) {
-      // std::cout << "blob in ignore region" << std::endl;
-      continue;  // Skip blobs in the ignore region
-    }
-
-    double dist = std::hypot(x - C_X, y - C_Y);
-
-    if (y <= C_Y && dist < minDist) {
-      minDist = dist;
-      result = std::make_pair(x, y);
-    }
-
-    if (y >= C_Y && dist > maxDist) {
-      maxDist = dist;
-      result = std::make_pair(x, y);
-    }
-
-    if (y > C_Y && result.first == -1)
-      result = std::make_pair(x, y);
+Pt distinguish_laser_only_2(const std::vector<Pt>& pts) {
+  if (pts.size() == 1) {
+    return {pts.at(0).x, pts.at(0).y};
+  } else if (pts.size() < 1) {
+    return {-1, -1};
   }
 
-  return result;
-}
-
-std::pair<uint16_t, uint16_t> distinguish_laser_only_2(
-    const std::vector<Blob>& blobs) {
-  if (blobs.size() == 1) {
-    return std::make_pair(blobs.at(0).cen_x, blobs.at(0).cen_y);
-  } else if (blobs.size() < 1) {
-    return std::make_pair(-1, -1);
-  }
-
-  std::vector<Blob> two_blobs;
-  for (size_t i = 0; i < blobs.size(); i++) {
-    if (is_blob_in_ignore_region({blobs[i].cen_x, blobs[i].cen_y},
-                                 ignore_region_top_left,
-                                 ignore_region_bottom_right)) {
+  std::vector<Pt> two_pts;
+  for (size_t i = 0; i < pts.size(); i++) {
+    if (is_pt_in_ignore_region({pts.at(i).x, pts.at(i).y},
+                               ignore_region_top_left,
+                               ignore_region_bottom_right)) {
       continue;
     } else {
-      two_blobs.push_back(blobs[i]);
+      two_pts.push_back(pts[i]);
     }
   }
 
-  if (two_blobs.size() == 1) {
-    return std::make_pair(two_blobs[0].cen_x, two_blobs[0].cen_y);
-  } else if (two_blobs.size() < 1) {
-    return std::make_pair(-2, -2);
+  if (two_pts.size() == 1) {
+    return {two_pts.at(0).x, two_pts.at(0).y};
+  } else if (two_pts.size() < 1) {
+    return {-2, -2};
   }
 
-  if (two_blobs.size() > 2) {
-    std::cout << "More than two blobs outside of ignore region: "
-              << std::to_string(two_blobs.size()) << std::endl;
+  if (two_pts.size() > 2) {
+    std::cout << std::to_string(two_pts.size())
+              << " lasers outside of ignore region (max = 2)." << std::endl;
   }
 
-  uint16_t x1 = two_blobs[0].cen_x;
-  uint16_t y1 = two_blobs[0].cen_y;
-  uint16_t x2 = two_blobs[1].cen_x;
-  uint16_t y2 = two_blobs[1].cen_y;
+  uint16_t x1 = two_pts.at(0).x;
+  uint16_t y1 = two_pts.at(0).y;
+  uint16_t x2 = two_pts.at(1).x;
+  uint16_t y2 = two_pts.at(1).y;
 
-  // When both blobs are at or below the camera origin, then the one closer to
+  // When both lasers are at or below the camera origin, then the one closer to
   // the origin of the camera is the laser.
   if (y1 >= C_Y && y2 >= C_Y) {
     if (y1 < y2) {
       // y1 is closer to the camera origin
-      return std::make_pair(x1, y1);
+      return {x1, y1};
     } else {
-      return std::make_pair(x2, y2);
+      return {x2, y2};
     }
   }
 
-  // When both blobs are at or above the camera origin, then the one farther
+  // When both lasers are at or above the camera origin, then the one farther
   // from the origin of the camera is the laser.
   if (y1 <= C_Y && y2 <= C_Y) {
     if (y1 < y2) {
       // y1 is further from the camera origin
-      return std::make_pair(x1, y1);
+      return {x1, y1};
     } else {
-      return std::make_pair(x2, y2);
+      return {x2, y2};
     }
   }
 
-  // When blobs are on either side of the camera origin
+  // When lasers are on either side of the camera origin
   if (y1 < C_Y)
-    return std::make_pair(x1, y1);
+    return {x1, y1};
   else
-    return std::make_pair(x2, y2);
+    return {x2, y2};
 }
 
-int get_blobs(cv::Mat frame, std::vector<Blob>& blobs) {
+int get_blobs(cv::Mat frame, std::vector<Pt>& blobs) {
   int i, j, k, l, r = frame.rows, c = frame.cols, id = 1;
   // Stores ID of a pixel; -1 means unvisited
   std::vector<std::vector<int>> pixel_ID(r, std::vector<int>(c, -1));
@@ -354,9 +308,7 @@ int get_blobs(cv::Mat frame, std::vector<Blob>& blobs) {
         continue;
       }
 
-      Blob nextcentre = {
-          min_x,    max_x, min_y, max_y, sum_x / n_pixels, sum_y / n_pixels,
-          n_pixels, id};
+      Pt nextcentre = {sum_x / n_pixels, sum_y / n_pixels};
       blobs.push_back(nextcentre);
       id++;
     }
@@ -364,7 +316,7 @@ int get_blobs(cv::Mat frame, std::vector<Blob>& blobs) {
   return blobs.size();
 }
 
-std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
+std::vector<Pt> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   cudaError_t err = cudaMemcpy(d_frame_1, red_frame.ptr(), frame_size,
                                cudaMemcpyHostToDevice);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
@@ -380,35 +332,32 @@ std::pair<int32_t, int32_t> detect_laser(cv::Mat red_frame, uint8_t threshold) {
                    cudaMemcpyDeviceToHost);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
-  int num_blobs = -2;
-  std::vector<Blob> blobs;
-  num_blobs = get_blobs(red_frame, blobs);
-  laser_position = distinguish_laser_only_2(blobs);
+  int num_laser_pts = -2;
+  std::vector<Pt> laser_pts;
+  num_laser_pts = get_blobs(red_frame, laser_pts);
+  // laser_position = distinguish_laser_only_2(blobs);
 
-  for (size_t i = 0; i < blobs.size(); i++) {
-    cv::circle(red_frame, cv::Point(blobs[i].cen_x, blobs[i].cen_y), 20,
+  for (size_t i = 0; i < laser_pts.size(); i++) {
+    cv::circle(red_frame, cv::Point(laser_pts.at(i).x, laser_pts.at(i).y), 20,
                cv::Scalar(150, 255, 255), 2);
     cv::putText(red_frame, std::to_string(i),
-                cv::Point(blobs[i].cen_x + 10, blobs[i].cen_y + 10),
+                cv::Point(laser_pts.at(i).x + 10, laser_pts.at(i).y + 10),
                 cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
   }
-  cv::putText(red_frame,
-              "laser pos = (" + std::to_string(laser_position.first) + ", " +
-                  std::to_string(laser_position.second) +
-                  ")  num blobs = " + std::to_string(num_blobs),
+  cv::putText(red_frame, "num lasers = " + std::to_string(num_laser_pts),
               cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
               cv::Scalar(255, 255, 255), 2);
-  cv::imshow("cv::Mat processed", red_frame);
+  cv::imshow("laser detection", red_frame);
   cv::waitKey(1);
-  return laser_position;
+  return laser_pts;
 }
 
 void set_background(const cv::Mat& frame) {
   cudaMemcpy(d_background, frame.ptr(), frame_size, cudaMemcpyHostToDevice);
 }
 
-void set_learning_rate(const float& learning_rate) {
-  cudaMemcpyToSymbol(d_learning_rate, &learning_rate, sizeof(float));
+void set_learning_rate(const float& bg_learning_rate) {
+  cudaMemcpyToSymbol(d_learning_rate, &bg_learning_rate, sizeof(float));
 }
 
 std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
@@ -447,32 +396,28 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
                    cudaMemcpyDeviceToHost);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
-  std::vector<Blob> blobs;
-  int num_blobs = -2;
-  num_blobs = get_blobs(red_frame, blobs);
-  std::vector<Pt> blob_centres;
-  for (size_t i = 0; i < blobs.size(); i++) {
-    blob_centres.push_back({blobs[i].cen_x, blobs[i].cen_y});
+  std::vector<Pt> mos_pts;
+  int num_mos_pts = -2;
+  num_mos_pts = get_blobs(red_frame, mos_pts);
+
+  if (mos_pts.size() == 0) {
+    mos_pts.push_back(Pt{-1, -1});
   }
 
-  if (blob_centres.size() == 0) {
-    blob_centres.push_back({-1, -1});
-  }
-
-  for (size_t i = 0; i < blobs.size(); i++) {
-    cv::circle(red_frame, cv::Point(blobs[i].cen_x, blobs[i].cen_y), 20,
+  for (size_t i = 0; i < mos_pts.size(); i++) {
+    cv::circle(red_frame, cv::Point(mos_pts.at(i).x, mos_pts.at(i).y), 20,
                cv::Scalar(150, 255, 255), 2);
     cv::putText(red_frame, std::to_string(i),
-                cv::Point(blobs[i].cen_x + 10, blobs[i].cen_y + 10),
+                cv::Point(mos_pts.at(i).x + 10, mos_pts.at(i).y + 10),
                 cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
   }
 
-  cv::putText(red_frame, "num blobs = " + std::to_string(num_blobs),
+  cv::putText(red_frame, "num mos_pts = " + std::to_string(num_mos_pts),
               cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
               cv::Scalar(255, 255, 255), 2);
   cv::imshow("mosquitoes", red_frame);
   cv::waitKey(1);
-  return blob_centres;
+  return mos_pts;
 }
 
 }  // namespace gpu

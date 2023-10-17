@@ -1,17 +1,16 @@
 
 #pragma once
 
-#include <atomic>
-#include <cstdint>
-#include <utility>
+#include "pt.hpp"
 #include "stepper.hpp"
 
-constexpr double FULL_STEP_ANGLE_DEG = 0.17578125;
-extern uint8_t MICROSTEPS;
+// constexpr double FULL_STEP_ANGLE_DEG = 0.17578125; // For cheapie
+constexpr double FULL_STEP_ANGLE_DEG = 1.8;
+extern int MICROSTEPS;
 extern double MICROSTEP_ANGLE_DEG;
 extern double MICROSTEP_ANGLE_RAD;
 
-void set_microsteps(uint8_t microsteps);
+void set_microsteps(int microsteps);
 
 extern double K_P;
 extern double K_I;
@@ -19,8 +18,8 @@ extern double K_D;
 
 class Turret {
  public:
-  static const uint16_t TANK_DEPTH = 318;
-  static const uint16_t CAMERA_DEPTH = 793 + TANK_DEPTH;  // mm
+  static const int TANK_DEPTH = 318;
+  static const int CAMERA_DEPTH = 793 + TANK_DEPTH;  // mm
   static const int TURRET_DEPTH = 395 + TANK_DEPTH;
   static const int VERTICAL_DISTANCE_BETWEEN_MIRRORS = 14;
   static const int Y_STEPPER_DEPTH = TURRET_DEPTH;
@@ -36,17 +35,17 @@ class Turret {
   Turret(void);
 
   void save_steps_at_frame();
-  void set_origin(const std::pair<uint16_t, uint16_t> turret_origin_px);
+  void set_origin(const Pt turret_origin_px);
 
-  std::pair<uint16_t, uint16_t> get_origin_px(void) const;
-  std::pair<uint16_t, uint16_t> get_belief_px(void) const;
-  std::pair<uint16_t, uint16_t> get_setpoint_px(void) const;
-  std::pair<int32_t, int32_t> get_belief_steps(void) const;
-  std::pair<int32_t, int32_t> get_setpoint_steps(void) const;
+  Pt get_origin_px(void) const;
+  Pt get_belief_px(void) const;
+  Pt get_setpoint_px(void) const;
+  Pt get_belief_steps(void) const;
+  Pt get_setpoint_steps(void) const;
 
-  void home(const std::pair<int32_t, int32_t> detected_laser_px);
-  void update_belief(const std::pair<int32_t, int32_t> detected_laser_px);
-  void update_setpoint(const std::pair<uint16_t, uint16_t> setpoint_px);
+  void home(const Pt detected_laser_px);
+  void update_belief(const Pt detected_laser_px);
+  void update_setpoint(const Pt setpoint_px);
 
   void run_x_stepper(void);
   void run_y_stepper(void);
