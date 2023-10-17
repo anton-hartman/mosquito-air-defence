@@ -3,8 +3,8 @@
 #include <chrono>
 #include <thread>
 #include "../include/frame.hpp"
-#include "../include/turret.hpp"
 #include "../include/sys_flags.hpp"
+#include "../include/turret.hpp"
 
 const int8_t CLOCKWISE = 1;
 const int8_t ANTI_CLOCKWISE = -1;
@@ -114,7 +114,7 @@ uint32_t Stepper::get_pid_error_and_set_direction(
 }
 
 bool Stepper::step(const uint32_t& steps) {
-  uint32_t auto_delay_us = 2000 / MICROSTEPS;
+  uint32_t auto_delay_us = 500 / MICROSTEPS;
   for (uint32_t i = 0; i < steps; i++) {
     GPIO::output(step_pin, GPIO::HIGH);
     std::this_thread::sleep_for(std::chrono::microseconds(auto_delay_us));

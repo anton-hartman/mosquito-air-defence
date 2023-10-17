@@ -56,9 +56,18 @@ Turret::Turret(void)
   GPIO::setup(M2_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
   GPIO::setup(M2_DIR_PIN, GPIO::OUT, GPIO::HIGH);
   GPIO::setup(M2_STEP_PIN, GPIO::OUT, GPIO::LOW);
+  GPIO::setup(LASER_PIN, GPIO::OUT, GPIO::LOW);
 }
 
-void Turret::save_steps_at_frame() {
+void Turret::enable_laser(void) {
+  GPIO::output(LASER_PIN, GPIO::HIGH);
+}
+
+void Turret::disable_laser(void) {
+  GPIO::output(LASER_PIN, GPIO::LOW);
+}
+
+void Turret::save_steps_at_frame(void) {
   x_stepper.save_steps();
   y_stepper.save_steps();
 }

@@ -27,6 +27,7 @@ std::atomic<bool> sys::run_flag(true);
 std::atomic<bool> sys::exit_flag(false);
 std::atomic<bool> enable_feedback_flag(false);
 std::atomic<bool> mos_detection_flag(false);
+std::atomic<bool> sys::laser_state(false);
 
 Turret turret;
 cv::VideoCapture cap;
@@ -39,7 +40,7 @@ bool mos_bg_sub = true;
 int laser_threshold = 200;
 int mos_threshold = 30;
 Pt laser_pt_px;
-std::vector<Pt> mosquitoe_pts_px;
+std::vector<Pt> mos_pts_px;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -226,6 +227,9 @@ void markup_frame() {
   cv::putText(frame, "Learning rate = " + std::to_string(bg_learning_rate),
               cv::Point(10, 190), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  cv::putText(frame, "Laser = (" + std::to_string(sys::get_laser_state()) + ")",
+              cv::Point(10, 210), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 }
 
 void test_framerate(cv::VideoCapture& cap) {
@@ -268,6 +272,28 @@ void test_framerate(cv::VideoCapture& cap) {
   }
 }
 
+float euclidean_dist(Pt pt1, Pt pt2) {
+  return std::sqrt(std::pow(pt1.x - pt2.x, 2) + std::pow(pt1.y - pt2.y, 2));
+}
+
+void remove_laser_pts(const std::vector<Pt>& laser_pts,
+                      std::vector<Pt>& mos_pts) {
+  for (std::vector<Pt>::iterator it = mos_pts.begin(); it != mos_pts.end();) {
+    bool remove = false;
+    for (const Pt& laser_pt : laser_pts) {
+      if (euclidean_dist(*it, laser_pt) < 10) {
+        remove = true;
+        break;
+      }
+    }
+    if (remove) {
+      it = mos_pts.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
 void process_video(cv::VideoCapture& cap) {
   std::vector<cv::Mat> channels;
   gpu::init_gpu();
@@ -299,14 +325,28 @@ void process_video(cv::VideoCapture& cap) {
     // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
 
     if (mos_detection_flag.load()) {
-      mosquitoe_pts_px = gpu::detect_mosquitoes(red_channel.clone(),
-                                                mos_threshold, mos_bg_sub);
+      mos_pts_px = gpu::detect_mosquitoes(red_channel.clone(), mos_threshold,
+                                          mos_bg_sub);
       std::vector<Pt> laser_pts =
           gpu::detect_laser(red_channel, laser_threshold);
+      remove_laser_pts(laser_pts, mos_pts_px);
+      cv::Mat black_image(ROWS, COLS, CV_8UC3, cv::Scalar(0, 0, 0));
+      for (size_t i = 0; i < mos_pts_px.size(); ++i) {
+        cv::circle(black_image, mos_pts_px.at(i).cv_pt(), 20,
+                   cv::Scalar(150, 255, 255), 2);
+        cv::putText(black_image, std::to_string(i),
+                    cv::Point(mos_pts_px.at(i).x + 10, mos_pts_px.at(i).y + 10),
+                    cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
+      }
+
+      cv::imshow("laser removed mossies", black_image);
+      cv::waitKey(1);
+
       laser_pt_px = gpu::distinguish_laser_only_2(laser_pts);
       turret.update_belief(laser_pt_px);
-      turret.update_setpoint(
-          {mosquitoe_pts_px.at(0).x, mosquitoe_pts_px.at(0).y});
+      if (mos_pts_px.size() > 0) {
+        turret.update_setpoint(mos_pts_px.at(0));
+      }
     } else {
       std::vector<Pt> laser_pts =
           gpu::detect_laser(red_channel, laser_threshold);
@@ -465,6 +505,13 @@ void user_input(void) {
           turret.stop_turret();
           std::cout << "Turret stopped" << std::endl;
         }
+      } else if (ch == 'l') {
+        sys::set_laser(!sys::get_laser_state());
+        if (sys::get_laser_state()) {
+          std::cout << "Laser on" << std::endl;
+        } else {
+          std::cout << "Laser off" << std::endl;
+        }
       } else if (ch == 'o') {
         turret.set_origin(laser_pt_px);
         std::cout << "Turrt origin set to: " << laser_pt_px.x << ", "
@@ -498,9 +545,9 @@ void user_input(void) {
       } else if (ch == 'k') {
         if (!mos_detection_flag.load()) {
           sys::keyboard_manual_mode.store(false);
-          std::vector<cv::Mat> initial_channels;
-          cv::split(frame, initial_channels);
-          gpu::set_background(initial_channels[2]);
+          // std::vector<cv::Mat> initial_channels;
+          // cv::split(frame, initial_channels);
+          // gpu::set_background(initial_channels[2]);
           mos_detection_flag.store(true);
           std::cout << "Mosquito kill mode on " << mos_detection_flag.load()
                     << std::endl;
@@ -540,6 +587,7 @@ void turret_vertical(void) {
 
 int main(void) {
   set_microsteps(32);
+  sys::set_laser(false);
   cv::VideoCapture cap = init_system();
   cv::Mat initial_frame;
   cap >> initial_frame;
@@ -547,6 +595,7 @@ int main(void) {
   std::vector<cv::Mat> initial_channels;
   cv::split(initial_frame, initial_channels);
   gpu::set_background(initial_channels[2]);
+  sys::set_laser(true);
 
   std::thread user_input_thread(user_input);
   std::thread video_thread(process_video, std::ref(cap));

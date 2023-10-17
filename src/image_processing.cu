@@ -1,3 +1,4 @@
+#include <JetsonGPIO.h>
 #include <chrono>
 #include <iostream>
 #include <thread>
@@ -216,10 +217,13 @@ Pt distinguish_laser_only_2(const std::vector<Pt>& pts) {
     return {-2, -2};
   }
 
-  if (two_pts.size() > 2) {
-    std::cout << std::to_string(two_pts.size())
-              << " lasers outside of ignore region (max = 2)." << std::endl;
-  }
+  // put a thrid level of debugging
+  // if (debug.load() == level3) {
+  // if (two_pts.size() > 2) {
+  //   std::cout << std::to_string(two_pts.size())
+  //             << " lasers outside of ignore region (max = 2)." << std::endl;
+  // }
+  // }
 
   uint16_t x1 = two_pts.at(0).x;
   uint16_t y1 = two_pts.at(0).y;
