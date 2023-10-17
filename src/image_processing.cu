@@ -320,11 +320,14 @@ int get_blobs(cv::Mat frame, std::vector<Pt>& blobs) {
 }
 
 std::vector<Pt> detect_laser(cv::Mat red_frame, uint8_t threshold) {
-  cudaError_t err = cudaMemcpy(d_frame_1, red_frame.ptr(), frame_size,
+  // cudaError_t err = cudaMemcpy(d_frame_1, red_frame.ptr(), frame_size,
+  //  cudaMemcpyHostToDevice);
+  cudaError_t err = cudaMemcpy(d_frame_2, red_frame.ptr(), frame_size,
                                cudaMemcpyHostToDevice);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
-  gaussian_smoothing<<<grid_size, block_size>>>(d_frame_1, d_frame_2, 5, 6.0f);
+  // gaussian_smoothing<<<grid_size, block_size>>>(d_frame_1, d_frame_2,
+  // 5, 6.0f);
   binarise_gt<<<grid_size, block_size>>>(d_frame_2, threshold);
   dilation<<<grid_size, block_size>>>(d_frame_2, d_frame_1);
   erosion<<<grid_size, block_size>>>(d_frame_1, d_frame_2);

@@ -83,7 +83,7 @@ void Stepper::step_manually(const int32_t steps) {
   } else {
     GPIO::output(direction_pin, gpio_anticlockwise);
   }
-  uint32_t delay_us = 1000 / MICROSTEPS;
+  uint32_t delay_us = 100 / MICROSTEPS;
   for (uint32_t i = 0; i < abs(steps); i++) {
     GPIO::output(step_pin, GPIO::HIGH);
     std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
@@ -95,13 +95,19 @@ void Stepper::step_manually(const int32_t steps) {
 uint32_t Stepper::get_pid_error_and_set_direction(
     const double& elapsed_time_ms) {
   double error = target_steps.load() - current_steps.load();
+  double derivative = 0;
 
-  integral += error * elapsed_time_ms;
-  double derivative = (error - previous_error) / elapsed_time_ms;
-  previous_error = error;
+  if (mads::control.load() != Control::MANUAL and mads::feedback.load() and
+      !mads::turret_stopped.load()) {
+    integral += error * elapsed_time_ms;
+    derivative = (error - previous_error) / elapsed_time_ms;
+    previous_error = error;
+  } else {
+    integral = 0;
+    previous_error = 0;
+  }
 
   double output = K_P * error + K_I * integral + K_D * derivative;
-
   if (output > 0) {
     GPIO::output(direction_pin, gpio_clockwise);
   } else {

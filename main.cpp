@@ -117,7 +117,7 @@ void markup_frame() {
   cv::putText(frame, "Turret Origin", turret.get_origin_px().cv_pt(),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
-  draw_target(frame, laser_pt_px, cv::Scalar(0, 0, 255));
+  // draw_target(frame, laser_pt_px, cv::Scalar(0, 0, 255));
   cv::putText(
       frame, "Detected Laser", cv::Point(laser_pt_px.x, laser_pt_px.y + 20),
       cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
@@ -483,7 +483,10 @@ void user_input(void) {
         gpu::set_background(red_channel);
         std::cout << "Background set to curret frame" << std::endl;
       } else if (ch == 'h') {
+        // Control prev_control = mads::control.load();
+        mads::control.store(Control::MANUAL);
         turret.home(laser_pt_px);
+        // mads::control.store(prev_control);
       } else if (mads::turret_stopped.load() and
                  (ch == 'e' or ch == 'w' or ch == 'a' or ch == 's' or
                   ch == 'd')) {
