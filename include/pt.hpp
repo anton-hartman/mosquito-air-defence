@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <opencv2/core.hpp>
 
 struct Pt_d {
   double x, y;
@@ -91,4 +92,6 @@ class Pt {
     x = static_cast<int>(std::round(other.x));
     y = static_cast<int>(std::round(other.y));
   };
+
+  cv::Point cv_pt() const { return cv::Point(x, y); };
 };

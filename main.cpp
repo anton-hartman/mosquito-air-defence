@@ -122,12 +122,9 @@ void draw_target(cv::Mat& frame, const Pt& target, const cv::Scalar& colour) {
 }
 
 void markup_frame() {
-  cv::rectangle(
-      frame,
-      cv::Point(gpu::ignore_region_top_left.x, gpu::ignore_region_top_left.y),
-      cv::Point(gpu::ignore_region_bottom_right.x,
-                gpu::ignore_region_bottom_right.y),
-      cv::Scalar(0, 255, 0), 2);
+  cv::rectangle(frame, gpu::ignore_region_top_left.cv_pt(),
+                gpu::ignore_region_bottom_right.cv_pt(), cv::Scalar(0, 255, 0),
+                2);
 
   draw_target(frame,
               Pt{static_cast<int>((C_X_DOUBLE)), static_cast<int>(C_Y_DOUBLE)},
@@ -136,8 +133,7 @@ void markup_frame() {
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
   draw_target(frame, turret.get_origin_px(), cv::Scalar(0, 255, 0));
-  cv::putText(frame, "Turret Origin",
-              cv::Point(turret.get_origin_px().x, turret.get_origin_px().y),
+  cv::putText(frame, "Turret Origin", turret.get_origin_px().cv_pt(),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
   draw_target(frame, laser_pt_px, cv::Scalar(0, 0, 255));
@@ -145,8 +141,7 @@ void markup_frame() {
       frame, "Detected Laser", cv::Point(laser_pt_px.x, laser_pt_px.y + 20),
       cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
-  cv::putText(frame, "Belief",
-              cv::Point(turret.get_belief_px().x, turret.get_belief_px().y),
+  cv::putText(frame, "Belief", turret.get_belief_px().cv_pt(),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
   draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));

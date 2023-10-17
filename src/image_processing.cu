@@ -338,7 +338,7 @@ std::vector<Pt> detect_laser(cv::Mat red_frame, uint8_t threshold) {
   // laser_position = distinguish_laser_only_2(blobs);
 
   for (size_t i = 0; i < laser_pts.size(); i++) {
-    cv::circle(red_frame, cv::Point(laser_pts.at(i).x, laser_pts.at(i).y), 20,
+    cv::circle(red_frame, laser_pts.at(i).cv_pt(), 20,
                cv::Scalar(150, 255, 255), 2);
     cv::putText(red_frame, std::to_string(i),
                 cv::Point(laser_pts.at(i).x + 10, laser_pts.at(i).y + 10),
@@ -405,8 +405,8 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
   }
 
   for (size_t i = 0; i < mos_pts.size(); i++) {
-    cv::circle(red_frame, cv::Point(mos_pts.at(i).x, mos_pts.at(i).y), 20,
-               cv::Scalar(150, 255, 255), 2);
+    cv::circle(red_frame, mos_pts.at(i).cv_pt(), 20, cv::Scalar(150, 255, 255),
+               2);
     cv::putText(red_frame, std::to_string(i),
                 cv::Point(mos_pts.at(i).x + 10, mos_pts.at(i).y + 10),
                 cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
