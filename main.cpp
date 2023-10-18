@@ -6,8 +6,9 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include "include/detection.hpp"
 #include "include/frame.hpp"
-#include "include/image_processing.hpp"
+// #include "include/image_processing.hpp"
 #include "include/mads.hpp"
 #include "include/pt.hpp"
 #include "include/turret.hpp"
@@ -17,7 +18,7 @@ cv::VideoCapture cap;
 cv::Mat frame;
 cv::Mat red_channel;
 
-float bg_learning_rate = 0.0;
+// float bg_learning_rate = 0.0;
 bool mos_bg_sub = true;
 int laser_threshold = 200;
 int mos_threshold = 30;
@@ -195,9 +196,11 @@ void markup_frame() {
                   ", " + std::to_string(K_D) + ")",
               cv::Point(10, 170), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-  cv::putText(frame, "Learning rate = " + std::to_string(bg_learning_rate),
-              cv::Point(10, 190), cv::FONT_HERSHEY_SIMPLEX, 0.5,
-              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  cv::putText(
+      frame,
+      "Learning rate = " + std::to_string(detection::bg_learning_rate.load()),
+      cv::Point(10, 190), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+      cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   cv::putText(frame,
               "Laser = (" + std::to_string(mads::get_laser_state()) + ")",
               cv::Point(10, 210), cv::FONT_HERSHEY_SIMPLEX, 0.5,
@@ -253,7 +256,7 @@ void remove_laser_pts(const std::vector<Pt>& laser_pts,
   for (std::vector<Pt>::iterator it = mos_pts.begin(); it != mos_pts.end();) {
     bool remove = false;
     for (const Pt& laser_pt : laser_pts) {
-      if (euclidean_dist(*it, laser_pt) < 10) {
+      if (euclidean_dist(*it, laser_pt) < 20) {
         remove = true;
         break;
       }
@@ -289,7 +292,6 @@ void remove_laser_pts(const std::vector<Pt>& laser_pts,
 void process_video(cv::VideoCapture& cap) {
   std::vector<cv::Mat> channels;
   gpu::init_gpu();
-  gpu::set_bg_learning_rate(bg_learning_rate);
   std::cout << "ROWS: " << ROWS << std::endl;
   std::cout << "COLS: " << COLS << std::endl;
 
@@ -317,31 +319,43 @@ void process_video(cv::VideoCapture& cap) {
     // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
 
     if (mads::control.load() == Control::FULL_AUTO) {
-      mos_pts_px = gpu::detect_mosquitoes(red_channel.clone(), mos_threshold,
-                                          mos_bg_sub);
+      mos_pts_px = detection::detect_mosquitoes(red_channel.clone(),
+                                                mos_threshold, mos_bg_sub);
       std::vector<Pt> laser_pts =
-          gpu::detect_laser(red_channel, laser_threshold);
+          detection::detect_lasers(red_channel, laser_threshold);
       remove_laser_pts(laser_pts, mos_pts_px);
-      cv::Mat black_image(ROWS, COLS, CV_8UC3, cv::Scalar(0, 0, 0));
-      for (size_t i = 0; i < mos_pts_px.size(); ++i) {
-        cv::circle(black_image, mos_pts_px.at(i).cv_pt(), 20,
-                   cv::Scalar(150, 255, 255), 2);
-        cv::putText(black_image, std::to_string(i),
-                    cv::Point(mos_pts_px.at(i).x + 10, mos_pts_px.at(i).y + 10),
-                    cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
+
+      if ((mads::display.load() & Display::ALL_DECTIONS) ==
+          Display::ALL_DECTIONS) {
+        cv::Mat black_image(ROWS, COLS, CV_8UC3, cv::Scalar(0, 0, 0));
+        for (size_t i = 0; i < mos_pts_px.size(); ++i) {
+          cv::circle(black_image, mos_pts_px.at(i).cv_pt(), 20,
+                     cv::Scalar(150, 255, 255), 2);
+          cv::putText(
+              black_image, std::to_string(i),
+              cv::Point(mos_pts_px.at(i).x + 10, mos_pts_px.at(i).y + 10),
+              cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
+        }
+        cv::imshow("laser removed mossies", black_image);
+        cv::waitKey(1);
       }
 
-      cv::imshow("laser removed mossies", black_image);
-      cv::waitKey(1);
-
-      laser_pt_px = gpu::distinguish_laser_only_2(laser_pts);
-      turret.update_belief(laser_pt_px);
+      laser_pt_px = detection::distinguish_lasers(laser_pts);
+      if (laser_pt_px == Pt{-3, -3}) {
+        cv::putText(frame,
+                    "MORE THAN TWO LASERS OUTSIDE IGNORE REGION (ALL DECTIONS "
+                    "DISCARDED)",
+                    cv::Point(200, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                    cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+      } else {
+        turret.update_belief(laser_pt_px);
+      }
       if (mos_pts_px.size() > 0) {
         turret.update_setpoint(mos_pts_px.at(0));
       }
     } else {
       std::vector<Pt> laser_pts =
-          gpu::detect_laser(red_channel, laser_threshold);
+          gpu::detect_lasers(red_channel, laser_threshold);
       laser_pt_px = gpu::distinguish_laser_only_2(laser_pts);
       if (mads::feedback.load()) {
         turret.update_belief(laser_pt_px);
@@ -463,9 +477,9 @@ void user_input(void) {
         } else if (ch == 'b') {
           std::cout << "Enter background learning rate: ";
           std::getline(std::cin, str_input);
-          bg_learning_rate = std::stof(str_input);
-          gpu::set_bg_learning_rate(bg_learning_rate);
-          std::cout << "Learning rate: " << std::to_string(bg_learning_rate)
+          detection::bg_learning_rate.store(std::stof(str_input));
+          std::cout << "Learning rate: "
+                    << std::to_string(detection::bg_learning_rate.load())
                     << std::endl;
         }
       } else if (ch == '?') {

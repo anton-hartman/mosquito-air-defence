@@ -3,7 +3,16 @@
 #include <JetsonGPIO.h>
 #include <atomic>
 
-enum Control { MANUAL, FULL_AUTO, KEYBOARD_AUTO };
+enum class Control { MANUAL, FULL_AUTO, KEYBOARD_AUTO };
+enum Display {
+  OFF = 0,
+  LASER_DETECTION = 1 << 0,
+  MOSQUITO_DETECTION = 1 << 1,
+  ALL_DETECTIONS = LASER_DETECTION | MOSQUITO_DETECTION,
+  TRACKING = 1 << 2,
+  ALL = ALL_DETECTIONS | TRACKING
+};
+enum class Debug { OFF, ON, DEEP, ALL_MSGS };
 
 class mads {
  private:
@@ -24,6 +33,8 @@ class mads {
   static std::atomic<Control> control;
   static std::atomic<bool> feedback;
   static std::atomic<bool> turret_stopped;
+  static std::atomic<Display> display;
+  static std::atomic<Debug> debug;
 
   static void set_laser(bool on) {
     if (on) {

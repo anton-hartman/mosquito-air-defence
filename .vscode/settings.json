@@ -68,7 +68,10 @@
         "__nullptr": "cpp",
         "any": "cpp",
         "variant": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "span": "cpp",
+        "charconv": "cpp",
+        "format": "cpp"
     },
     "python.analysis.typeCheckingMode": "basic",
     "[python]": {
