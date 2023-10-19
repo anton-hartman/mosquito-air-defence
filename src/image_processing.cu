@@ -8,19 +8,19 @@ const dim3 block_size(16, 8);
 const dim3 grid_size((COLS + block_size.x - 1) / block_size.x,
                      (ROWS + block_size.y - 1) / block_size.y);
 const size_t frame_size = COLS * ROWS * sizeof(uint8_t);
-uint8_t* d_frame_1;
-uint8_t* d_frame_2;
-uint8_t* mos_d_frame_1;
-uint8_t* mos_d_frame_2;
+uint8_t* d_laser_tmp;
+uint8_t* d_laser_frame;
+uint8_t* d_mos_tmp;
+uint8_t* d_mos_frame;
 uint8_t* d_background;
 uint8_t* d_mos_opening_struct_elem;
 uint8_t* d_mos_closing_struct_elem;
 uint8_t* d_laser_opening_struct_elem;
 uint8_t* d_laser_closing_struct_elem;
-int mos_opening_size;
-int mos_closing_size;
-int laser_opening_size;
-int laser_closing_size;
+int mos_opening_radius;
+int mos_closing_radius;
+int laser_opening_radius;
+int laser_closing_radius;
 
 namespace gpu {
 
@@ -31,39 +31,39 @@ void init_gpu() {
   cudaMemcpyToSymbol(d_COLS, &COLS, sizeof(int));
   cudaMemcpyToSymbol(d_ROWS, &ROWS, sizeof(int));
 
-  cudaMalloc((void**)&d_frame_1, frame_size);
-  cudaMalloc((void**)&d_frame_2, frame_size);
-  cudaMalloc((void**)&mos_d_frame_1, frame_size);
-  cudaMalloc((void**)&mos_d_frame_2, frame_size);
+  cudaMalloc((void**)&d_laser_tmp, frame_size);
+  cudaMalloc((void**)&d_laser_frame, frame_size);
+  cudaMalloc((void**)&d_mos_tmp, frame_size);
+  cudaMalloc((void**)&d_mos_frame, frame_size);
   cudaMalloc((void**)&d_background, frame_size);
 
-  mos_opening_size = 1;
-  mos_closing_size = 3;
-  laser_opening_size = 1;
-  laser_closing_size = 3;
+  mos_opening_radius = 1;
+  mos_closing_radius = 3;
+  laser_opening_radius = 1;
+  laser_closing_radius = 3;
 
   auto diameter = [](int x) -> int { return x * 2 + 1; };
 
   cudaMalloc((void**)&d_mos_opening_struct_elem,
-             std::pow(diameter(mos_opening_size), 2) * sizeof(uint8_t));
+             std::pow(diameter(mos_opening_radius), 2) * sizeof(uint8_t));
   cudaMalloc((void**)&d_mos_closing_struct_elem,
-             std::pow(diameter(mos_closing_size), 2) * sizeof(uint8_t));
+             std::pow(diameter(mos_closing_radius), 2) * sizeof(uint8_t));
   cudaMalloc((void**)&d_laser_opening_struct_elem,
-             std::pow(diameter(laser_opening_size), 2) * sizeof(uint8_t));
+             std::pow(diameter(laser_opening_radius), 2) * sizeof(uint8_t));
   cudaMalloc((void**)&d_laser_closing_struct_elem,
-             std::pow(diameter(laser_closing_size), 2) * sizeof(uint8_t));
+             std::pow(diameter(laser_closing_radius), 2) * sizeof(uint8_t));
 
-  set_struct_elem(mos_opening_size, StructElemType::MOS_OPENING);
-  set_struct_elem(mos_closing_size, StructElemType::MOS_CLOSING);
-  set_struct_elem(laser_opening_size, StructElemType::LASER_OPENING);
-  set_struct_elem(laser_closing_size, StructElemType::LASER_CLOSING);
+  set_struct_elem(mos_opening_radius, StructElemType::MOS_OPENING);
+  set_struct_elem(mos_closing_radius, StructElemType::MOS_CLOSING);
+  set_struct_elem(laser_opening_radius, StructElemType::LASER_OPENING);
+  set_struct_elem(laser_closing_radius, StructElemType::LASER_CLOSING);
 }
 
 void free_gpu() {
-  cudaFree(d_frame_1);
-  cudaFree(d_frame_2);
-  cudaFree(mos_d_frame_1);
-  cudaFree(mos_d_frame_2);
+  cudaFree(d_laser_tmp);
+  cudaFree(d_laser_frame);
+  cudaFree(d_mos_tmp);
+  cudaFree(d_mos_frame);
   cudaFree(d_background);
   cudaFree(d_mos_opening_struct_elem);
   cudaFree(d_mos_closing_struct_elem);
@@ -71,16 +71,16 @@ void free_gpu() {
   cudaFree(d_laser_closing_struct_elem);
 }
 
-void set_struct_elem(int struct_elem_size, StructElemType type) {
-  int diameter = 2 * struct_elem_size + 1;
+void set_struct_elem(int struct_elem_radius, StructElemType type) {
+  int diameter = 2 * struct_elem_radius + 1;
   uint8_t* host_struct_elem = new uint8_t[diameter * diameter];
 
   for (int i = 0; i < diameter; i++) {
     for (int j = 0; j < diameter; j++) {
-      int y = i - struct_elem_size;  // y-coordinate relative to the center
-      int x = j - struct_elem_size;  // x-coordinate relative to the center
+      int y = i - struct_elem_radius;  // y-coordinate relative to the center
+      int x = j - struct_elem_radius;  // x-coordinate relative to the center
       host_struct_elem[i * diameter + j] =
-          (x * x + y * y <= struct_elem_size * struct_elem_size) ? 1 : 0;
+          (x * x + y * y <= struct_elem_radius * struct_elem_radius) ? 1 : 0;
     }
   }
 
@@ -91,59 +91,29 @@ void set_struct_elem(int struct_elem_size, StructElemType type) {
       cudaMalloc((void**)&d_mos_opening_struct_elem, elem_memory_size);
       cudaMemcpy(d_mos_opening_struct_elem, host_struct_elem, elem_memory_size,
                  cudaMemcpyHostToDevice);
-      mos_opening_size = struct_elem_size;
+      mos_opening_radius = struct_elem_radius;
       break;
     case StructElemType::MOS_CLOSING:
       cudaFree(d_mos_closing_struct_elem);
       cudaMalloc((void**)&d_mos_closing_struct_elem, elem_memory_size);
       cudaMemcpy(d_mos_closing_struct_elem, host_struct_elem, elem_memory_size,
                  cudaMemcpyHostToDevice);
-      mos_closing_size = struct_elem_size;
+      mos_closing_radius = struct_elem_radius;
       break;
     case StructElemType::LASER_OPENING:
       cudaFree(d_laser_opening_struct_elem);
       cudaMalloc((void**)&d_laser_opening_struct_elem, elem_memory_size);
       cudaMemcpy(d_laser_opening_struct_elem, host_struct_elem,
                  elem_memory_size, cudaMemcpyHostToDevice);
-      laser_opening_size = struct_elem_size;
+      laser_opening_radius = struct_elem_radius;
       break;
     case StructElemType::LASER_CLOSING:
       cudaFree(d_laser_closing_struct_elem);
       cudaMalloc((void**)&d_laser_closing_struct_elem, elem_memory_size);
       cudaMemcpy(d_laser_closing_struct_elem, host_struct_elem,
                  elem_memory_size, cudaMemcpyHostToDevice);
-      laser_closing_size = struct_elem_size;
+      laser_closing_radius = struct_elem_radius;
       break;
-  }
-}
-
-__global__ void gaussian_smoothing(uint8_t* input,
-                                   uint8_t* output,
-                                   int kernel_size,
-                                   float sigma) {
-  int x = blockIdx.x * blockDim.x + threadIdx.x;
-  int y = blockIdx.y * blockDim.y + threadIdx.y;
-
-  if (x < d_COLS && y < d_ROWS) {
-    float sum = 0.0f;
-    float total_weight = 0.0f;
-    int half_kernel_size = kernel_size / 2;
-
-    for (int i = -half_kernel_size; i <= half_kernel_size; ++i) {
-      for (int j = -half_kernel_size; j <= half_kernel_size; ++j) {
-        int current_x = x + j;
-        int current_y = y + i;
-
-        if (current_x >= 0 && current_x < d_COLS && current_y >= 0 &&
-            current_y < d_ROWS) {
-          float weight = exp(-(i * i + j * j) / (2.0f * sigma * sigma));
-          sum += input[current_y * d_COLS + current_x] * weight;
-          total_weight += weight;
-        }
-      }
-    }
-
-    output[y * d_COLS + x] = static_cast<uint8_t>(sum / total_weight);
   }
 }
 
@@ -179,20 +149,26 @@ __global__ void subtract_and_update_background(uint8_t* frame,
   }
 }
 
+/**
+ * @brief Erosion is the minimum value of the pixels covered by the
+ structuring
+ * element.
+ */
 __global__ void erosion(uint8_t* input,
                         uint8_t* output,
                         uint8_t* struct_elem,
-                        int struct_elem_size) {
+                        int struct_elem_radius) {
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (x < d_COLS && y < d_ROWS) {
     int min_val = 255;
-    for (int i = -struct_elem_size; i <= struct_elem_size; i++) {
-      for (int j = -struct_elem_size; j <= struct_elem_size; j++) {
+    for (int i = -struct_elem_radius; i <= struct_elem_radius; i++) {
+      for (int j = -struct_elem_radius; j <= struct_elem_radius; j++) {
         if (y + i >= 0 && y + i < d_ROWS && x + j >= 0 && x + j < d_COLS) {
-          if (struct_elem[(i + struct_elem_size) * (2 * struct_elem_size + 1) +
-                          j + struct_elem_size] == 1) {
+          if (struct_elem[(i + struct_elem_radius) *
+                              (2 * struct_elem_radius + 1) +
+                          j + struct_elem_radius] == 1) {
             int idx = (y + i) * d_COLS + (x + j);
             min_val = min(min_val, (int)input[idx]);
           }
@@ -203,20 +179,25 @@ __global__ void erosion(uint8_t* input,
   }
 }
 
+/**
+ * @brief Dilation is the maximum value of the pixels covered by the
+ * structuring element.
+ */
 __global__ void dilation(uint8_t* input,
                          uint8_t* output,
                          uint8_t* struct_elem,
-                         int struct_elem_size) {
+                         int struct_elem_radius) {
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
 
   if (x < d_COLS && y < d_ROWS) {
     int max_val = 0;
-    for (int i = -struct_elem_size; i <= struct_elem_size; i++) {
-      for (int j = -struct_elem_size; j <= struct_elem_size; j++) {
+    for (int i = -struct_elem_radius; i <= struct_elem_radius; i++) {
+      for (int j = -struct_elem_radius; j <= struct_elem_radius; j++) {
         if (y + i >= 0 && y + i < d_ROWS && x + j >= 0 && x + j < d_COLS) {
-          if (struct_elem[(i + struct_elem_size) * (2 * struct_elem_size + 1) +
-                          j + struct_elem_size] == 1) {
+          if (struct_elem[(i + struct_elem_radius) *
+                              (2 * struct_elem_radius + 1) +
+                          j + struct_elem_radius] == 1) {
             int idx = (y + i) * d_COLS + (x + j);
             max_val = max(max_val, (int)input[idx]);
           }
@@ -227,32 +208,40 @@ __global__ void dilation(uint8_t* input,
   }
 }
 
+/**
+ * @brief Opening is erosion followed by dilation with the same structuring
+ * element.
+ */
 void opening(uint8_t* input_and_output,
              uint8_t* temp,
              uint8_t* struct_elem,
-             int struct_elem_size) {
+             int struct_elem_radius) {
   erosion<<<grid_size, block_size>>>(input_and_output, temp, struct_elem,
-                                     struct_elem_size);
+                                     struct_elem_radius);
   dilation<<<grid_size, block_size>>>(temp, input_and_output, struct_elem,
-                                      struct_elem_size);
+                                      struct_elem_radius);
 }
 
+/**
+ * @brief Closing is dilation followed by erosion with the same structuring
+ * element.
+ */
 void closing(uint8_t* input_and_output,
              uint8_t* temp,
              uint8_t* struct_elem,
-             int struct_elem_size) {
+             int struct_elem_radius) {
   dilation<<<grid_size, block_size>>>(input_and_output, temp, struct_elem,
-                                      struct_elem_size);
+                                      struct_elem_radius);
   erosion<<<grid_size, block_size>>>(temp, input_and_output, struct_elem,
-                                     struct_elem_size);
+                                     struct_elem_radius);
 }
 
 }  // namespace gpu
 
 namespace detection {
 
-Pt ignore_region_top_left = Pt{525, 268};
-Pt ignore_region_bottom_right = Pt{578, 305};
+Pt ignore_region_top_left = Pt{538, 288};
+Pt ignore_region_bottom_right = Pt{556, 302};
 std::atomic<float> bg_learning_rate(0.0);
 
 void set_ignore_region(Pt top_left, Pt bottom_right) {
@@ -273,15 +262,35 @@ void set_background(const cv::Mat& frame) {
   cudaMemcpy(d_background, frame.ptr(), frame_size, cudaMemcpyHostToDevice);
 }
 
-/**
- * @brief Assumes x-axis of camera and turret origin are aligned.
- * Probably wrong and should use the same method as distinguish_with_y
- */
 Pt distinguish_with_x(const std::vector<Pt>& two_pts) {
   int x0 = two_pts.at(0).x;
   int x1 = two_pts.at(1).x;
 
-  if (std::abs(x0 - mads::C_X) > std::abs(x1 - mads::C_X)) {
+  // When both lasers are at or below the camera origin, then the one closer to
+  // the origin of the camera is the laser.
+  if (x0 >= mads::C_X and x1 >= mads::C_X) {
+    if (x0 < x1) {
+      // x0 is closer to the camera origin
+      return two_pts.at(0);
+    } else {
+      return two_pts.at(1);
+    }
+  }
+
+  // When both lasers are at or above the camera origin, then the one farther
+  // from the origin of the camera is the laser.
+  if (x0 <= mads::C_X and x1 <= mads::C_X) {
+    if (x0 < x1) {
+      // x0 is further from the camera origin
+      return two_pts.at(0);
+    } else {
+      return two_pts.at(1);
+    }
+  }
+
+  // When lasers are on either side of the camera origin then the one above the
+  // origin is the laser
+  if (x0 < mads::C_X) {
     return two_pts.at(0);
   } else {
     return two_pts.at(1);
@@ -346,12 +355,13 @@ Pt distinguish_lasers(const std::vector<Pt>& pts) {
     return {-3, -3};
   }
 
-  if (std::abs(two_pts.at(0).x - two_pts.at(1).x) >=
-      std::abs(two_pts.at(0).y - two_pts.at(1).y)) {
-    return distinguish_with_x(two_pts);
-  } else {
-    return distinguish_with_y(two_pts);
-  }
+  // if (std::abs(two_pts.at(0).x - two_pts.at(1).x) >=
+  //     std::abs(two_pts.at(0).y - two_pts.at(1).y)) {
+  //   return distinguish_with_x(two_pts);
+  // } else {
+  //   return distinguish_with_y(two_pts);
+  // }
+  return distinguish_with_y(two_pts);
 }
 
 int get_blobs(const cv::Mat& frame, std::vector<Pt>& blobs) {
@@ -403,9 +413,9 @@ int get_blobs(const cv::Mat& frame, std::vector<Pt>& blobs) {
         }
       }
 
-      if (n_pixels < 5) {  // At least x pixels
-        continue;
-      }
+      // if (n_pixels < 2) {  // At least x pixels
+      //   continue;
+      // }
 
       Pt nextcentre = {sum_x / n_pixels, sum_y / n_pixels};
       blobs.push_back(nextcentre);
@@ -416,21 +426,44 @@ int get_blobs(const cv::Mat& frame, std::vector<Pt>& blobs) {
 }
 
 std::vector<Pt> detect_lasers(cv::Mat red_frame, uint8_t threshold) {
-  // cudaError_t err = cudaMemcpy(d_frame_1, red_frame.ptr(), frame_size,
-  //  cudaMemcpyHostToDevice);
-  cudaError_t err = cudaMemcpy(d_frame_2, red_frame.ptr(), frame_size,
+  cudaError_t err = cudaMemcpy(d_laser_frame, red_frame.ptr(), frame_size,
                                cudaMemcpyHostToDevice);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
-  // gpu::gaussian_smoothing<<<grid_size, block_size>>>(d_frame_1, d_frame_2,
-  // 5, 6.0f);
-  gpu::binarise_gt<<<grid_size, block_size>>>(d_frame_2, threshold);
-  gpu::opening(d_frame_2, d_frame_1, d_laser_opening_struct_elem,
-               laser_opening_size);
-  gpu::closing(d_frame_2, d_frame_1, d_laser_closing_struct_elem,
-               laser_closing_size);
+  gpu::binarise_gt<<<grid_size, block_size>>>(d_laser_frame, threshold);
+  gpu::opening(d_laser_frame, d_laser_tmp, d_laser_opening_struct_elem,
+               laser_opening_radius);
+  if (mads::display.load() & Display::LASER_DETECTION and
+      mads::debug == Debug::DEEP) {
+    cv::Mat temp(ROWS, COLS, CV_8UC1);
+    cudaMemcpy(temp.ptr(), d_laser_frame, frame_size, cudaMemcpyDeviceToHost);
+    cv::putText(
+        temp, "laser opening radius = " + std::to_string(laser_opening_radius),
+        cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+        cv::Scalar(255, 255, 255), 2);
+    cv::circle(temp, cv::Point(50, 50), laser_opening_radius,
+               cv::Scalar(150, 0, 0), -1, 4);
+    cv::imshow("laser opened", temp);
+    cv::waitKey(1);
+  }
 
-  err = cudaMemcpy(red_frame.ptr(), d_frame_2, frame_size,
+  gpu::closing(d_laser_frame, d_laser_tmp, d_laser_closing_struct_elem,
+               laser_closing_radius);
+  if (mads::display.load() & Display::LASER_DETECTION and
+      mads::debug == Debug::DEEP) {
+    cv::Mat temp(ROWS, COLS, CV_8UC1);
+    cudaMemcpy(temp.ptr(), d_laser_frame, frame_size, cudaMemcpyDeviceToHost);
+    cv::putText(
+        temp, "laser closing radius = " + std::to_string(laser_closing_radius),
+        cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+        cv::Scalar(255, 255, 255), 2);
+    cv::circle(temp, cv::Point(50, 50), laser_closing_radius,
+               cv::Scalar(150, 0, 0), -1, 4);
+    cv::imshow("laser closed", temp);
+    cv::waitKey(1);
+  }
+
+  err = cudaMemcpy(red_frame.ptr(), d_laser_frame, frame_size,
                    cudaMemcpyDeviceToHost);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
@@ -449,7 +482,7 @@ std::vector<Pt> detect_lasers(cv::Mat red_frame, uint8_t threshold) {
     cv::putText(red_frame, "num lasers = " + std::to_string(num_laser_pts),
                 cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
                 cv::Scalar(255, 255, 255), 2);
-    cv::imshow("laser detection", red_frame);
+    cv::imshow("laser detection (not distinguished)", red_frame);
     cv::waitKey(1);
   }
   return laser_pts;
@@ -458,24 +491,13 @@ std::vector<Pt> detect_lasers(cv::Mat red_frame, uint8_t threshold) {
 std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
                                   uint8_t threshold,
                                   bool bg_sub) {
-  // cudaError_t err = cudaMemcpy(mos_d_frame_1, red_frame.ptr(), frame_size,
-  //                              cudaMemcpyHostToDevice);
-  cudaError_t err = cudaMemcpy(mos_d_frame_2, red_frame.ptr(), frame_size,
+  cudaError_t err = cudaMemcpy(d_mos_frame, red_frame.ptr(), frame_size,
                                cudaMemcpyHostToDevice);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 
-  // gaussian_smoothing<<<grid_size, block_size>>>(mos_d_frame_1, mos_d_frame_2,
-  // 5,
-  //                                               6.0f);
-  // if (mads::display.load() & Display::MOSQUITO_DETECTION and
-  //     mads::debug == Debug::DEEP) {
-  //   cv::Mat temp(ROWS, COLS, CV_8UC1);
-  //   cudaMemcpy(temp.ptr(), mos_d_frame_2, frame_size,
-  //   cudaMemcpyDeviceToHost); cv::imshow("smoothed", temp); cv::waitKey(1);
-  // }
   if (bg_sub) {
     gpu::subtract_and_update_background<<<grid_size, block_size>>>(
-        mos_d_frame_2, d_background, bg_learning_rate);
+        d_mos_frame, d_background, bg_learning_rate);
     if (mads::display.load() & Display::MOSQUITO_DETECTION and
         mads::debug == Debug::ON) {
       cv::Mat temp(ROWS, COLS, CV_8UC1);
@@ -483,37 +505,49 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
       cv::imshow("background", temp);
       cv::waitKey(1);
 
-      cudaMemcpy(temp.ptr(), mos_d_frame_2, frame_size, cudaMemcpyDeviceToHost);
+      cudaMemcpy(temp.ptr(), d_mos_frame, frame_size, cudaMemcpyDeviceToHost);
       cv::imshow("subtracted", temp);
       cv::waitKey(1);
     }
 
-    gpu::binarise_gt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
+    gpu::binarise_gt<<<grid_size, block_size>>>(d_mos_frame, threshold);
   } else {
-    gpu::binarise_lt<<<grid_size, block_size>>>(mos_d_frame_2, threshold);
+    gpu::binarise_lt<<<grid_size, block_size>>>(d_mos_frame, threshold);
   }
 
-  gpu::opening(mos_d_frame_2, mos_d_frame_1, d_mos_opening_struct_elem,
-               mos_opening_size);
+  gpu::opening(d_mos_frame, d_mos_tmp, d_mos_opening_struct_elem,
+               mos_opening_radius);
   if (mads::display.load() & Display::MOSQUITO_DETECTION and
       mads::debug == Debug::DEEP) {
     cv::Mat temp(ROWS, COLS, CV_8UC1);
-    cudaMemcpy(temp.ptr(), mos_d_frame_2, frame_size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(temp.ptr(), d_mos_frame, frame_size, cudaMemcpyDeviceToHost);
+    cv::putText(temp,
+                "mos opening radius = " + std::to_string(mos_opening_radius),
+                cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+                cv::Scalar(255, 255, 255), 2);
+    cv::circle(temp, cv::Point(50, 50), mos_opening_radius,
+               cv::Scalar(150, 0, 0), -1, 4);
     cv::imshow("mos opened", temp);
     cv::waitKey(1);
   }
 
-  gpu::closing(mos_d_frame_2, mos_d_frame_1, d_mos_closing_struct_elem,
-               mos_closing_size);
+  gpu::closing(d_mos_frame, d_mos_tmp, d_mos_closing_struct_elem,
+               mos_closing_radius);
   if (mads::display.load() & Display::MOSQUITO_DETECTION and
       mads::debug == Debug::DEEP) {
     cv::Mat temp(ROWS, COLS, CV_8UC1);
-    cudaMemcpy(temp.ptr(), mos_d_frame_2, frame_size, cudaMemcpyDeviceToHost);
+    cudaMemcpy(temp.ptr(), d_mos_frame, frame_size, cudaMemcpyDeviceToHost);
+    cv::putText(temp,
+                "mos closing radius = " + std::to_string(mos_closing_radius),
+                cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1,
+                cv::Scalar(255, 255, 255), 2);
+    cv::circle(temp, cv::Point(50, 50), mos_closing_radius,
+               cv::Scalar(150, 0, 0), -1, 4);
     cv::imshow("mos closed", temp);
     cv::waitKey(1);
   }
 
-  err = cudaMemcpy(red_frame.ptr(), mos_d_frame_2, frame_size,
+  err = cudaMemcpy(red_frame.ptr(), d_mos_frame, frame_size,
                    cudaMemcpyDeviceToHost);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
 

@@ -19,8 +19,8 @@ extern double K_D;
 class Turret {
  public:
   static const int TANK_DEPTH = 318;
-  static const int CAMERA_DEPTH = 793 + TANK_DEPTH;  // mm
-  static const int TURRET_DEPTH = 395 + TANK_DEPTH;
+  static const int CAMERA_DEPTH = 735 + TANK_DEPTH;  // mm
+  static const int TURRET_DEPTH = 475 + TANK_DEPTH;
   static const int VERTICAL_DISTANCE_BETWEEN_MIRRORS = 14;
   static const int Y_STEPPER_DEPTH = TURRET_DEPTH;
   static const int X_STEPPER_DEPTH =

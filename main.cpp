@@ -17,10 +17,9 @@ cv::VideoCapture cap;
 cv::Mat frame;
 cv::Mat red_channel;
 
-// float bg_learning_rate = 0.0;
 bool mos_bg_sub = true;
 int laser_threshold = 200;
-int mos_threshold = 30;
+int mos_threshold = 35;
 Pt laser_pt_px;
 std::vector<Pt> mos_pts_px;
 
@@ -405,41 +404,33 @@ void user_input(void) {
   bool edit_mode = false;
   int steps = 1 * MICROSTEPS;
   int px = 110;
-  char ch;
-  std::string str_input;
+  std::string input;
 
   while (!mads::exit_flag.load()) {
     if (edit_mode) {
-      std::cout << "Edit mode (? = info, e = exit):" << std::endl;
+      std::cout << "______________________________" << std::endl;
+      std::cout << "EDIT MODE (? = info, q = exit): " << std::endl;
     } else {
       if (mads::control.load() == Control::MANUAL) {
-        std::cout << "MANUAL control mode (? = info, e = edit mode): ";
+        std::cout << "________________________________________" << std::endl;
+        std::cout << "MANUAL CONTROL (? = info, e = edit mode): ";
       } else if (mads::control.load() == Control::KEYBOARD_AUTO) {
-        std::cout << "KEYBOARD_AUTO control mode (? = info, e = edit mode): ";
+        std::cout << "________________________________" << std::endl;
+        std::cout << "KEYBOARD AUTO CONTROL (? = info): ";
       } else {
-        std::cout << "FULL_AUTO control mode (? = info, e = edit mode): ";
+        std::cout << "____________________________" << std::endl;
+        std::cout << "FULL AUTO CONTROL (? = info): ";
       }
     }
 
-    std::cin >> ch;
-    std::cin.ignore();  // Discard the newline character from the input stream
-
-    if (ch == 'q') {
-      std::cout << "Exit with keypress = q" << std::endl;
-      mads::exit_flag.store(true);
-      break;
-    }
-
+    std::getline(std::cin, input);
     try {
-      if (ch == 'e') {
-        edit_mode = !edit_mode;
-        if (edit_mode) {
-          std::cout << "Edit mode on" << std::endl;
-        } else {
-          std::cout << "Edit mode off" << std::endl;
-        }
+      if (input == "q") {
+        edit_mode = false;
+      } else if (input == "edit") {
+        edit_mode = true;
       } else if (edit_mode) {
-        if (ch == '?') {
+        if (input == "?") {
           std::cout << "l = laser threshold" << std::endl;
           std::cout << "m = mosquito threshold" << std::endl;
           std::cout << "p = K_P gain" << std::endl;
@@ -447,41 +438,65 @@ void user_input(void) {
           std::cout << "d = K_D gain" << std::endl;
           std::cout << "n = microsteps" << std::endl;
           std::cout << "b = background learning rate" << std::endl;
-        } else if (ch == 'l') {
+          std::cout << "lo = laser opening radius" << std::endl;
+          std::cout << "lc = laser closing radius" << std::endl;
+          std::cout << "mo = mosquito opening radius" << std::endl;
+          std::cout << "mc = mosqutio closing radius" << std::endl;
+        } else if (input == "lo") {
+          std::cout << "Enter laser opening radius: ";
+          std::getline(std::cin, input);
+          gpu::set_struct_elem(std::stoi(input), StructElemType::LASER_OPENING);
+        } else if (input == "lc") {
+          std::cout << "Enter laser closing radius: ";
+          std::getline(std::cin, input);
+          gpu::set_struct_elem(std::stoi(input), StructElemType::LASER_CLOSING);
+        } else if (input == "mo") {
+          std::cout << "Enter mosquito opening radius: ";
+          std::getline(std::cin, input);
+          gpu::set_struct_elem(std::stoi(input), StructElemType::MOS_OPENING);
+        } else if (input == "mc") {
+          std::cout << "Enter mosquito closing radius: ";
+          std::getline(std::cin, input);
+          gpu::set_struct_elem(std::stoi(input), StructElemType::MOS_CLOSING);
+        } else if (input == "l") {
           std::cout << "Enter laser threshold: ";
-          std::getline(std::cin, str_input);
-          laser_threshold = std::stoi(str_input);
-        } else if (ch == 'm') {
+          std::getline(std::cin, input);
+          laser_threshold = std::stoi(input);
+        } else if (input == "m") {
           std::cout << "Enter mosquito threshold: ";
-          std::getline(std::cin, str_input);
-          mos_threshold = std::stoi(str_input);
-        } else if (ch == 'p') {
+          std::getline(std::cin, input);
+          mos_threshold = std::stoi(input);
+        } else if (input == "p") {
           std::cout << "Enter P: ";
-          std::getline(std::cin, str_input);
-          K_P = std::stof(str_input);
-        } else if (ch == 'i') {
+          std::getline(std::cin, input);
+          K_P = std::stof(input);
+        } else if (input == "i") {
           std::cout << "Enter I: ";
-          std::getline(std::cin, str_input);
-          K_I = std::stof(str_input);
-        } else if (ch == 'd') {
+          std::getline(std::cin, input);
+          K_I = std::stof(input);
+        } else if (input == "d") {
           std::cout << "Enter D: ";
-          std::getline(std::cin, str_input);
-          K_D = std::stof(str_input);
-        } else if (ch == 'n') {
+          std::getline(std::cin, input);
+          K_D = std::stof(input);
+        } else if (input == "n") {
           std::cout << "Enter microsteps: ";
-          std::getline(std::cin, str_input);
-          int microsteps = std::stoi(str_input);
+          std::getline(std::cin, input);
+          int microsteps = std::stoi(input);
           set_microsteps(microsteps);
-          std::cout << "Microsteps: " << str_input << std::endl;
-        } else if (ch == 'b') {
+          std::cout << "Microsteps: " << input << std::endl;
+        } else if (input == "b") {
           std::cout << "Enter background learning rate: ";
-          std::getline(std::cin, str_input);
-          detection::bg_learning_rate.store(std::stof(str_input));
+          std::getline(std::cin, input);
+          detection::bg_learning_rate.store(std::stof(input));
           std::cout << "Learning rate: "
                     << std::to_string(detection::bg_learning_rate.load())
                     << std::endl;
         }
-      } else if (ch == '?') {
+      } else if (input == "?") {
+        std::cout << "edit = edit mode" << std::endl;
+        std::cout << "gpu = gpu edit mode" << std::endl;
+        std::cout << "display ? = display modes" << std::endl;
+        std::cout << "debug ? = debug modes" << std::endl;
         std::cout << "g = set background" << std::endl;
         std::cout << "k = toggle kill mosquitoes (disables keyboard control)"
                   << std::endl;
@@ -492,21 +507,44 @@ void user_input(void) {
         std::cout << "f = toggle turret feedback" << std::endl;
         std::cout << "c = set step size" << std::endl;
         std::cout << "w, a, s, d = move turret" << std::endl;
-      } else if (ch == 'g') {
+      } else if (input == "display ?") {
+        std::cout << "display off" << std::endl;
+        std::cout << "display laser" << std::endl;
+        std::cout << "display mos" << std::endl;
+        std::cout << "display all" << std::endl;
+      } else if (input == "debug ?") {
+        std::cout << "debug off" << std::endl;
+        std::cout << "debug on" << std::endl;
+        std::cout << "debug deep" << std::endl;
+      } else if (input == "debug off") {
+        mads::debug.store(Debug::OFF);
+      } else if (input == "debug on") {
+        mads::debug.store(Debug::ON);
+      } else if (input == "debug deep") {
+        mads::debug.store(Debug::DEEP);
+      } else if (input == "display off") {
+        mads::display.store(Display::OFF);
+      } else if (input == "display laser") {
+        mads::display.store(Display::LASER_DETECTION);
+      } else if (input == "display mos") {
+        mads::display.store(Display::MOSQUITO_DETECTION);
+      } else if (input == "display all") {
+        mads::display.store(Display::ALL);
+      } else if (input == "g") {
         detection::set_background(red_channel);
         std::cout << "Background set to curret frame" << std::endl;
-      } else if (ch == 'h') {
+      } else if (input == "h") {
         // Control prev_control = mads::control.load();
         mads::control.store(Control::MANUAL);
         turret.home(laser_pt_px);
         // mads::control.store(prev_control);
       } else if (mads::turret_stopped.load() and
-                 (ch == 'e' or ch == 'w' or ch == 'a' or ch == 's' or
-                  ch == 'd')) {
+                 (input == "e" or input == "w" or input == "a" or
+                  input == "s" or input == "d")) {
         mads::turret_stopped.store(false);
         turret.start_turret();
         std::cout << "Turret started" << std::endl;
-      } else if (ch == 'z') {
+      } else if (input == "z") {
         if (mads::turret_stopped.load()) {
           mads::turret_stopped.store(false);
           turret.start_turret();
@@ -516,35 +554,35 @@ void user_input(void) {
           turret.stop_turret();
           std::cout << "Turret stopped" << std::endl;
         }
-      } else if (ch == 'l') {
+      } else if (input == "l") {
         mads::set_laser(!mads::get_laser_state());
         if (mads::get_laser_state()) {
           std::cout << "Laser on" << std::endl;
         } else {
           std::cout << "Laser off" << std::endl;
         }
-      } else if (ch == 'o') {
+      } else if (input == "o") {
         turret.set_origin(laser_pt_px);
         std::cout << "Turrt origin set to: " << laser_pt_px.x << ", "
                   << laser_pt_px.y << std::endl;
-      } else if (ch == 'f') {
+      } else if (input == "f") {
         mads::feedback.store(!mads::feedback.load());
         if (mads::feedback.load()) {
           std::cout << "Turret feedback on" << std::endl;
         } else {
           std::cout << "Turret feedback off" << std::endl;
         }
-      } else if (ch == 'c') {
+      } else if (input == "c") {
         if (mads::control.load() == Control::MANUAL) {
           std::cout << "Enter step size: ";
-          std::getline(std::cin, str_input);
-          steps = std::stoi(str_input);
+          std::getline(std::cin, input);
+          steps = std::stoi(input);
         } else {
           std::cout << "Enter pixel step size: ";
-          std::getline(std::cin, str_input);
-          px = std::stoi(str_input);
+          std::getline(std::cin, input);
+          px = std::stoi(input);
         }
-      } else if (ch == 'm') {
+      } else if (input == "m") {
         if (mads::control.load() != Control::MANUAL) {
           mads::control.store(Control::MANUAL);
           mads::feedback.store(false);
@@ -552,7 +590,7 @@ void user_input(void) {
         } else {
           mads::control.store(Control::KEYBOARD_AUTO);
         }
-      } else if (ch == 'k') {
+      } else if (input == "k") {
         if (mads::control.load() != Control::FULL_AUTO) {
           // std::vector<cv::Mat> initial_channels;
           // cv::split(frame, initial_channels);
@@ -561,11 +599,11 @@ void user_input(void) {
         } else {
           mads::control.store(Control::MANUAL);
         }
-      } else if (ch == 'w' or ch == 'a' or ch == 's' or ch == 'd') {
+      } else if (input == "w" or input == "a" or input == "s" or input == "d") {
         if (mads::control.load() == Control::MANUAL) {
-          turret.keyboard_manual(ch, steps);
+          turret.keyboard_manual(input[0], steps);
         } else if (mads::control.load() == Control::KEYBOARD_AUTO) {
-          turret.keyboard_auto(ch, px);
+          turret.keyboard_auto(input[0], px);
         } else {
           std::cout
               << "Cannot manually move turret while mosquito detection is on"
