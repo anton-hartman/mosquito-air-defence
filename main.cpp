@@ -6,9 +6,8 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include "include/detection.hpp"
 #include "include/frame.hpp"
-// #include "include/image_processing.hpp"
+#include "include/image_processing.hpp"
 #include "include/mads.hpp"
 #include "include/pt.hpp"
 #include "include/turret.hpp"
@@ -106,9 +105,9 @@ void draw_target(cv::Mat& frame, const Pt& target, const cv::Scalar& colour) {
 }
 
 void markup_frame() {
-  cv::rectangle(frame, gpu::ignore_region_top_left.cv_pt(),
-                gpu::ignore_region_bottom_right.cv_pt(), cv::Scalar(0, 255, 0),
-                2);
+  cv::rectangle(frame, detection::ignore_region_top_left.cv_pt(),
+                detection::ignore_region_bottom_right.cv_pt(),
+                cv::Scalar(0, 255, 0), 2);
 
   draw_target(frame, Pt{mads::C_X, mads::C_Y}, cv::Scalar(0, 255, 255));
   cv::putText(frame, "Camera Origin", cv::Point(mads::C_X, mads::C_Y),
@@ -325,8 +324,8 @@ void process_video(cv::VideoCapture& cap) {
           detection::detect_lasers(red_channel, laser_threshold);
       remove_laser_pts(laser_pts, mos_pts_px);
 
-      if ((mads::display.load() & Display::ALL_DECTIONS) ==
-          Display::ALL_DECTIONS) {
+      if ((mads::display.load() & Display::ALL_DETECTIONS) ==
+          Display::ALL_DETECTIONS) {
         cv::Mat black_image(ROWS, COLS, CV_8UC3, cv::Scalar(0, 0, 0));
         for (size_t i = 0; i < mos_pts_px.size(); ++i) {
           cv::circle(black_image, mos_pts_px.at(i).cv_pt(), 20,
@@ -355,8 +354,8 @@ void process_video(cv::VideoCapture& cap) {
       }
     } else {
       std::vector<Pt> laser_pts =
-          gpu::detect_lasers(red_channel, laser_threshold);
-      laser_pt_px = gpu::distinguish_laser_only_2(laser_pts);
+          detection::detect_lasers(red_channel, laser_threshold);
+      laser_pt_px = detection::distinguish_lasers(laser_pts);
       if (mads::feedback.load()) {
         turret.update_belief(laser_pt_px);
       }
@@ -386,8 +385,8 @@ void process_video(cv::VideoCapture& cap) {
       mads::exit_flag.store(true);
     } else if (key == 'b') {
       std::pair<cv::Point, cv::Point> points = get_bounding_box();
-      gpu::set_ignore_region({points.first.x, points.first.y},
-                             {points.second.x, points.second.y});
+      detection::set_ignore_region({points.first.x, points.first.y},
+                                   {points.second.x, points.second.y});
 
       std::cout << "Top left point: (" << points.first.x << ", "
                 << points.first.y << ")\n";
@@ -494,7 +493,7 @@ void user_input(void) {
         std::cout << "c = set step size" << std::endl;
         std::cout << "w, a, s, d = move turret" << std::endl;
       } else if (ch == 'g') {
-        gpu::set_background(red_channel);
+        detection::set_background(red_channel);
         std::cout << "Background set to curret frame" << std::endl;
       } else if (ch == 'h') {
         // Control prev_control = mads::control.load();
@@ -597,7 +596,7 @@ int main(void) {
 
   std::vector<cv::Mat> initial_channels;
   cv::split(initial_frame, initial_channels);
-  gpu::set_background(initial_channels[2]);
+  detection::set_background(initial_channels[2]);
   mads::set_laser(true);
 
   std::thread user_input_thread(user_input);

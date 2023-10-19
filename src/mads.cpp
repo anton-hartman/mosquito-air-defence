@@ -10,4 +10,4 @@ std::atomic<bool> mads::laser(false);
 std::atomic<bool> mads::turret_stopped(true);
 std::atomic<Control> mads::control(Control::MANUAL);
 std::atomic<Display> mads::display(Display::OFF);
-static std::atomic<Debug> mads::debug(Debug::OFF);
+std::atomic<Debug> mads::debug(Debug::OFF);

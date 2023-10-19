@@ -29,7 +29,6 @@ set(SOURCE_FILES
     src/turret.cpp
     src/image_processing.cu
     src/mads.cpp
-    src/detection.cpp
 )
 
 set(HEADER_FILES
@@ -39,7 +38,6 @@ set(HEADER_FILES
     include/stepper.hpp
     include/turret.hpp
     include/image_processing.hpp
-    include/detection.hpp
 )
 
 # Add executable
