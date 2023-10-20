@@ -425,7 +425,7 @@ int get_blobs(const cv::Mat& frame, std::vector<Pt>& blobs) {
   return blobs.size();
 }
 
-std::vector<Pt> detect_lasers(cv::Mat red_frame, uint8_t threshold) {
+std::vector<Pt> detect_lasers(cv::Mat red_frame, const uint8_t threshold) {
   cudaError_t err = cudaMemcpy(d_laser_frame, red_frame.ptr(), frame_size,
                                cudaMemcpyHostToDevice);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
@@ -489,8 +489,8 @@ std::vector<Pt> detect_lasers(cv::Mat red_frame, uint8_t threshold) {
 }
 
 std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
-                                  uint8_t threshold,
-                                  bool bg_sub) {
+                                  const uint8_t threshold,
+                                  const bool bg_sub) {
   cudaError_t err = cudaMemcpy(d_mos_frame, red_frame.ptr(), frame_size,
                                cudaMemcpyHostToDevice);
   (err != cudaSuccess) ? printf("CUDA err: %s\n", cudaGetErrorString(err)) : 0;
@@ -571,6 +571,44 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
     cv::waitKey(1);
   }
   return mos_pts;
+}
+
+void remove_lasers_from_mos(const std::vector<Pt>& laser_pts,
+                            std::vector<Pt>& mos_pts,
+                            const int remove_radius) {
+  auto euclidean_dist = [](Pt pt1, Pt pt2) {
+    return std::sqrt(std::pow(pt1.x - pt2.x, 2) + std::pow(pt1.y - pt2.y, 2));
+  };
+
+  for (std::vector<Pt>::iterator it = mos_pts.begin(); it != mos_pts.end();) {
+    bool remove = false;
+    for (const Pt& laser_pt : laser_pts) {
+      if (euclidean_dist(*it, laser_pt) < remove_radius) {
+        remove = true;
+        break;
+      }
+    }
+    if (remove) {
+      it = mos_pts.erase(it);
+    } else {
+      ++it;
+    }
+  }
+
+  if (mads::display.load() & Display::MOSQUITO_DETECTION) {
+    cv::Mat black_image(ROWS, COLS, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::circle(black_image, cv::Point(300, 50), remove_radius,
+               cv::Scalar(150, 0, 0), -1, 4);
+    for (size_t i = 0; i < mos_pts.size(); ++i) {
+      cv::circle(black_image, mos_pts.at(i).cv_pt(), 15,
+                 cv::Scalar(150, 255, 255), 2);
+      cv::putText(black_image, std::to_string(i),
+                  cv::Point(mos_pts.at(i).x + 10, mos_pts.at(i).y + 10),
+                  cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
+    }
+    cv::imshow("laser removed mossies", black_image);
+    cv::waitKey(1);
+  }
 }
 
 }  // namespace detection

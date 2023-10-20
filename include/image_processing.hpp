@@ -34,10 +34,12 @@ extern std::atomic<float> bg_learning_rate;
 void set_ignore_region(Pt top_left, Pt bottom_right);
 void set_background(const cv::Mat& frame);
 
-std::vector<Pt> detect_lasers(cv::Mat red_frame, uint8_t threshold);
+std::vector<Pt> detect_lasers(cv::Mat red_frame, const uint8_t threshold);
 Pt distinguish_lasers(const std::vector<Pt>& pts);
 std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
-                                  uint8_t threshold,
-                                  bool bg_sub = true);
-
+                                  const uint8_t threshold,
+                                  const bool bg_sub = true);
+void remove_lasers_from_mos(const std::vector<Pt>& laser_pts,
+                            std::vector<Pt>& mos_pts,
+                            const int remove_radius);
 }  // namespace detection

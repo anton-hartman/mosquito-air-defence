@@ -19,7 +19,8 @@ cv::Mat red_channel;
 
 bool mos_bg_sub = true;
 int laser_threshold = 200;
-int mos_threshold = 35;
+int mos_threshold = 25;
+int laser_remove_radius = 5;
 Pt laser_pt_px;
 std::vector<Pt> mos_pts_px;
 
@@ -245,28 +246,6 @@ void test_framerate(cv::VideoCapture& cap) {
   }
 }
 
-float euclidean_dist(Pt pt1, Pt pt2) {
-  return std::sqrt(std::pow(pt1.x - pt2.x, 2) + std::pow(pt1.y - pt2.y, 2));
-}
-
-void remove_laser_pts(const std::vector<Pt>& laser_pts,
-                      std::vector<Pt>& mos_pts) {
-  for (std::vector<Pt>::iterator it = mos_pts.begin(); it != mos_pts.end();) {
-    bool remove = false;
-    for (const Pt& laser_pt : laser_pts) {
-      if (euclidean_dist(*it, laser_pt) < 20) {
-        remove = true;
-        break;
-      }
-    }
-    if (remove) {
-      it = mos_pts.erase(it);
-    } else {
-      ++it;
-    }
-  }
-}
-
 // void laser_toggle_frame(cv::VideoCapture& cap) {
 //   while (!mads::exit_flag.load()) {
 //     cap >> frame;
@@ -321,22 +300,8 @@ void process_video(cv::VideoCapture& cap) {
                                                 mos_threshold, mos_bg_sub);
       std::vector<Pt> laser_pts =
           detection::detect_lasers(red_channel, laser_threshold);
-      remove_laser_pts(laser_pts, mos_pts_px);
-
-      if ((mads::display.load() & Display::ALL_DETECTIONS) ==
-          Display::ALL_DETECTIONS) {
-        cv::Mat black_image(ROWS, COLS, CV_8UC3, cv::Scalar(0, 0, 0));
-        for (size_t i = 0; i < mos_pts_px.size(); ++i) {
-          cv::circle(black_image, mos_pts_px.at(i).cv_pt(), 20,
-                     cv::Scalar(150, 255, 255), 2);
-          cv::putText(
-              black_image, std::to_string(i),
-              cv::Point(mos_pts_px.at(i).x + 10, mos_pts_px.at(i).y + 10),
-              cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255), 1);
-        }
-        cv::imshow("laser removed mossies", black_image);
-        cv::waitKey(1);
-      }
+      detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
+                                        laser_remove_radius);
 
       laser_pt_px = detection::distinguish_lasers(laser_pts);
       if (laser_pt_px == Pt{-3, -3}) {
@@ -413,7 +378,7 @@ void user_input(void) {
     } else {
       if (mads::control.load() == Control::MANUAL) {
         std::cout << "________________________________________" << std::endl;
-        std::cout << "MANUAL CONTROL (? = info, e = edit mode): ";
+        std::cout << "MANUAL CONTROL (? = info): ";
       } else if (mads::control.load() == Control::KEYBOARD_AUTO) {
         std::cout << "________________________________" << std::endl;
         std::cout << "KEYBOARD AUTO CONTROL (? = info): ";
@@ -427,7 +392,7 @@ void user_input(void) {
     try {
       if (input == "q") {
         edit_mode = false;
-      } else if (input == "edit") {
+      } else if (input == "e") {
         edit_mode = true;
       } else if (edit_mode) {
         if (input == "?") {
@@ -442,6 +407,11 @@ void user_input(void) {
           std::cout << "lc = laser closing radius" << std::endl;
           std::cout << "mo = mosquito opening radius" << std::endl;
           std::cout << "mc = mosqutio closing radius" << std::endl;
+          std::cout << "r = remove lasers from mos radius" << std::endl;
+        } else if (input == "r") {
+          std::cout << "Enter radius: ";
+          std::getline(std::cin, input);
+          laser_remove_radius = std::stoi(input);
         } else if (input == "lo") {
           std::cout << "Enter laser opening radius: ";
           std::getline(std::cin, input);
@@ -491,10 +461,11 @@ void user_input(void) {
           std::cout << "Learning rate: "
                     << std::to_string(detection::bg_learning_rate.load())
                     << std::endl;
+        } else {
+          std::cout << "Invalid input" << std::endl;
         }
       } else if (input == "?") {
-        std::cout << "edit = edit mode" << std::endl;
-        std::cout << "gpu = gpu edit mode" << std::endl;
+        std::cout << "e = edit mode" << std::endl;
         std::cout << "display ? = display modes" << std::endl;
         std::cout << "debug ? = debug modes" << std::endl;
         std::cout << "g = set background" << std::endl;

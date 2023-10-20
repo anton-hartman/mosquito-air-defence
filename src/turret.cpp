@@ -22,7 +22,7 @@ void set_microsteps(int microsteps) {
   MICROSTEP_ANGLE_RAD = MICROSTEP_ANGLE_DEG * M_PI / 180;
 }
 
-double K_P = 0.05;
+double K_P = 0.2;
 double K_I = 0.0;
 double K_D = 0.0;
 
