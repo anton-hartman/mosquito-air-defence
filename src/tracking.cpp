@@ -1,45 +1,46 @@
 #include "../include/tracking.hpp"
 #include <iostream>
 #include "../include/hungarian.hpp"
-#include "../include/kalman_no_eigen.hpp"
-
-namespace tracking {
+#include "../include/mads.hpp"
 
 using Matrix = std::vector<std::vector<double>>;
 
+namespace tracking {
+
 HungarianAlgorithm hungarian;
-std::vector<Kalman> tracks;
 int max_age = 5;
 
 Matrix get_cost_matrix(const std::vector<Pt>& blobs) {
-  auto euclidean_dist = [](Pt_d predicted, Pt detected) {
+  auto euclidean_dist = [](Pt predicted, Pt detected) {
     return std::sqrt(std::pow(predicted.x - detected.x, 2) +
                      std::pow(predicted.y - detected.y, 2));
   };
 
   Matrix cost_matrix;
-  for (int i = 0; i < tracks.size(); i++) {
+  for (int i = 0; i < kalmans.size(); i++) {
     for (int j = 0; j < blobs.size(); j++) {
       cost_matrix.at(i).at(j) =
-          euclidean_dist(tracks.at(i).pt_d(), blobs.at(j));
+          euclidean_dist(kalmans.at(i).track.pt, blobs.at(j));
     }
   }
 }
 
-void associate_and_update_tracks(const std::vector<Pt>& blobs) {
+void associate_and_update_tracks(const std::vector<Pt>& blobs, const int dt) {
   if (blobs.size() == 0) {
     return;
   }
 
-  if (tracks.size() != 0) {
-    std::vector<std::vector<double>> cost_matrix = get_cost_matrix(blobs);
+  if (kalmans.size() != 0) {
+    Matrix cost_matrix = get_cost_matrix(blobs);
 
-    std::cout << "cost matrix: " << std::endl;
-    for (int i = 0; i < cost_matrix.size(); i++) {
-      for (int j = 0; j < cost_matrix.at(i).size(); j++) {
-        std::cout << cost_matrix.at(i).at(j) << " ";
+    if (mads::debug.load() & Debug::TRACKING) {
+      std ::cout << "cost matrix: " << std::endl;
+      for (int i = 0; i < cost_matrix.size(); i++) {
+        for (int j = 0; j < cost_matrix.at(i).size(); j++) {
+          std::cout << cost_matrix.at(i).at(j) << " ";
+        }
+        std::cout << std::endl;
       }
-      std::cout << std::endl;
     }
 
     vector<int> assignment;
@@ -49,21 +50,21 @@ void associate_and_update_tracks(const std::vector<Pt>& blobs) {
     int x = 0;
     for (int i = 0; i < assignment.size(); ++i) {
       if (assignment.at(i) == -1) {
-        if (tracks.at(i).age > max_age) {
-          tracks.erase(tracks.begin() + i);
+        if (kalmans.at(i).age > max_age) {
+          kalmans.erase(kalmans.begin() + i);
           continue;
         } else {
-          ++tracks.at(i).age;
+          ++kalmans.at(i).track.age;
         }
       } else {
-        tracks.at(x).update(blobs.at(assignment.at(i)));
+        kalmans.at(x).update(blobs.at(assignment.at(i)));
         ++x;
       }
     }
 
     // Add new trackers for blobs that have no associated trackers (new
     // mosquitos)
-    if (blobs.size() > tracks.size()) {
+    if (blobs.size() > kalmans.size()) {
       std::vector<Pt> unassigned_blobs = blobs;  // Deep copy
       for (int i = 0; i < assignment.size(); i++) {
         unassigned_blobs.at(assignment.at(i)) = {-9, -9};
@@ -72,45 +73,54 @@ void associate_and_update_tracks(const std::vector<Pt>& blobs) {
                                          unassigned_blobs.end(), Pt{-9, -9}),
                              unassigned_blobs.end());
 
-      for (int i = 0; i < unassigned_blobs.size(); i++) {
-        tracks.push_back(Kalman(0.035, 1.0, 1.0, 1.0, 0.1, 0.1));
-        tracks.end()->update(unassigned_blobs.at(i));
+      for (const Pt& blob : unassigned_blobs) {
+        kalmans.push_back(Kalman(blob, dt, 1.0, 1.0, 1.0, 0.1, 0.1));
       }
     }
   } else {
-    for (int i = 0; i < blobs.size(); i++) {
-      tracks.push_back(Kalman(0.035, 1.0, 1.0, 1.0, 0.1, 0.1));
-      tracks.end()->update(blobs.at(i));
+    for (const Pt& blob : blobs) {
+      kalmans.push_back(Kalman(blob, dt, 1.0, 1.0, 1.0, 0.1, 0.1));
     }
   }
 }
 
-// void Tracking::predict_centres() {
-//   for (int i = 0; i < tracks.size(); i++) {
-//     tracks.at(i).predict();
-//   }
-// }
+Track track_closest_to_laser(const Pt& laser_pt) {
+  if (kalmans.size() == 0) {
+    return Track();
+  }
 
-// std::vector<Pt> Tracking::get_predicted_centres() const {
-//   std::vector<Pt> predicted_centres;
-//   for (int i = 0; i < tracks.size(); i++) {
-//     predicted_centres.push_back(tracks.at(i).get_predicted_centre());
-//   }
-//   return predicted_centres;
-// }
+  double min_dist = 1000000;
+  int min_dist_index = -1;
+  for (int i = 0; i < kalmans.size(); i++) {
+    double dist = std::sqrt(std::pow(kalmans.at(i).track.pt.x - laser_pt.x, 2) +
+                            std::pow(kalmans.at(i).track.py.y - laser_pt.y, 2));
+    if (dist < min_dist) {
+      min_dist = dist;
+      min_dist_index = i;
+    }
+  }
+  current_track_id = kalmans.at(min_dist_index).track.id;
+  return kalmans.at(min_dist_index).track;
+}
 
-// Pt Tracking::get_predicted_centre(const int& id) const {
-//   if (tracks.size() == 0) {
-//     return {-1, -1};
-//   }
-//   if (id == -1) {
-//     return tracks.at(0).get_predicted_centre();
-//   }
-//   for (int i = 0; i < tracks.size(); i++) {
-//     if (tracks.at(i).get_id() == id) {
-//       return tracks.at(i).get_predicted_centre();
-//     }
-//   }
-// }
+Track get_current_track_preditction(const Pt& laser_pt) {
+  if (kalmans.size() == 0) {
+    return {-1, -1};
+  }
+
+  Track track;
+  for (Kalman& kalman : kalmans) {
+    kalman.predict();
+    if (kalman.track.id == current_track_id) {
+      track = kalman.track;
+    }
+  }
+
+  if (track == nullptr) {
+    return get_closest_to_laser(laser_pt);
+  } else {
+    return track;
+  }
+}
 
 }  // namespace tracking

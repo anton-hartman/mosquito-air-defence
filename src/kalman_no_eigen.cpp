@@ -78,9 +78,10 @@ Matrix identity(int size) {
 
 int Kalman::id_counter = 0;
 
-Kalman::Kalman(double dt_,
-               double u_x_,
-               double u_y_,
+Kalman::Kalman(Pt detected_pt,
+               double dt_,
+               double a_x_,
+               double a_y_,
                double sigma_a,
                double sigma_z_x,
                double sigma_z_y)
@@ -88,9 +89,10 @@ Kalman::Kalman(double dt_,
       std_acc(sigma_a),
       std_meas_x(sigma_z_x),
       std_meas_y(sigma_z_y),
-      id(id_counter++) {
+      track(detected_pt, id_counter++) {
   // Initialize matrices and vectors here
-  u = {u_x_, u_y_};
+  x = {detected_pt.x, detected_pt.y, 0, 0};
+  u = {a_x_, a_y_};
 
   // clang-format off
 
@@ -130,7 +132,7 @@ Kalman::Kalman(double dt_,
   P = identity(4);
 }
 
-std::vector<double> Kalman::predict() {
+Track Kalman::predict() {
   // x = A * x + B * u
   x = multiply(A, x);
   std::vector<double> Bu = multiply(B, u);
@@ -147,7 +149,8 @@ std::vector<double> Kalman::predict() {
     }
   }
 
-  return x;
+  track.pt = {x[0], x[1]};
+  return track;
 }
 
 // std::vector<double> Kalman::predict_without_updating_states(
@@ -171,10 +174,11 @@ std::vector<double> Kalman::predict() {
 //   return x;
 // }
 
-std::vector<double> Kalman::update(Pt pt) {
+Track Kalman::update(Pt detected_pt) {
   // Measurement update
-  std::vector<double> z = {static_cast<double>(pt.x),
-                           static_cast<double>(pt.y)};  // Measurement vector
+  std::vector<double> z = {
+      static_cast<double>(detected_pt.x),
+      static_cast<double>(detected_pt.y)};              // Measurement vector
   std::vector<double> y = subtract(z, multiply(H, x));  // Innovation vector
 
   // Compute Kalman gain: K = P * H^T * (H * P * H^T + R)^-1
@@ -201,5 +205,8 @@ std::vector<double> Kalman::update(Pt pt) {
   }
   P = multiply(I_KH, P);
 
-  return x;
+  track.pt = {x[0], x[1]};
+  track.detected_pt = detected_pt;
+  track.age = 0;
+  return track;
 }

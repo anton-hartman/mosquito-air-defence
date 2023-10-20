@@ -436,7 +436,7 @@ std::vector<Pt> detect_lasers(cv::Mat red_frame, const uint8_t threshold) {
   gpu::opening(d_laser_frame, d_laser_tmp, d_laser_opening_struct_elem,
                laser_opening_radius);
   if (mads::display.load() & Display::LASER_DETECTION and
-      mads::debug == Debug::DEEP) {
+      mads::debug & Debug::MORPH) {
     cv::Mat temp(ROWS, COLS, CV_8UC1);
     cudaMemcpy(temp.ptr(), d_laser_frame, frame_size, cudaMemcpyDeviceToHost);
     cv::putText(
@@ -452,7 +452,7 @@ std::vector<Pt> detect_lasers(cv::Mat red_frame, const uint8_t threshold) {
   gpu::closing(d_laser_frame, d_laser_tmp, d_laser_closing_struct_elem,
                laser_closing_radius);
   if (mads::display.load() & Display::LASER_DETECTION and
-      mads::debug == Debug::DEEP) {
+      mads::debug & Debug::MORPH) {
     cv::Mat temp(ROWS, COLS, CV_8UC1);
     cudaMemcpy(temp.ptr(), d_laser_frame, frame_size, cudaMemcpyDeviceToHost);
     cv::putText(
@@ -501,7 +501,7 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
     gpu::subtract_and_update_background<<<grid_size, block_size>>>(
         d_mos_frame, d_background, bg_learning_rate);
     if (mads::display.load() & Display::MOSQUITO_DETECTION and
-        mads::debug == Debug::ON) {
+        mads::debug & Debug::BG_SUB) {
       cv::Mat temp(ROWS, COLS, CV_8UC1);
       cudaMemcpy(temp.ptr(), d_background, frame_size, cudaMemcpyDeviceToHost);
       cv::imshow("background", temp);
@@ -520,7 +520,7 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
   gpu::opening(d_mos_frame, d_mos_tmp, d_mos_opening_struct_elem,
                mos_opening_radius);
   if (mads::display.load() & Display::MOSQUITO_DETECTION and
-      mads::debug == Debug::DEEP) {
+      mads::debug & Debug::MORPH) {
     cv::Mat temp(ROWS, COLS, CV_8UC1);
     cudaMemcpy(temp.ptr(), d_mos_frame, frame_size, cudaMemcpyDeviceToHost);
     cv::putText(temp,
@@ -536,7 +536,7 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
   gpu::closing(d_mos_frame, d_mos_tmp, d_mos_closing_struct_elem,
                mos_closing_radius);
   if (mads::display.load() & Display::MOSQUITO_DETECTION and
-      mads::debug == Debug::DEEP) {
+      mads::debug & Debug::MORPH) {
     cv::Mat temp(ROWS, COLS, CV_8UC1);
     cudaMemcpy(temp.ptr(), d_mos_frame, frame_size, cudaMemcpyDeviceToHost);
     cv::putText(temp,
@@ -614,24 +614,3 @@ void remove_lasers_from_mos(const std::vector<Pt>& laser_pts,
 }
 
 }  // namespace detection
-
-namespace tracking {
-// Tracking tracker;
-
-// void track_mosquitoes(const std::vector<Pt>& blob_centres) {
-//   tracker.associate_and_update_tracks(blob_centres);
-//   // tracker.predict_centres();
-// }
-
-// std::vector<Pt> get_tracked_mosquitoes(const std::vector<Pt>& blob_centres) {
-//   track_mosquitoes(blob_centres);
-//   // return tracker.get_predicted_centres();
-//   return std::vector<Pt>();
-// }
-
-// Pt get_tracked_mosquito(const std::vector<Pt>& blob_centres) {
-//   track_mosquitoes(blob_centres);
-//   return tracker.get_predicted_centre(-1);
-// }
-
-}  // namespace tracking

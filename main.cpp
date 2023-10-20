@@ -10,6 +10,7 @@
 #include "include/image_processing.hpp"
 #include "include/mads.hpp"
 #include "include/pt.hpp"
+#include "include/tracking.hpp"
 #include "include/turret.hpp"
 
 Turret turret;
@@ -302,6 +303,24 @@ void process_video(cv::VideoCapture& cap) {
           detection::detect_lasers(red_channel, laser_threshold);
       detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
                                         laser_remove_radius);
+      int dt = 0;
+      tracking::associate_and_update_tracks(mos_pts_px, dt);
+      Track track = tracking::get_current_track_preditction(laser_pt_px);
+      if (mads::display.load() & Display::TRACKING) {
+        for (const Kalman& kalman : tracking::kalmans) {
+          if (kalman.track.id == tracking::current_track_id) {
+            cv::circle(frame, kalman.track.pt.cv_pt(), 15,
+                       cv::Scalar(0, 0, 255), 2);
+          } else {
+            cv::circle(frame, kalman.track.pt.cv_pt(), 15,
+                       cv::Scalar(255, 0, 255), 2);
+          }
+          cv::putText(frame, std::to_string(kalman.track.id),
+                      cv::Point(kalman.track.pt.x + 10, kalman.track.pt.y + 10),
+                      cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255),
+                      1);
+        }
+      }
 
       laser_pt_px = detection::distinguish_lasers(laser_pts);
       if (laser_pt_px == Pt{-3, -3}) {
@@ -315,6 +334,7 @@ void process_video(cv::VideoCapture& cap) {
       }
       if (mos_pts_px.size() > 0) {
         turret.update_setpoint(mos_pts_px.at(0));
+        turret.update_setpoint(track.pt);
       }
     } else {
       std::vector<Pt> laser_pts =
@@ -485,14 +505,17 @@ void user_input(void) {
         std::cout << "display all" << std::endl;
       } else if (input == "debug ?") {
         std::cout << "debug off" << std::endl;
-        std::cout << "debug on" << std::endl;
-        std::cout << "debug deep" << std::endl;
+        std::cout << "debug bg sub" << std::endl;
+        std::cout << "debug morph" << std::endl;
+        std::cout << "debug tracking" << std::endl;
       } else if (input == "debug off") {
         mads::debug.store(Debug::OFF);
-      } else if (input == "debug on") {
-        mads::debug.store(Debug::ON);
-      } else if (input == "debug deep") {
-        mads::debug.store(Debug::DEEP);
+      } else if (input == "debug bg sub") {
+        mads::debug.store(Debug::BG_SUB);
+      } else if (input == "debug morph") {
+        mads::debug.store(Debug::MORPH);
+      } else if (input == "debug tracking") {
+        mads::debug.store(Debug::TRACKING);
       } else if (input == "display off") {
         mads::display.store(Display::OFF);
       } else if (input == "display laser") {

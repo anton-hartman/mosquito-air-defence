@@ -12,7 +12,13 @@ enum Display {
   TRACKING = 1 << 2,
   ALL = ALL_DETECTIONS | TRACKING
 };
-enum class Debug { OFF, ON, DEEP, ALL_MSGS };
+enum Debug {
+  OFF = 0,
+  BG_SUB = 1 << 0,
+  MORPH = 1 << 1,
+  TRACKING = 1 << 2,
+  ALL = BG_SUB | MORPH | TRACKING
+};
 
 class mads {
  private:

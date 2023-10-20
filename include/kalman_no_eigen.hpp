@@ -5,32 +5,45 @@
 
 using Matrix = std::vector<std::vector<double>>;
 
+class Track {
+ public:
+  const int id;
+  int age = 0;
+  Pt pt;
+  Pt detected_pt;
+
+  Track(int id, Pt pt) : id(id), pt(pt) {}
+
+  Track() {
+    id = -1;
+    pt = {-1, -1};
+    detected_pt = {-1, -1};
+  }
+};
+
 class Kalman {
  private:
   static int id_counter;
-  int id;
-  Pt detected_pt;
 
-  std::vector<double> x = {0, 0, 0, 0};  // State vector [x, y, vx, vy]
-  std::vector<double> u = {0, 0};        // Control input [ux, uy]
+  // State vector [x, y, vx, vy]
+  std::vector<double> x;  // = {0, 0, 0, 0};
+  // Control input [ux, uy] = [ax, ay]
+  std::vector<double> u;  // = {0, 0};
 
   double dt, std_acc, std_meas_x, std_meas_y;
   Matrix A, B, H, Q, R, P;
 
  public:
-  Kalman(double dt_,
-         double u_x_,
-         double u_y_,
+  Track track;
+
+  Kalman(Pt detected_pt,
+         double dt_,
+         double a_x_,
+         double a_y_,
          double sigma_a,
          double sigma_z_x,
          double sigma_z_y);
 
-  int age = 0;
-  std::vector<double> predict();
-  std::vector<double> update(Pt pt);
-  //   Pt predict_without_updating_states() const;
-
-  // Getters
-  int get_id() const { return id; };
-  Pt_d pt_d() const { return Pt_d{x[0], x[1]}; };
+  Track predict();
+  Track update(Pt pt);
 };
