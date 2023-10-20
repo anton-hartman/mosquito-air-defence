@@ -1,11 +1,11 @@
 #include "../include/tracking.hpp"
 #include <iostream>
 #include "../include/kalman.hpp"
-#include "../include/mos.hpp"
+// #include "../include/mos.hpp"
 
-int Mos::id_counter = 0;
+// int Mos::id_counter = 0;
 std::vector<Kalman> kalman_trackers;
-std::vector<Mos> mosquitos;
+// std::vector<Mos> mosquitos;
 
 void Tracking::add_kalman() {
   kalman_trackers.push_back(Kalman(0.035, 1.0, 1.0, 1.0, 0.1, 0.1));

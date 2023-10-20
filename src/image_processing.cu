@@ -3,6 +3,7 @@
 #include <thread>
 #include "../include/image_processing.hpp"
 #include "../include/mads.hpp"
+#include "../include/tracking.hpp"
 
 const dim3 block_size(16, 8);
 const dim3 grid_size((COLS + block_size.x - 1) / block_size.x,
@@ -612,3 +613,23 @@ void remove_lasers_from_mos(const std::vector<Pt>& laser_pts,
 }
 
 }  // namespace detection
+
+namespace tracking {
+Tracking tracker;
+
+void track_mosquitoes(const std::vector<Pt>& blob_centres) {
+  tracker.associate_and_update(blob_centres);
+  // tracker.predict_centres();
+}
+
+std::vector<Pt> get_tracked_mosquitoes(const std::vector<Pt>& blob_centres) {
+  track_mosquitoes(blob_centres);
+  // return tracker.get_predicted_centres();
+  return std::vector<Pt>();
+}
+
+Pt get_tracked_mosquito(const std::vector<Pt>& blob_centres) {
+  track_mosquitoes(blob_centres);
+  return tracker.get_predicted_centre(-1);
+}
+}  // namespace tracking

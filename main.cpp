@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 #include <signal.h>
+#include <Eigen/Dense>
 #include <atomic>
 #include <cmath>
 #include <opencv2/opencv.hpp>

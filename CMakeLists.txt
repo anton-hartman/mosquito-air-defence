@@ -10,6 +10,7 @@ find_package(CUDA REQUIRED)
 find_package(JetsonGPIO REQUIRED)
 find_package(Curses REQUIRED) # For keyboard input
 find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 
 # Include directories
@@ -29,6 +30,9 @@ set(SOURCE_FILES
     src/turret.cpp
     src/image_processing.cu
     src/mads.cpp
+    src/hungarian.cpp
+    src/kalman.cpp
+    src/tracking.cpp
 )
 
 set(HEADER_FILES
@@ -38,6 +42,9 @@ set(HEADER_FILES
     include/stepper.hpp
     include/turret.hpp
     include/image_processing.hpp
+    include/hungarian.hpp
+    include/kalman.hpp
+    include/tracking.hpp
 )
 
 # Add executable
@@ -49,4 +56,5 @@ target_link_libraries(mosquito-air-defence
     ${CURSES_LIBRARIES}
     ${OpenCV_LIBS}
     ${CUDA_LIBRARIES}
+    Eigen3::Eigen
 )
