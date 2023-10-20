@@ -1,45 +1,38 @@
 #include "../include/tracking.hpp"
 #include <iostream>
-#include "../include/kalman.hpp"
-// #include "../include/mos.hpp"
+#include "../include/hungarian.hpp"
+#include "../include/kalman_no_eigen.hpp"
 
-// int Mos::id_counter = 0;
-std::vector<Kalman> kalman_trackers;
-// std::vector<Mos> mosquitos;
+namespace tracking {
 
-void Tracking::add_kalman() {
-  kalman_trackers.push_back(Kalman(0.035, 1.0, 1.0, 1.0, 0.1, 0.1));
-  std::cout << "kalman_tackers.size() = " << kalman_trackers.size()
-            << std::endl;
-  // std::cout << "Kalman added" << kalman_trackers.at(0).get_id() << std::endl;
-  // mosquitos.push_back(Mos(50, 50, 2));
-  // std::cout << "mosquitos.size() = " << mosquitos.size() << std::endl;
-}
+using Matrix = std::vector<std::vector<double>>;
 
-double Tracking::euclidean_distance(const Pt_d& predicted, const Pt& detected) {
-  return std::sqrt(std::pow(detected.x - predicted.x, 2) +
-                   std::pow(detected.y - predicted.y, 2));
-}
+HungarianAlgorithm hungarian;
+std::vector<Kalman> tracks;
+int max_age = 5;
 
-std::vector<std::vector<double>> Tracking::get_cost_matrix(
-    const std::vector<Pt>& blob_centres) {
-  std::vector<std::vector<double>> cost_matrix;
-  for (int i = 0; i < kalman_trackers.size(); i++) {
-    for (int j = 0; j < blob_centres.size(); j++) {
-      cost_matrix.at(i).at(j) = euclidean_distance(
-          kalman_trackers.at(i).get_predicted_centre(), blob_centres.at(j));
+Matrix get_cost_matrix(const std::vector<Pt>& blobs) {
+  auto euclidean_dist = [](Pt_d predicted, Pt detected) {
+    return std::sqrt(std::pow(predicted.x - detected.x, 2) +
+                     std::pow(predicted.y - detected.y, 2));
+  };
+
+  Matrix cost_matrix;
+  for (int i = 0; i < tracks.size(); i++) {
+    for (int j = 0; j < blobs.size(); j++) {
+      cost_matrix.at(i).at(j) =
+          euclidean_dist(tracks.at(i).pt_d(), blobs.at(j));
     }
   }
 }
 
-void Tracking::associate_and_update(const std::vector<Pt>& blob_centres) {
-  if (blob_centres.size() == 0) {
+void associate_and_update_tracks(const std::vector<Pt>& blobs) {
+  if (blobs.size() == 0) {
     return;
   }
 
-  if (kalman_trackers.size() != 0) {
-    std::vector<std::vector<double>> cost_matrix =
-        get_cost_matrix(blob_centres);
+  if (tracks.size() != 0) {
+    std::vector<std::vector<double>> cost_matrix = get_cost_matrix(blobs);
 
     std::cout << "cost matrix: " << std::endl;
     for (int i = 0; i < cost_matrix.size(); i++) {
@@ -52,67 +45,72 @@ void Tracking::associate_and_update(const std::vector<Pt>& blob_centres) {
     vector<int> assignment;
     double cost = hungarian.Solve(cost_matrix, assignment);
 
-    // int x = 0;
-    // for (int i = 0; i < assignment.size(); i++) {
-    //   // Remove trackers that have no associated blobs
-    //   if (assignment.at(i) == -1) {
-    //     kalman_trackers.erase(kalman_trackers.begin() + i);
-    //     continue;
-    //   }
-    //   kalman_trackers.at(x).update(blob_centres.at(assignment.at(i)));
-    //   x++;
-    // }
+    // Using two indicies because elements can be removed from the vector.
+    int x = 0;
+    for (int i = 0; i < assignment.size(); ++i) {
+      if (assignment.at(i) == -1) {
+        if (tracks.at(i).age > max_age) {
+          tracks.erase(tracks.begin() + i);
+          continue;
+        } else {
+          ++tracks.at(i).age;
+        }
+      } else {
+        tracks.at(x).update(blobs.at(assignment.at(i)));
+        ++x;
+      }
+    }
 
-    // // Add new trackers for blobs that have no associated trackers (new
-    // // mosquitos)
-    // if (blob_centres.size() > kalman_trackers.size()) {
-    //   std::vector<Pt> unassigned_blobs = blob_centres;  // Deep copy
-    //   for (int i = 0; i < assignment.size(); i++) {
-    //     unassigned_blobs.at(assignment.at(i)) = {-9, -9};
-    //   }
-    //   unassigned_blobs.erase(std::remove(unassigned_blobs.begin(),
-    //                                      unassigned_blobs.end(), Pt{-9,-9}),
-    //                          unassigned_blobs.end());
+    // Add new trackers for blobs that have no associated trackers (new
+    // mosquitos)
+    if (blobs.size() > tracks.size()) {
+      std::vector<Pt> unassigned_blobs = blobs;  // Deep copy
+      for (int i = 0; i < assignment.size(); i++) {
+        unassigned_blobs.at(assignment.at(i)) = {-9, -9};
+      }
+      unassigned_blobs.erase(std::remove(unassigned_blobs.begin(),
+                                         unassigned_blobs.end(), Pt{-9, -9}),
+                             unassigned_blobs.end());
 
-    //   for (int i = 0; i < unassigned_blobs.size(); i++) {
-    //     add_kalman();
-    //     kalman_trackers.at(kalman_trackers.size() - 1)
-    //         .update(unassigned_blobs.at(i));
-    //   }
-    // }
+      for (int i = 0; i < unassigned_blobs.size(); i++) {
+        tracks.push_back(Kalman(0.035, 1.0, 1.0, 1.0, 0.1, 0.1));
+        tracks.end()->update(unassigned_blobs.at(i));
+      }
+    }
   } else {
-    for (int i = 0; i < blob_centres.size(); i++) {
-      add_kalman();
-      // kalman_trackers.at(kalman_trackers.size() -
-      // 1).update(blob_centres.at(i));
+    for (int i = 0; i < blobs.size(); i++) {
+      tracks.push_back(Kalman(0.035, 1.0, 1.0, 1.0, 0.1, 0.1));
+      tracks.end()->update(blobs.at(i));
     }
   }
 }
 
-void Tracking::predict_centres() {
-  for (int i = 0; i < kalman_trackers.size(); i++) {
-    kalman_trackers.at(i).predict();
-  }
-}
+// void Tracking::predict_centres() {
+//   for (int i = 0; i < tracks.size(); i++) {
+//     tracks.at(i).predict();
+//   }
+// }
 
-std::vector<Pt> Tracking::get_predicted_centres() const {
-  std::vector<Pt> predicted_centres;
-  for (int i = 0; i < kalman_trackers.size(); i++) {
-    predicted_centres.push_back(kalman_trackers.at(i).get_predicted_centre());
-  }
-  return predicted_centres;
-}
+// std::vector<Pt> Tracking::get_predicted_centres() const {
+//   std::vector<Pt> predicted_centres;
+//   for (int i = 0; i < tracks.size(); i++) {
+//     predicted_centres.push_back(tracks.at(i).get_predicted_centre());
+//   }
+//   return predicted_centres;
+// }
 
-Pt Tracking::get_predicted_centre(const int& id) const {
-  if (kalman_trackers.size() == 0) {
-    return {-1, -1};
-  }
-  if (id == -1) {
-    return kalman_trackers.at(0).get_predicted_centre();
-  }
-  for (int i = 0; i < kalman_trackers.size(); i++) {
-    if (kalman_trackers.at(i).get_id() == id) {
-      return kalman_trackers.at(i).get_predicted_centre();
-    }
-  }
-}
+// Pt Tracking::get_predicted_centre(const int& id) const {
+//   if (tracks.size() == 0) {
+//     return {-1, -1};
+//   }
+//   if (id == -1) {
+//     return tracks.at(0).get_predicted_centre();
+//   }
+//   for (int i = 0; i < tracks.size(); i++) {
+//     if (tracks.at(i).get_id() == id) {
+//       return tracks.at(i).get_predicted_centre();
+//     }
+//   }
+// }
+
+}  // namespace tracking

@@ -94,4 +94,8 @@ class Pt {
   }
 
   cv::Point cv_pt() const { return cv::Point(x, y); }
+
+  // std::vector<int> vec() const {
+  //   return std::vector<int>{x, y};
+  // }
 };

@@ -1,9 +1,7 @@
 #pragma once
 
-#include <cuda_runtime.h>
 #include <atomic>
 #include <opencv2/opencv.hpp>
-#include "../include/frame.hpp"
 #include "pt.hpp"
 
 enum class StructElemType {

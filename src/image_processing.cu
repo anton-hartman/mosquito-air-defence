@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include "../include/frame.hpp"
 #include "../include/image_processing.hpp"
 #include "../include/mads.hpp"
 #include "../include/tracking.hpp"
@@ -615,21 +616,22 @@ void remove_lasers_from_mos(const std::vector<Pt>& laser_pts,
 }  // namespace detection
 
 namespace tracking {
-Tracking tracker;
+// Tracking tracker;
 
-void track_mosquitoes(const std::vector<Pt>& blob_centres) {
-  tracker.associate_and_update(blob_centres);
-  // tracker.predict_centres();
-}
+// void track_mosquitoes(const std::vector<Pt>& blob_centres) {
+//   tracker.associate_and_update_tracks(blob_centres);
+//   // tracker.predict_centres();
+// }
 
-std::vector<Pt> get_tracked_mosquitoes(const std::vector<Pt>& blob_centres) {
-  track_mosquitoes(blob_centres);
-  // return tracker.get_predicted_centres();
-  return std::vector<Pt>();
-}
+// std::vector<Pt> get_tracked_mosquitoes(const std::vector<Pt>& blob_centres) {
+//   track_mosquitoes(blob_centres);
+//   // return tracker.get_predicted_centres();
+//   return std::vector<Pt>();
+// }
 
-Pt get_tracked_mosquito(const std::vector<Pt>& blob_centres) {
-  track_mosquitoes(blob_centres);
-  return tracker.get_predicted_centre(-1);
-}
+// Pt get_tracked_mosquito(const std::vector<Pt>& blob_centres) {
+//   track_mosquitoes(blob_centres);
+//   return tracker.get_predicted_centre(-1);
+// }
+
 }  // namespace tracking

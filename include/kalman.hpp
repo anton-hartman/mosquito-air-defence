@@ -4,7 +4,6 @@
  */
 #pragma once
 
-// #include <cuda_runtime.h>
 #include <Eigen/Dense>
 #include <cmath>
 #include <opencv2/core.hpp>

@@ -71,7 +71,16 @@
         "ranges": "cpp",
         "span": "cpp",
         "charconv": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "hash_map": "cpp",
+        "valarray": "cpp",
+        "__hash_table": "cpp",
+        "__split_buffer": "cpp",
+        "__tree": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "unordered_set": "cpp",
+        "future": "cpp"
     },
     "python.analysis.typeCheckingMode": "basic",
     "[python]": {
