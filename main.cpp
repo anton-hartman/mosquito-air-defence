@@ -25,9 +25,9 @@ int laser_remove_radius = 5;
 Pt laser_pt_px;
 std::vector<Pt> mos_pts_px;
 
-bool show_laser = true;
-bool show_setpoint = true;
-bool show_belief = true;
+bool show_laser = false;
+bool show_setpoint = false;
+bool show_belief = false;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -393,8 +393,8 @@ void process_video(cv::VideoCapture& cap) {
 
         // Draw the tracks
         for (int i = 1; i < kalman.track.detected_pt_hist.size(); ++i) {
-          cv::line(frame, kalman.track.detected_pt_hist[i - 1].cv_pt(-2),
-                   kalman.track.detected_pt_hist[i].cv_pt(-2),
+          cv::line(frame, kalman.track.detected_pt_hist[i - 1].cv_pt(),
+                   kalman.track.detected_pt_hist[i].cv_pt(),
                    cv::Scalar(0, 255, 0), 2);
         }
         for (int i = 1; i < kalman.track.updated_pt_hist.size(); ++i) {
@@ -710,7 +710,7 @@ int main(void) {
   std::vector<cv::Mat> initial_channels;
   cv::split(initial_frame, initial_channels);
   detection::set_background(initial_channels[2]);
-  mads::set_laser(true);
+  mads::set_laser(false);
 
   std::thread user_input_thread(user_input);
   // std::thread video_thread(laser_toggle_frame, std::ref(cap));

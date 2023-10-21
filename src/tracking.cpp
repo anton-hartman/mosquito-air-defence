@@ -13,7 +13,7 @@ std::vector<Kalman> kalmans;
 HungarianAlgorithm hungarian;
 
 void add_kalman(const Pt& pt, const int dt) {
-  kalmans.push_back(Kalman(pt, dt, 0, 0, 10, 1, 1));
+  kalmans.push_back(Kalman(pt, dt, 0, 0, 5, 1, 1));
 }
 
 Matrix get_cost_matrix(const std::vector<Pt>& blobs) {
