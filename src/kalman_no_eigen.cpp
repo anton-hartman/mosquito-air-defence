@@ -89,9 +89,10 @@ Kalman::Kalman(Pt detected_pt,
       std_acc(sigma_a),
       std_meas_x(sigma_z_x),
       std_meas_y(sigma_z_y),
-      track(detected_pt, id_counter++) {
+      track(id_counter++, detected_pt) {
   // Initialize matrices and vectors here
-  x = {detected_pt.x, detected_pt.y, 0, 0};
+  x = {static_cast<double>(detected_pt.x), static_cast<double>(detected_pt.y),
+       0, 0};
   u = {a_x_, a_y_};
 
   // clang-format off
@@ -150,6 +151,10 @@ Track Kalman::predict() {
   }
 
   track.pt = {x[0], x[1]};
+  pt_hist.push_back(track.pt);
+  if (pt_hist.size() > track.max_hist) {
+    pt_hist.pop_front();
+  }
   return track;
 }
 
@@ -207,6 +212,10 @@ Track Kalman::update(Pt detected_pt) {
 
   track.pt = {x[0], x[1]};
   track.detected_pt = detected_pt;
+    detected_pt_hist.push_back(track.pt);
+  if (detected_pt_hist.size() > track.max_hist) {
+    detected_pt_hist.pop_front();
+  }
   track.age = 0;
   return track;
 }

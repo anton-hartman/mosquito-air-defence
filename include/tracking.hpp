@@ -6,8 +6,8 @@
 
 namespace tracking {
 
-int current_track_id = 0;
-std::vector<Kalman> kalmans;
+extern int current_track_id;
+extern std::vector<Kalman> kalmans;
 
 /**
  * @brief Associate detections with predictions and update trackers

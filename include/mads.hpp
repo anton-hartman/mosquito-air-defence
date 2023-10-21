@@ -12,13 +12,16 @@ enum Display {
   TRACKING = 1 << 2,
   ALL = ALL_DETECTIONS | TRACKING
 };
-enum Debug {
+
+namespace Debug {
+enum DebugEnum {
   OFF = 0,
   BG_SUB = 1 << 0,
   MORPH = 1 << 1,
   TRACKING = 1 << 2,
   ALL = BG_SUB | MORPH | TRACKING
 };
+}
 
 class mads {
  private:
@@ -40,7 +43,7 @@ class mads {
   static std::atomic<bool> feedback;
   static std::atomic<bool> turret_stopped;
   static std::atomic<Display> display;
-  static std::atomic<Debug> debug;
+  static std::atomic<Debug::DebugEnum> debug;
 
   static void set_laser(bool on) {
     if (on) {

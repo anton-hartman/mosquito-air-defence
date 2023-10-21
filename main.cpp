@@ -205,6 +205,9 @@ void markup_frame() {
               "Laser = (" + std::to_string(mads::get_laser_state()) + ")",
               cv::Point(10, 210), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  cv::putText(frame, "Num Tracks = " + std::to_string(tracking::kalmans.size()),
+              cv::Point(10, 230), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 }
 
 void test_framerate(cv::VideoCapture& cap) {
@@ -303,23 +306,29 @@ void process_video(cv::VideoCapture& cap) {
           detection::detect_lasers(red_channel, laser_threshold);
       detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
                                         laser_remove_radius);
-      int dt = 0;
+      int dt = 0.067;
       tracking::associate_and_update_tracks(mos_pts_px, dt);
       Track track = tracking::get_current_track_preditction(laser_pt_px);
-      if (mads::display.load() & Display::TRACKING) {
-        for (const Kalman& kalman : tracking::kalmans) {
-          if (kalman.track.id == tracking::current_track_id) {
-            cv::circle(frame, kalman.track.pt.cv_pt(), 15,
-                       cv::Scalar(0, 0, 255), 2);
-          } else {
-            cv::circle(frame, kalman.track.pt.cv_pt(), 15,
-                       cv::Scalar(255, 0, 255), 2);
-          }
-          cv::putText(frame, std::to_string(kalman.track.id),
-                      cv::Point(kalman.track.pt.x + 10, kalman.track.pt.y + 10),
-                      cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 255, 255),
-                      1);
+      for (const Kalman& kalman : tracking::kalmans) {
+        if (kalman.track.id == tracking::current_track_id) {
+          cv::circle(frame, kalman.track.pt.cv_pt(), 10, cv::Scalar(0, 0, 255),
+                     2);
+        } else {
+          cv::circle(frame, kalman.track.pt.cv_pt(), 15,
+                     cv::Scalar(255, 0, 255), 2);
         }
+        cv::putText(frame, std::to_string(kalman.track.id),
+                    cv::Point(kalman.track.pt.x + 10, kalman.track.pt.y + 10),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
+                    1);
+
+        cv::circle(frame, kalman.track.detected_pt.cv_pt(), 10,
+                   cv::Scalar(150, 255, 255), 2);
+        cv::putText(frame, std::to_string(kalman.track.id),
+                    cv::Point(kalman.track.detected_pt.x + 10,
+                              kalman.track.detected_pt.y + 10),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
+                    1);
       }
 
       laser_pt_px = detection::distinguish_lasers(laser_pts);
@@ -333,7 +342,7 @@ void process_video(cv::VideoCapture& cap) {
         turret.update_belief(laser_pt_px);
       }
       if (mos_pts_px.size() > 0) {
-        turret.update_setpoint(mos_pts_px.at(0));
+        // turret.update_setpoint(mos_pts_px.at(0));
         turret.update_setpoint(track.pt);
       }
     } else {
@@ -351,8 +360,7 @@ void process_video(cv::VideoCapture& cap) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                         end_time - start_time)
                         .count();
-
-    start_time = std::chrono::high_resolution_clock::now();
+    start_time = end_time;
 
     // std::cout << "FPS: " + std::to_string(1000 / duration) + " (" +
     //                  std::to_string(duration) + " ms)"

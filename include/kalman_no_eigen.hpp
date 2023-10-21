@@ -7,18 +7,29 @@ using Matrix = std::vector<std::vector<double>>;
 
 class Track {
  public:
-  const int id;
+  int id;
   int age = 0;
   Pt pt;
   Pt detected_pt;
 
-  Track(int id, Pt pt) : id(id), pt(pt) {}
+  int max_hist = 20;
+  std::deque<Pt> pt_hist;
+  std::deque<Pt> detected_pt_hist;
 
-  Track() {
-    id = -1;
-    pt = {-1, -1};
-    detected_pt = {-1, -1};
+  Track(int id, Pt pt) : id(id), pt(pt) {}
+  Track() : id(-1), pt({-1, -1}), detected_pt({-1, -1}) {}
+
+  Track& operator=(const Track& other) {
+    if (this != &other) {
+      this->id = other.id;
+      this->age = other.age;
+      this->pt = other.pt;
+      this->detected_pt = other.detected_pt;
+    }
+    return *this;
   }
+
+  bool operator==(const int id) const { return this->id == id; }
 };
 
 class Kalman {
