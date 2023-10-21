@@ -25,6 +25,10 @@ int laser_remove_radius = 5;
 Pt laser_pt_px;
 std::vector<Pt> mos_pts_px;
 
+bool show_laser = true;
+bool show_setpoint = true;
+bool show_belief = true;
+
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
   turret.stop_turret();
@@ -63,6 +67,15 @@ bool save_frame_as_jpeg(const cv::Mat& frame, int& counter) {
   return true;
 }
 
+void mouse_click_callback(int event, int x, int y, int flags, void* userdata) {
+  Pt* point = reinterpret_cast<Pt*>(userdata);
+  if (event == cv::EVENT_LBUTTONDOWN) {
+    point->x = x;
+    point->y = y;
+    std::cout << "Mouse clicked at (" << x << ", " << y << ")" << std::endl;
+  }
+}
+
 bool drawing = false;
 cv::Point top_left_pt, bottom_right_pt;
 // Mouse callback function
@@ -96,13 +109,13 @@ std::pair<cv::Point, cv::Point> get_bounding_box() {
 
 void draw_target(cv::Mat& frame, const Pt& target, const cv::Scalar& colour) {
   // Length of the perpendicular lines for target and setpoint
-  int line_length = 50;
+  int line_length = 30;
   // Draw a horizontal line passing through the target point
   cv::line(frame, cv::Point(target.x - line_length, target.y),
-           cv::Point(target.x + line_length, target.y), colour, 2);
+           cv::Point(target.x + line_length, target.y), colour, 1);
   // Draw a vertical line passing through the target point
   cv::line(frame, cv::Point(target.x, target.y - line_length),
-           cv::Point(target.x, target.y + line_length), colour, 2);
+           cv::Point(target.x, target.y + line_length), colour, 1);
 }
 
 void markup_frame() {
@@ -118,15 +131,25 @@ void markup_frame() {
   cv::putText(frame, "Turret Origin", turret.get_origin_px().cv_pt(),
               cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
               cv::LINE_AA);
-  // draw_target(frame, laser_pt_px, cv::Scalar(0, 0, 255));
-  cv::putText(
-      frame, "Detected Laser", cv::Point(laser_pt_px.x, laser_pt_px.y + 20),
-      cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-  draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
-  cv::putText(frame, "Belief", turret.get_belief_px().cv_pt(),
-              cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
-              cv::LINE_AA);
-  draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
+  if (show_laser) {
+    draw_target(frame, laser_pt_px, cv::Scalar(0, 0, 255));
+    cv::putText(frame, "Detected Laser",
+                cv::Point(laser_pt_px.x, laser_pt_px.y + 20),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
+                cv::LINE_AA);
+  }
+  if (show_belief) {
+    draw_target(frame, turret.get_belief_px(), cv::Scalar(255, 0, 255));
+    cv::putText(frame, "Belief", turret.get_belief_px().cv_pt(),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
+                cv::LINE_AA);
+  }
+  if (show_setpoint) {
+    draw_target(frame, turret.get_setpoint_px(), cv::Scalar(255, 0, 0));
+    cv::putText(frame, "Setpoint", turret.get_setpoint_px().cv_pt(),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1,
+                cv::LINE_AA);
+  }
 
   Pt current_steps = turret.get_belief_steps();
   cv::putText(frame,
@@ -275,6 +298,10 @@ void process_video(cv::VideoCapture& cap) {
   gpu::init_gpu();
   std::cout << "ROWS: " << ROWS << std::endl;
   std::cout << "COLS: " << COLS << std::endl;
+  Pt prev_clicked_pt;
+  Pt clicked_point;
+  cv::namedWindow("frame", 1);
+  cv::setMouseCallback("frame", mouse_click_callback, &clicked_point);
 
   bool save_img = false;
   int save_counter = 0;
@@ -306,31 +333,6 @@ void process_video(cv::VideoCapture& cap) {
           detection::detect_lasers(red_channel, laser_threshold);
       detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
                                         laser_remove_radius);
-      int dt = 0.067;
-      tracking::associate_and_update_tracks(mos_pts_px, dt);
-      Track track = tracking::get_current_track_preditction(laser_pt_px);
-      for (const Kalman& kalman : tracking::kalmans) {
-        if (kalman.track.id == tracking::current_track_id) {
-          cv::circle(frame, kalman.track.pt.cv_pt(), 10, cv::Scalar(0, 0, 255),
-                     2);
-        } else {
-          cv::circle(frame, kalman.track.pt.cv_pt(), 15,
-                     cv::Scalar(255, 0, 255), 2);
-        }
-        cv::putText(frame, std::to_string(kalman.track.id),
-                    cv::Point(kalman.track.pt.x + 10, kalman.track.pt.y + 10),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
-                    1);
-
-        cv::circle(frame, kalman.track.detected_pt.cv_pt(), 10,
-                   cv::Scalar(150, 255, 255), 2);
-        cv::putText(frame, std::to_string(kalman.track.id),
-                    cv::Point(kalman.track.detected_pt.x + 10,
-                              kalman.track.detected_pt.y + 10),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
-                    1);
-      }
-
       laser_pt_px = detection::distinguish_lasers(laser_pts);
       if (laser_pt_px == Pt{-3, -3}) {
         cv::putText(frame,
@@ -341,9 +343,70 @@ void process_video(cv::VideoCapture& cap) {
       } else {
         turret.update_belief(laser_pt_px);
       }
-      if (mos_pts_px.size() > 0) {
-        // turret.update_setpoint(mos_pts_px.at(0));
-        turret.update_setpoint(track.pt);
+
+      // int dt = 0.067;
+      int dt = 1;
+      tracking::associate_and_update_tracks(mos_pts_px, dt);
+      Track current_track;
+      if (clicked_point != prev_clicked_pt) {
+        current_track = tracking::get_closest_track(clicked_point);
+      } else {
+        current_track = tracking::get_current_track_preditction(laser_pt_px);
+      }
+      turret.update_setpoint(current_track.detected_pt);
+
+      for (const Kalman& kalman : tracking::kalmans) {
+        // if (kalman.track.id == tracking::current_track_id) {
+        // cv::circle(frame, kalman.track.predicted_pt.cv_pt(), 10,
+        //            cv::Scalar(0, 0, 255), 2);
+        // } else {
+        //   // cv::circle(frame, kalman.track.predicted_pt.cv_pt(), 15,
+        //   //            cv::Scalar(203, 192, 255), 2);
+        //   cv::rectangle(frame, kalman.track.predicted_pt.cv_pt(-10),
+        //                 kalman.track.predicted_pt.cv_pt(10),
+        //                 cv::Scalar(203, 192, 255), 2);
+        // }
+
+        cv::rectangle(frame, kalman.track.predicted_pt.cv_pt(-15),
+                      kalman.track.predicted_pt.cv_pt(15),
+                      cv::Scalar(0, 0, 255), 2);
+        cv::putText(frame, std::to_string(kalman.track.id),
+                    kalman.track.predicted_pt.cv_pt(10),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
+                    1);
+
+        cv::circle(frame, kalman.track.updated_pt.cv_pt(), 5,
+                   cv::Scalar(255, 0, 0), 2);
+        cv::putText(frame, std::to_string(kalman.track.id),
+                    kalman.track.updated_pt.cv_pt(10), cv::FONT_HERSHEY_SIMPLEX,
+                    0.5, cv::Scalar(255, 255, 255), 1);
+        cv::circle(frame, kalman.track.detected_pt.cv_pt(), 12,
+                   cv::Scalar(0, 255, 0), 2);
+        cv::putText(frame, std::to_string(kalman.track.id),
+                    kalman.track.detected_pt.cv_pt(10),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
+                    1);
+        cv::putText(frame, std::to_string(kalman.track.age),
+                    kalman.track.detected_pt.cv_pt(-10),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.3, cv::Scalar(255, 255, 255),
+                    1);
+
+        // Draw the tracks
+        for (int i = 1; i < kalman.track.detected_pt_hist.size(); ++i) {
+          cv::line(frame, kalman.track.detected_pt_hist[i - 1].cv_pt(-2),
+                   kalman.track.detected_pt_hist[i].cv_pt(-2),
+                   cv::Scalar(0, 255, 0), 2);
+        }
+        for (int i = 1; i < kalman.track.updated_pt_hist.size(); ++i) {
+          cv::line(frame, kalman.track.updated_pt_hist[i - 1].cv_pt(),
+                   kalman.track.updated_pt_hist[i].cv_pt(),
+                   cv::Scalar(255, 0, 0), 2);
+        }
+        for (int i = 1; i < kalman.track.predicted_pt_hist.size(); ++i) {
+          cv::line(frame, kalman.track.predicted_pt_hist[i - 1].cv_pt(),
+                   kalman.track.predicted_pt_hist[i].cv_pt(),
+                   cv::Scalar(0, 0, 255), 2);
+        }
       }
     } else {
       std::vector<Pt> laser_pts =
@@ -370,6 +433,9 @@ void process_video(cv::VideoCapture& cap) {
                     std::to_string(duration) + " ms)",
                 cv::Point(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
                 cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
+    cv::putText(frame, "Clicked Pt = " + clicked_point.to_string(),
+                cv::Point(10, 300), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 
     cv::imshow("frame", frame);
     char key = static_cast<char>(cv::waitKey(1));
@@ -506,6 +572,9 @@ void user_input(void) {
         std::cout << "f = toggle turret feedback" << std::endl;
         std::cout << "c = set step size" << std::endl;
         std::cout << "w, a, s, d = move turret" << std::endl;
+        std::cout << "sl = show laser" << std::endl;
+        std::cout << "ss = show setpoint" << std::endl;
+        std::cout << "sb = show belief" << std::endl;
       } else if (input == "display ?") {
         std::cout << "display off" << std::endl;
         std::cout << "display laser" << std::endl;
@@ -532,14 +601,18 @@ void user_input(void) {
         mads::display.store(Display::MOSQUITO_DETECTION);
       } else if (input == "display all") {
         mads::display.store(Display::ALL);
+      } else if (input == "sl") {
+        show_laser = !show_laser;
+      } else if (input == "ss") {
+        show_setpoint = !show_setpoint;
+      } else if (input == "sb") {
+        show_belief = !show_belief;
       } else if (input == "g") {
         detection::set_background(red_channel);
         std::cout << "Background set to curret frame" << std::endl;
       } else if (input == "h") {
-        // Control prev_control = mads::control.load();
         mads::control.store(Control::MANUAL);
         turret.home(laser_pt_px);
-        // mads::control.store(prev_control);
       } else if (mads::turret_stopped.load() and
                  (input == "e" or input == "w" or input == "a" or
                   input == "s" or input == "d")) {

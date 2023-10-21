@@ -242,8 +242,8 @@ void closing(uint8_t* input_and_output,
 
 namespace detection {
 
-Pt ignore_region_top_left = Pt{538, 288};
-Pt ignore_region_bottom_right = Pt{556, 302};
+Pt ignore_region_top_left = Pt{520, 275};
+Pt ignore_region_bottom_right = Pt{570, 315};
 std::atomic<float> bg_learning_rate(0.0);
 
 void set_ignore_region(Pt top_left, Pt bottom_right) {

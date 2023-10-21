@@ -7,10 +7,14 @@ using Matrix = std::vector<std::vector<double>>;
 
 namespace tracking {
 
-int max_age = 5;
+int max_age = 20;
 int current_track_id = -1;
 std::vector<Kalman> kalmans;
 HungarianAlgorithm hungarian;
+
+void add_kalman(const Pt& pt, const int dt) {
+  kalmans.push_back(Kalman(pt, dt, 0, 0, 10, 1, 1));
+}
 
 Matrix get_cost_matrix(const std::vector<Pt>& blobs) {
   auto euclidean_dist = [](Pt predicted, Pt detected) {
@@ -22,64 +26,51 @@ Matrix get_cost_matrix(const std::vector<Pt>& blobs) {
   for (int i = 0; i < kalmans.size(); i++) {
     for (int j = 0; j < blobs.size(); j++) {
       cost_matrix.at(i).at(j) =
-          euclidean_dist(kalmans.at(i).track.pt, blobs.at(j));
+          euclidean_dist(kalmans.at(i).track.detected_pt, blobs.at(j));
     }
   }
   return cost_matrix;
 }
 
 void associate_and_update_tracks(const std::vector<Pt>& blobs, const int dt) {
-  if (blobs.size() == 0) {
-    return;
-  }
-
   if (kalmans.size() != 0) {
-    // std::cout << "Kalmans" << std::endl;
-    Matrix cost_matrix = get_cost_matrix(blobs);
+    std::vector<int> assignment;
+    if (blobs.size() != 0) {
+      Matrix cost_matrix = get_cost_matrix(blobs);
 
-    if (mads::debug.load() & Debug::TRACKING) {
-      std ::cout << "cost matrix: " << std::endl;
-      for (int i = 0; i < cost_matrix.size(); i++) {
-        for (int j = 0; j < cost_matrix.at(i).size(); j++) {
-          std::cout << cost_matrix.at(i).at(j) << " ";
+      if (mads::debug.load() & Debug::TRACKING) {
+        std ::cout << "cost matrix: " << std::endl;
+        for (int i = 0; i < cost_matrix.size(); i++) {
+          for (int j = 0; j < cost_matrix.at(i).size(); j++) {
+            std::cout << cost_matrix.at(i).at(j) << " ";
+          }
+          std::cout << std::endl;
         }
-        std::cout << std::endl;
       }
+
+      double cost = hungarian.Solve(cost_matrix, assignment);
+    } else {
+      assignment = std::vector<int>(kalmans.size(), -1);
     }
 
-    vector<int> assignment;
-    double cost = hungarian.Solve(cost_matrix, assignment);
-
     // Using two indicies because elements can be removed from the vector.
-    try {
-      int x = 0;
-      for (int i = 0; i < assignment.size(); ++i) {
-        if (assignment.at(i) == -1) {
-          if (kalmans.at(i).track.age > max_age) {
-            try {
-              kalmans.erase(kalmans.begin() + i);
-              continue;
-            } catch (const std::exception& e) {
-              std::cout << "Exception at 2" << e.what() << std::endl;
-            }
-          } else {
-            try {
-              ++kalmans.at(i).track.age;
-            } catch (const std::exception& e) {
-              std::cout << "Exception at 3" << e.what() << std::endl;
-            }
-          }
+    int x = 0;
+    if (assignment.size() != kalmans.size()) {
+      std::cout << "assignment size: " << assignment.size()
+                << " kalmans size: " << kalmans.size() << std::endl;
+    }
+    for (int i = 0; i < assignment.size(); ++i) {
+      if (assignment.at(i) == -1) {
+        if (kalmans.at(x).track.age > max_age) {
+          kalmans.erase(kalmans.begin() + i);
+          continue;
         } else {
-          try {
-            kalmans.at(x).update(blobs.at(assignment.at(i)));
-            ++x;
-          } catch (const std::exception& e) {
-            std::cout << "Exception at 1" << e.what() << std::endl;
-          }
+          ++kalmans.at(x).track.age;
         }
+      } else {
+        kalmans.at(x).update(blobs.at(assignment.at(i)));
+        ++x;
       }
-    } catch (const std::exception& e) {
-      std::cout << "Exception at 0" << e.what() << std::endl;
     }
 
     // Add new trackers for blobs that have no associated trackers (new
@@ -94,27 +85,32 @@ void associate_and_update_tracks(const std::vector<Pt>& blobs, const int dt) {
                              unassigned_blobs.end());
 
       for (const Pt& blob : unassigned_blobs) {
-        kalmans.push_back(Kalman(blob, dt, 1.0, 1.0, 1.0, 0.1, 0.1));
+        add_kalman(blob, dt);
       }
     }
+
   } else {
-    // std::cout << "No kalmans" << std::endl;
     for (const Pt& blob : blobs) {
-      kalmans.push_back(Kalman(blob, dt, 1.0, 1.0, 1.0, 0.1, 0.1));
+      add_kalman(blob, dt);
     }
   }
 }
 
-Track track_closest_to_laser(const Pt& laser_pt) {
+Track get_closest_track(const Pt& pt) {
   if (kalmans.size() == 0) {
     return Track();
+  }
+
+  if (pt == -1) {
+    Track();
   }
 
   double min_dist = 1000000;
   int min_dist_index = -1;
   for (int i = 0; i < kalmans.size(); i++) {
-    double dist = std::sqrt(std::pow(kalmans.at(i).track.pt.x - laser_pt.x, 2) +
-                            std::pow(kalmans.at(i).track.pt.y - laser_pt.y, 2));
+    double dist =
+        std::sqrt(std::pow(kalmans.at(i).track.detected_pt.x - pt.x, 2) +
+                  std::pow(kalmans.at(i).track.detected_pt.y - pt.y, 2));
     if (dist < min_dist) {
       min_dist = dist;
       min_dist_index = i;
@@ -138,7 +134,7 @@ Track get_current_track_preditction(const Pt& laser_pt) {
   }
 
   if (track == -1) {
-    return track_closest_to_laser(laser_pt);
+    return get_closest_track(laser_pt);
   } else {
     return track;
   }

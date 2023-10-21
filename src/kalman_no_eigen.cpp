@@ -127,10 +127,15 @@ Kalman::Kalman(Pt detected_pt,
   R = {{std_meas_x * std_meas_x,                       0}, 
        {                      0, std_meas_y * std_meas_y}};
 
-  // clang-format on
 
   // Error covariance P
-  P = identity(4);
+  // P = identity(4);
+  P = {{1, 0, 0, 0},
+       {0, 1, 0, 0},
+       {0, 0, 400, 0},
+       {0, 0, 0, 400}};
+
+  // clang-format on
 }
 
 Track Kalman::predict() {
@@ -150,10 +155,10 @@ Track Kalman::predict() {
     }
   }
 
-  track.pt = {x[0], x[1]};
-  pt_hist.push_back(track.pt);
-  if (pt_hist.size() > track.max_hist) {
-    pt_hist.pop_front();
+  track.predicted_pt = {x[0], x[1]};
+  track.predicted_pt_hist.push_back(track.predicted_pt);
+  if (track.predicted_pt_hist.size() == track.max_hist) {
+    track.predicted_pt_hist.pop_front();
   }
   return track;
 }
@@ -210,11 +215,15 @@ Track Kalman::update(Pt detected_pt) {
   }
   P = multiply(I_KH, P);
 
-  track.pt = {x[0], x[1]};
+  track.updated_pt = {x[0], x[1]};
+  track.updated_pt_hist.push_back(track.updated_pt);
+  if (track.updated_pt_hist.size() > track.max_hist) {
+    track.updated_pt_hist.pop_front();
+  }
   track.detected_pt = detected_pt;
-    detected_pt_hist.push_back(track.pt);
-  if (detected_pt_hist.size() > track.max_hist) {
-    detected_pt_hist.pop_front();
+  track.detected_pt_hist.push_back(track.predicted_pt);
+  if (track.detected_pt_hist.size() > track.max_hist) {
+    track.detected_pt_hist.pop_front();
   }
   track.age = 0;
   return track;
