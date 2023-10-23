@@ -34,6 +34,7 @@ Stepper::Stepper(std::string name,
       new_setpoint(false),
       new_feedback(false),
       current_steps(0),
+      previous_steps(0),
       target_steps(0),
       previous_error(0),
       integral(0) {}
@@ -100,7 +101,10 @@ uint32_t Stepper::get_pid_error_and_set_direction(
   if (mads::control.load() != Control::MANUAL and mads::feedback.load() and
       !mads::turret_stopped.load()) {
     integral += error * elapsed_time_ms;
-    derivative = (error - previous_error) / elapsed_time_ms;
+    derivative =
+        -((current_steps.load() - previous_steps.load()) / elapsed_time_ms);
+    previous_steps.store(current_steps.load());
+    // derivative = (error - previous_error) / elapsed_time_ms;
     previous_error = error;
   } else {
     integral = 0;

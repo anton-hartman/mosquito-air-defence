@@ -29,6 +29,7 @@ class Stepper {
 
   std::atomic<int32_t> steps_at_detection;
   std::atomic<int32_t> current_steps;
+  std::atomic<int32_t> previous_steps;
   std::atomic<int32_t> target_steps;
 
   // For PID control
