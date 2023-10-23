@@ -8,7 +8,7 @@ using Matrix = std::vector<std::vector<double>>;
 namespace tracking {
 
 std::atomic<int> acc_sigma(1);
-std::atomic<float> kalman_dt(0.5);
+std::atomic<float> kalman_dt(1);
 int max_age = 20;
 int current_track_id = -1;
 std::vector<Kalman> kalmans;
