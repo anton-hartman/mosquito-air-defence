@@ -9,7 +9,7 @@ using Matrix = std::vector<std::vector<double>>;
 
 class Track {
  public:
-  const int max_hist = 50;
+  const int max_hist = 30;
   int id;
   int age;
   Pt predicted_pt;
@@ -28,8 +28,8 @@ class Track {
         updated_pt(detected_pt) {}
 
   Track()
-      : id(-2),
-        age(-2),
+      : id(-1),
+        age(-1),
         predicted_pt({ROWS - 50, COLS - 50}),
         updated_pt({ROWS - 50, COLS - 50}),
         detected_pt({ROWS - 50, COLS - 50}) {}

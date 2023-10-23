@@ -24,6 +24,7 @@ class Stepper {
 
   std::atomic<uint16_t> target_px;
   std::atomic<uint16_t> detected_laser_px;
+  //   std::atomic<int> prev_detected_laser_px;
   std::atomic<bool> new_setpoint;
   std::atomic<bool> new_feedback;
 

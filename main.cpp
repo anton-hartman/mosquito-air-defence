@@ -18,9 +18,9 @@ cv::VideoCapture cap;
 cv::Mat frame;
 cv::Mat red_channel;
 
-bool mos_bg_sub = true;
+bool mos_bg_sub = false;
 int laser_threshold = 200;
-int mos_threshold = 25;
+int mos_threshold = 120;
 int laser_remove_radius = 5;
 Pt laser_pt_px;
 std::vector<Pt> mos_pts_px;
@@ -50,21 +50,6 @@ cv::VideoCapture init_system(void) {
   GPIO::setup(mads::LASER_PIN, GPIO::OUT, GPIO::LOW);
   signal(SIGINT, exit_handler);
   return cap;
-}
-
-bool save_frame_as_jpeg(const cv::Mat& frame, int& counter) {
-  if (frame.empty()) {
-    std::cerr << "The frame is empty, cannot save it." << std::endl;
-    return false;
-  }
-  std::string file_name = "../cal_imgs/img" + std::to_string(counter) + ".jpg";
-  if (!cv::imwrite(file_name, frame)) {
-    std::cerr << "Failed to save the frame." << std::endl;
-    return false;
-  }
-  std::cout << "Saved the frame to " << file_name << std::endl;
-  counter++;
-  return true;
 }
 
 void mouse_click_callback(int event, int x, int y, int flags, void* userdata) {
@@ -151,25 +136,18 @@ void markup_frame() {
                 cv::LINE_AA);
   }
 
-  Pt current_steps = turret.get_belief_steps();
-  cv::putText(frame,
-              "Belief steps (" + std::to_string(current_steps.x) + ", " +
-                  std::to_string(current_steps.y) + ")",
+  cv::putText(frame, "Belief steps " + turret.get_belief_steps().to_string(),
               cv::Point(COLS - 230, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-
-  Pt target_steps = turret.get_setpoint_steps();
-  cv::putText(frame,
-              "Target steps (" + std::to_string(target_steps.x) + ", " +
-                  std::to_string(target_steps.y) + ")",
+  cv::putText(frame, "Target steps " + turret.get_setpoint_steps().to_string(),
               cv::Point(COLS - 230, 50), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-
-  Pt setpoint = turret.get_setpoint_px();
-  cv::putText(frame,
-              "Setpoint (" + std::to_string(setpoint.x) + ", " +
-                  std::to_string(setpoint.y) + ")",
+  cv::putText(frame, "Setpoint " + turret.get_setpoint_px().to_string(),
               cv::Point(COLS - 230, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  cv::putText(frame,
+              "Detected laser " + turret.get_detected_laser_px().to_string(),
+              cv::Point(COLS - 230, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 
   if (mads::turret_stopped.load()) {
@@ -280,7 +258,6 @@ void test_framerate(cv::VideoCapture& cap) {
 //       std::cout << "Frame is empty, exiting." << std::endl;
 //       exit(0);
 //     }
-
 //     if (mads::get_laser_state()) {
 //       cv::imshow("with laser", frame);
 //       cv::waitKey(1);
@@ -315,16 +292,8 @@ void process_video(cv::VideoCapture& cap) {
       exit(0);
     }
 
-    if (save_img) {
-      save_frame_as_jpeg(frame, save_counter);
-      save_img = false;
-    }
-
     cv::split(frame, channels);
     red_channel = channels[2];
-
-    // cv::Mat undistorted_frame;
-    // cv::undistort(frame, undistorted_frame, CAMERA_MATRIX, DIST_COEFFS);
 
     if (mads::control.load() == Control::FULL_AUTO) {
       mos_pts_px = detection::detect_mosquitoes(red_channel.clone(),
@@ -340,20 +309,25 @@ void process_video(cv::VideoCapture& cap) {
                     "DISCARDED)",
                     cv::Point(200, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
                     cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+      } else if (laser_pt_px == Pt{-1, -1}) {
+        cv::putText(frame, "NO LASERS DETECTED OUTSIDE OF IGNORE REGION",
+                    cv::Point(200, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+                    cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
       } else {
         turret.update_belief(laser_pt_px);
       }
 
-      // int dt = 0.067;
-      int dt = 1;
-      tracking::associate_and_update_tracks(mos_pts_px, dt);
+      tracking::associate_and_update_tracks(mos_pts_px,
+                                            tracking::kalman_dt.load());
       Track current_track;
       if (clicked_point != prev_clicked_pt) {
         current_track = tracking::get_closest_track(clicked_point);
+        prev_clicked_pt = clicked_point;
       } else {
         current_track = tracking::get_current_track_preditction(laser_pt_px);
       }
-      turret.update_setpoint(current_track.detected_pt);
+      // turret.update_setpoint(current_track.detected_pt);
+      turret.update_setpoint(current_track.predicted_pt);
 
       for (const Kalman& kalman : tracking::kalmans) {
         // if (kalman.track.id == tracking::current_track_id) {
@@ -461,6 +435,7 @@ void process_video(cv::VideoCapture& cap) {
 
 void user_input(void) {
   bool edit_mode = false;
+  bool turret_origin_mode = false;
   int steps = 1 * MICROSTEPS;
   int px = 110;
   std::string input;
@@ -502,6 +477,16 @@ void user_input(void) {
           std::cout << "mo = mosquito opening radius" << std::endl;
           std::cout << "mc = mosqutio closing radius" << std::endl;
           std::cout << "r = remove lasers from mos radius" << std::endl;
+          std::cout << "a = acceleration sigma" << std::endl;
+          std::cout << "dt = kalman dt" << std::endl;
+        } else if (input == "a") {
+          std::cout << "Enter acceleration sigma: ";
+          std::getline(std::cin, input);
+          tracking::acc_sigma.store(std::stoi(input));
+        } else if (input == "dt") {
+          std::cout << "Enter kalman dt: ";
+          std::getline(std::cin, input);
+          tracking::kalman_dt.store(std::stof(input));
         } else if (input == "r") {
           std::cout << "Enter radius: ";
           std::getline(std::cin, input);
@@ -575,6 +560,7 @@ void user_input(void) {
         std::cout << "sl = show laser" << std::endl;
         std::cout << "ss = show setpoint" << std::endl;
         std::cout << "sb = show belief" << std::endl;
+        std::cout << "bg sub = toggle mosquito bg subtraction" << std::endl;
       } else if (input == "display ?") {
         std::cout << "display off" << std::endl;
         std::cout << "display laser" << std::endl;
@@ -601,6 +587,8 @@ void user_input(void) {
         mads::display.store(Display::MOSQUITO_DETECTION);
       } else if (input == "display all") {
         mads::display.store(Display::ALL);
+      } else if (input == "bg sub") {
+        mos_bg_sub = !mos_bg_sub;
       } else if (input == "sl") {
         show_laser = !show_laser;
       } else if (input == "ss") {
@@ -637,9 +625,12 @@ void user_input(void) {
           std::cout << "Laser off" << std::endl;
         }
       } else if (input == "o") {
-        turret.set_origin(laser_pt_px);
-        std::cout << "Turrt origin set to: " << laser_pt_px.x << ", "
-                  << laser_pt_px.y << std::endl;
+        turret_origin_mode = !turret_origin_mode;
+        if (turret_origin_mode) {
+          std::cout << "Turret origin mode = ON" << std::endl;
+        } else {
+          std::cout << "Turret origin mode = OFF" << std::endl;
+        }
       } else if (input == "f") {
         mads::feedback.store(!mads::feedback.load());
         if (mads::feedback.load()) {
@@ -675,7 +666,11 @@ void user_input(void) {
           mads::control.store(Control::MANUAL);
         }
       } else if (input == "w" or input == "a" or input == "s" or input == "d") {
-        if (mads::control.load() == Control::MANUAL) {
+        if (turret_origin_mode) {
+          turret.step_origin(input[0], px);
+          std::cout << "Turrt origin set to: "
+                    << turret.get_origin_px().to_string() << std::endl;
+        } else if (mads::control.load() == Control::MANUAL) {
           turret.keyboard_manual(input[0], steps);
         } else if (mads::control.load() == Control::KEYBOARD_AUTO) {
           turret.keyboard_auto(input[0], px);
@@ -713,9 +708,7 @@ int main(void) {
   mads::set_laser(false);
 
   std::thread user_input_thread(user_input);
-  // std::thread video_thread(laser_toggle_frame, std::ref(cap));
   std::thread video_thread(process_video, std::ref(cap));
-  // std::thread video_thread(test_framerate, std::ref(cap));
   std::thread turret_horizontal_thread(turret_horizontal);
   std::thread turret_vertical_thread(turret_vertical);
 

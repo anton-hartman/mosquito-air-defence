@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <vector>
 #include "kalman_no_eigen.hpp"
 #include "pt.hpp"
@@ -8,6 +9,8 @@ namespace tracking {
 
 extern int current_track_id;
 extern std::vector<Kalman> kalmans;
+extern std::atomic<int> acc_sigma;
+extern std::atomic<float> kalman_dt;
 
 /**
  * @brief Associate detections with predictions and update trackers

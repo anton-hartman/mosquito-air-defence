@@ -35,8 +35,8 @@ class mads {
   static constexpr double C_Y_DOUBLE = 240.0948537167988;
   static const int C_X;
   static const int C_Y;
-  static constexpr int TURRET_X_ORIGIN_PX = 550;
-  static constexpr int TURRET_Y_ORIGIN_PX = 334;
+  static constexpr int TURRET_X_ORIGIN_PX = 547;
+  static constexpr int TURRET_Y_ORIGIN_PX = 225;
 
   static std::atomic<bool> exit_flag;
   static std::atomic<Control> control;

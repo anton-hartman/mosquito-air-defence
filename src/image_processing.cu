@@ -242,8 +242,8 @@ void closing(uint8_t* input_and_output,
 
 namespace detection {
 
-Pt ignore_region_top_left = Pt{520, 275};
-Pt ignore_region_bottom_right = Pt{570, 315};
+Pt ignore_region_top_left = Pt{539, 216};
+Pt ignore_region_bottom_right = Pt{554, 230};
 std::atomic<float> bg_learning_rate(0.0);
 
 void set_ignore_region(Pt top_left, Pt bottom_right) {
@@ -352,7 +352,7 @@ Pt distinguish_lasers(const std::vector<Pt>& pts) {
   if (two_pts.size() == 1) {
     return two_pts.at(0);
   } else if (two_pts.size() == 0) {
-    return {-2, -2};
+    return {-1, -1};
   } else if (two_pts.size() > 2) {
     return {-3, -3};
   }

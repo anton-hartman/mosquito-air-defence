@@ -7,13 +7,15 @@ using Matrix = std::vector<std::vector<double>>;
 
 namespace tracking {
 
+std::atomic<int> acc_sigma(1);
+std::atomic<float> kalman_dt(0.5);
 int max_age = 20;
 int current_track_id = -1;
 std::vector<Kalman> kalmans;
 HungarianAlgorithm hungarian;
 
 void add_kalman(const Pt& pt, const int dt) {
-  kalmans.push_back(Kalman(pt, dt, 0, 0, 5, 1, 1));
+  kalmans.push_back(Kalman(pt, dt, 0, 0, acc_sigma.load(), 1, 1));
 }
 
 Matrix get_cost_matrix(const std::vector<Pt>& blobs) {
@@ -25,8 +27,10 @@ Matrix get_cost_matrix(const std::vector<Pt>& blobs) {
   Matrix cost_matrix(kalmans.size(), std::vector<double>(blobs.size(), 0));
   for (int i = 0; i < kalmans.size(); i++) {
     for (int j = 0; j < blobs.size(); j++) {
+      // cost_matrix.at(i).at(j) =
+      //     euclidean_dist(kalmans.at(i).track.detected_pt, blobs.at(j));
       cost_matrix.at(i).at(j) =
-          euclidean_dist(kalmans.at(i).track.detected_pt, blobs.at(j));
+          euclidean_dist(kalmans.at(i).track.predicted_pt, blobs.at(j));
     }
   }
   return cost_matrix;
@@ -108,9 +112,12 @@ Track get_closest_track(const Pt& pt) {
   double min_dist = 1000000;
   int min_dist_index = -1;
   for (int i = 0; i < kalmans.size(); i++) {
+    // double dist =
+    //     std::sqrt(std::pow(kalmans.at(i).track.detected_pt.x - pt.x, 2) +
+    //               std::pow(kalmans.at(i).track.detected_pt.y - pt.y, 2));
     double dist =
-        std::sqrt(std::pow(kalmans.at(i).track.detected_pt.x - pt.x, 2) +
-                  std::pow(kalmans.at(i).track.detected_pt.y - pt.y, 2));
+        std::sqrt(std::pow(kalmans.at(i).track.predicted_pt.x - pt.x, 2) +
+                  std::pow(kalmans.at(i).track.predicted_pt.y - pt.y, 2));
     if (dist < min_dist) {
       min_dist = dist;
       min_dist_index = i;

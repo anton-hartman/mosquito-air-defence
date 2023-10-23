@@ -35,9 +35,11 @@ class Turret {
 
   void save_steps_at_frame(void);
   void set_origin(const Pt turret_origin_px);
+  void step_origin(const char ch, const int px_step);
 
   Pt get_origin_px(void) const;
   Pt get_belief_px(void) const;
+  Pt get_detected_laser_px(void) const;
   Pt get_setpoint_px(void) const;
   Pt get_belief_steps(void) const;
   Pt get_setpoint_steps(void) const;

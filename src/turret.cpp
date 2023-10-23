@@ -1,5 +1,6 @@
 #include "../include/turret.hpp"
 #include <JetsonGPIO.h>
+#include <iostream>
 #include "../include/frame.hpp"
 #include "../include/mads.hpp"
 #include "../include/stepper.hpp"
@@ -22,7 +23,7 @@ void set_microsteps(int microsteps) {
   MICROSTEP_ANGLE_RAD = MICROSTEP_ANGLE_DEG * M_PI / 180;
 }
 
-double K_P = 0.2;
+double K_P = 0.5;
 double K_I = 0.0;
 double K_D = 0.0;
 
@@ -68,6 +69,25 @@ void Turret::set_origin(const Pt turret_origin_px) {
   update_setpoint(turret_origin_px);
 }
 
+void Turret::step_origin(const char ch, const int px_step) {
+  switch (ch) {
+    case 'w':
+      y_stepper.set_origin_px(y_stepper.get_origin_px() - px_step);
+      break;
+    case 's':
+      y_stepper.set_origin_px(y_stepper.get_origin_px() + px_step);
+      break;
+    case 'a':
+      x_stepper.set_origin_px(x_stepper.get_origin_px() - px_step);
+      break;
+    case 'd':
+      x_stepper.set_origin_px(x_stepper.get_origin_px() + px_step);
+      break;
+    default:
+      break;
+  }
+}
+
 void Turret::run_x_stepper(void) {
   x_stepper.run_stepper();
 }
@@ -92,6 +112,11 @@ Pt Turret::get_origin_px(void) const {
 
 Pt Turret::get_belief_px(void) const {
   return Pt{x_stepper.get_current_px(), y_stepper.get_current_px()};
+}
+
+Pt Turret::get_detected_laser_px(void) const {
+  return Pt{x_stepper.get_detected_laser_px(),
+            y_stepper.get_detected_laser_px()};
 }
 
 Pt Turret::get_setpoint_px(void) const {
@@ -127,6 +152,19 @@ void Turret::update_setpoint(const Pt setpoint_px) {
 void Turret::update_belief(const Pt detected_laser_px) {
   if (detected_laser_px.x < 0 or detected_laser_px.y < 0 or
       detected_laser_px.x > COLS or detected_laser_px.y > ROWS) {
+    if (mads::get_laser_state()) {
+      std::cout << "LASER LOST" << std::endl;
+      if (x_stepper.get_detected_laser_px() < 30) {
+        x_stepper.set_detected_laser_px(0);
+      } else if (x_stepper.get_detected_laser_px() > COLS - 30) {
+        x_stepper.set_detected_laser_px(COLS);
+      }
+      if (y_stepper.get_detected_laser_px() < 30) {
+        y_stepper.set_detected_laser_px(0);
+      } else if (y_stepper.get_detected_laser_px() > ROWS - 30) {
+        y_stepper.set_detected_laser_px(ROWS);
+      }
+    }
     return;
   }
   x_stepper.set_detected_laser_px(detected_laser_px.x);
