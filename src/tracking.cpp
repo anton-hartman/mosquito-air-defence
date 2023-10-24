@@ -60,7 +60,7 @@ void associate_and_update_tracks(const std::vector<Pt>& blobs, const int dt) {
     // Using two indicies because elements can be removed from the vector.
     int x = 0;
     if (assignment.size() != kalmans.size()) {
-      std::cout << "assignment size: " << assignment.size()
+      std::cout << "ERROR -> assignment size: " << assignment.size()
                 << " kalmans size: " << kalmans.size() << std::endl;
     }
     for (int i = 0; i < assignment.size(); ++i) {

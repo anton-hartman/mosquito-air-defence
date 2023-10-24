@@ -578,14 +578,16 @@ std::vector<Pt> detect_mosquitoes(cv::Mat red_frame,
 void remove_lasers_from_mos(const std::vector<Pt>& laser_pts,
                             std::vector<Pt>& mos_pts,
                             const int remove_radius) {
-  auto euclidean_dist = [](Pt pt1, Pt pt2) {
-    return std::sqrt(std::pow(pt1.x - pt2.x, 2) + std::pow(pt1.y - pt2.y, 2));
-  };
+  // auto euclidean_dist = [](Pt pt1, Pt pt2) {
+  //   return std::sqrt(std::pow(pt1.x - pt2.x, 2) + std::pow(pt1.y - pt2.y,
+  //   2));
+  // };
 
   for (std::vector<Pt>::iterator it = mos_pts.begin(); it != mos_pts.end();) {
     bool remove = false;
     for (const Pt& laser_pt : laser_pts) {
-      if (euclidean_dist(*it, laser_pt) < remove_radius) {
+      // if (euclidean_dist(*it, laser_pt) < remove_radius) {
+      if ((*it).in_radius(laser_pt, remove_radius)) {
         remove = true;
         break;
       }

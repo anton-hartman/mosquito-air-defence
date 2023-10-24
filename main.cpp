@@ -280,8 +280,7 @@ void process_video(cv::VideoCapture& cap) {
   cv::namedWindow("frame", 1);
   cv::setMouseCallback("frame", mouse_click_callback, &clicked_point);
 
-  bool save_img = false;
-  int save_counter = 0;
+  std::vector<Pt> prev_mossies;
 
   auto start_time = std::chrono::high_resolution_clock::now();
   while (!mads::exit_flag.load()) {
@@ -300,8 +299,10 @@ void process_video(cv::VideoCapture& cap) {
                                                 mos_threshold, mos_bg_sub);
       std::vector<Pt> laser_pts =
           detection::detect_lasers(red_channel, laser_threshold);
-      detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
-                                        laser_remove_radius);
+      if (mos_bg_sub) {
+        detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
+                                          laser_remove_radius);
+      }
       laser_pt_px = detection::distinguish_lasers(laser_pts);
       if (laser_pt_px == Pt{-3, -3}) {
         cv::putText(frame,
@@ -317,6 +318,23 @@ void process_video(cv::VideoCapture& cap) {
         turret.update_belief(laser_pt_px);
       }
 
+      if (mos_pts_px.size() < prev_mossies.size()) {
+        bool curr_mos_not_in_radius = true;
+        for (const Pt& mos : mos_pts_px) {
+          if (mos.in_radius(laser_pt_px, laser_remove_radius)) {
+            curr_mos_not_in_radius = false;
+          }
+        }
+
+        if (curr_mos_not_in_radius) {
+          for (const Pt& prev_mos : prev_mossies) {
+            if (prev_mos.in_radius(laser_pt_px, laser_remove_radius)) {
+              mos_pts_px.push_back(prev_mos);
+            }
+          }
+        }
+      }
+      prev_mossies = mos_pts_px;
       tracking::associate_and_update_tracks(mos_pts_px,
                                             tracking::kalman_dt.load());
       Track current_track;
@@ -329,57 +347,49 @@ void process_video(cv::VideoCapture& cap) {
       // turret.update_setpoint(current_track.detected_pt);
       turret.update_setpoint(current_track.predicted_pt);
 
-      for (const Kalman& kalman : tracking::kalmans) {
-        // if (kalman.track.id == tracking::current_track_id) {
-        // cv::circle(frame, kalman.track.predicted_pt.cv_pt(), 10,
-        //            cv::Scalar(0, 0, 255), 2);
-        // } else {
-        //   // cv::circle(frame, kalman.track.predicted_pt.cv_pt(), 15,
-        //   //            cv::Scalar(203, 192, 255), 2);
-        //   cv::rectangle(frame, kalman.track.predicted_pt.cv_pt(-10),
-        //                 kalman.track.predicted_pt.cv_pt(10),
-        //                 cv::Scalar(203, 192, 255), 2);
-        // }
+      if (mads::display.load() & Display::TRACKING) {
+        for (const Kalman& kalman : tracking::kalmans) {
+          cv::rectangle(frame, kalman.track.predicted_pt.cv_pt(-15),
+                        kalman.track.predicted_pt.cv_pt(15),
+                        cv::Scalar(0, 0, 255), 2);
+          cv::putText(frame, std::to_string(kalman.track.id),
+                      kalman.track.predicted_pt.cv_pt(10),
+                      cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
+                      1);
 
-        cv::rectangle(frame, kalman.track.predicted_pt.cv_pt(-15),
-                      kalman.track.predicted_pt.cv_pt(15),
-                      cv::Scalar(0, 0, 255), 2);
-        cv::putText(frame, std::to_string(kalman.track.id),
-                    kalman.track.predicted_pt.cv_pt(10),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
-                    1);
+          cv::circle(frame, kalman.track.updated_pt.cv_pt(), 5,
+                     cv::Scalar(255, 0, 0), 2);
+          cv::putText(frame, std::to_string(kalman.track.id),
+                      kalman.track.updated_pt.cv_pt(10),
+                      cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
+                      1);
+          cv::circle(frame, kalman.track.detected_pt.cv_pt(), 12,
+                     cv::Scalar(0, 255, 0), 2);
+          cv::putText(frame, std::to_string(kalman.track.id),
+                      kalman.track.detected_pt.cv_pt(10),
+                      cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
+                      1);
+          cv::putText(frame, std::to_string(kalman.track.age),
+                      kalman.track.detected_pt.cv_pt(-10),
+                      cv::FONT_HERSHEY_SIMPLEX, 0.3, cv::Scalar(255, 255, 255),
+                      1);
 
-        cv::circle(frame, kalman.track.updated_pt.cv_pt(), 5,
-                   cv::Scalar(255, 0, 0), 2);
-        cv::putText(frame, std::to_string(kalman.track.id),
-                    kalman.track.updated_pt.cv_pt(10), cv::FONT_HERSHEY_SIMPLEX,
-                    0.5, cv::Scalar(255, 255, 255), 1);
-        cv::circle(frame, kalman.track.detected_pt.cv_pt(), 12,
-                   cv::Scalar(0, 255, 0), 2);
-        cv::putText(frame, std::to_string(kalman.track.id),
-                    kalman.track.detected_pt.cv_pt(10),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255),
-                    1);
-        cv::putText(frame, std::to_string(kalman.track.age),
-                    kalman.track.detected_pt.cv_pt(-10),
-                    cv::FONT_HERSHEY_SIMPLEX, 0.3, cv::Scalar(255, 255, 255),
-                    1);
-
-        // Draw the tracks
-        for (int i = 1; i < kalman.track.detected_pt_hist.size(); ++i) {
-          cv::line(frame, kalman.track.detected_pt_hist[i - 1].cv_pt(),
-                   kalman.track.detected_pt_hist[i].cv_pt(),
-                   cv::Scalar(0, 255, 0), 2);
-        }
-        for (int i = 1; i < kalman.track.updated_pt_hist.size(); ++i) {
-          cv::line(frame, kalman.track.updated_pt_hist[i - 1].cv_pt(),
-                   kalman.track.updated_pt_hist[i].cv_pt(),
-                   cv::Scalar(255, 0, 0), 2);
-        }
-        for (int i = 1; i < kalman.track.predicted_pt_hist.size(); ++i) {
-          cv::line(frame, kalman.track.predicted_pt_hist[i - 1].cv_pt(),
-                   kalman.track.predicted_pt_hist[i].cv_pt(),
-                   cv::Scalar(0, 0, 255), 2);
+          // Draw the tracks
+          for (int i = 1; i < kalman.track.detected_pt_hist.size(); ++i) {
+            cv::line(frame, kalman.track.detected_pt_hist[i - 1].cv_pt(),
+                     kalman.track.detected_pt_hist[i].cv_pt(),
+                     cv::Scalar(0, 255, 0), 2);
+          }
+          for (int i = 1; i < kalman.track.updated_pt_hist.size(); ++i) {
+            cv::line(frame, kalman.track.updated_pt_hist[i - 1].cv_pt(),
+                     kalman.track.updated_pt_hist[i].cv_pt(),
+                     cv::Scalar(255, 0, 0), 2);
+          }
+          for (int i = 1; i < kalman.track.predicted_pt_hist.size(); ++i) {
+            cv::line(frame, kalman.track.predicted_pt_hist[i - 1].cv_pt(),
+                     kalman.track.predicted_pt_hist[i].cv_pt(),
+                     cv::Scalar(0, 0, 255), 2);
+          }
         }
       }
     } else {

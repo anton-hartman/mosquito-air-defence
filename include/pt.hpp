@@ -56,4 +56,12 @@ class Pt {
   std::string to_string() const {
     return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
   }
+
+  bool in_radius(const Pt& other, const int radius) {
+    auto euclidean_dist = [](Pt pt1, Pt pt2) {
+      return std::sqrt(std::pow(pt1.x - pt2.x, 2) + std::pow(pt1.y - pt2.y, 2));
+    };
+
+    return euclidean_dist(*this, other) <= radius;
+  }
 };
