@@ -36,7 +36,6 @@ Turret::Turret(void)
                 0,
                 X_STEPPER_DEPTH,
                 mads::TURRET_X_ORIGIN_PX,
-                mads::C_X_DOUBLE,
                 mads::F_X),
       y_stepper("y_stepper",
                 M2_ENABLE_PIN,
@@ -46,7 +45,6 @@ Turret::Turret(void)
                 1,
                 Y_STEPPER_DEPTH,
                 mads::TURRET_Y_ORIGIN_PX,
-                mads::C_Y_DOUBLE,
                 mads::F_Y) {
   GPIO::setmode(GPIO::BOARD);
   GPIO::setup(M1_ENABLE_PIN, GPIO::OUT, GPIO::LOW);
@@ -153,22 +151,15 @@ void Turret::update_belief(const Pt detected_laser_px) {
   if (detected_laser_px.x < 0 or detected_laser_px.y < 0 or
       detected_laser_px.x > COLS or detected_laser_px.y > ROWS) {
     if (mads::get_laser_state()) {
-      std::cout << "LASER LOST" << std::endl;
-      if (x_stepper.get_detected_laser_px() < 30) {
-        x_stepper.set_detected_laser_px(0);
-      } else if (x_stepper.get_detected_laser_px() > COLS - 30) {
-        x_stepper.set_detected_laser_px(COLS);
-      }
-      if (y_stepper.get_detected_laser_px() < 30) {
-        y_stepper.set_detected_laser_px(0);
-      } else if (y_stepper.get_detected_laser_px() > ROWS - 30) {
-        y_stepper.set_detected_laser_px(ROWS);
-      }
+      mads::laser_lost.store(true);
+    } else {
+      mads::laser_lost.store(false);
     }
-    return;
+  } else {
+    mads::laser_lost.store(false);
+    x_stepper.set_detected_laser_px(detected_laser_px.x);
+    y_stepper.set_detected_laser_px(detected_laser_px.y);
   }
-  x_stepper.set_detected_laser_px(detected_laser_px.x);
-  y_stepper.set_detected_laser_px(detected_laser_px.y);
 }
 
 void Turret::keyboard_auto(int ch, int px) {

@@ -41,7 +41,7 @@ void init_gpu() {
 
   mos_opening_radius = 1;
   mos_closing_radius = 3;
-  laser_opening_radius = 1;
+  laser_opening_radius = 0;
   laser_closing_radius = 3;
 
   auto diameter = [](int x) -> int { return x * 2 + 1; };
@@ -242,8 +242,8 @@ void closing(uint8_t* input_and_output,
 
 namespace detection {
 
-Pt ignore_region_top_left = Pt{539, 216};
-Pt ignore_region_bottom_right = Pt{554, 230};
+Pt ignore_region_top_left = Pt{520, 108};
+Pt ignore_region_bottom_right = Pt{542, 126};
 std::atomic<float> bg_learning_rate(0.0);
 
 void set_ignore_region(Pt top_left, Pt bottom_right) {

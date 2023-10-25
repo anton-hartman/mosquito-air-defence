@@ -19,8 +19,8 @@ cv::Mat frame;
 cv::Mat red_channel;
 
 bool mos_bg_sub = false;
-int laser_threshold = 200;
-int mos_threshold = 120;
+int laser_threshold = 213;
+int mos_threshold = 110;
 int laser_remove_radius = 5;
 Pt laser_pt_px;
 std::vector<Pt> mos_pts_px;
@@ -209,6 +209,11 @@ void markup_frame() {
   cv::putText(frame, "Num Tracks = " + std::to_string(tracking::kalmans.size()),
               cv::Point(10, 230), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  if (mads::laser_lost.load()) {
+    cv::putText(frame, "LASER LOST", cv::Point(10, 250),
+                cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
+                cv::LINE_AA);
+  }
 }
 
 void test_framerate(cv::VideoCapture& cap) {
@@ -299,10 +304,10 @@ void process_video(cv::VideoCapture& cap) {
                                                 mos_threshold, mos_bg_sub);
       std::vector<Pt> laser_pts =
           detection::detect_lasers(red_channel, laser_threshold);
-      if (mos_bg_sub) {
-        detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
-                                          laser_remove_radius);
-      }
+      // if (mos_bg_sub) {
+      detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
+                                        laser_remove_radius);
+      // }
       laser_pt_px = detection::distinguish_lasers(laser_pts);
       if (laser_pt_px == Pt{-3, -3}) {
         cv::putText(frame,
@@ -314,9 +319,8 @@ void process_video(cv::VideoCapture& cap) {
         cv::putText(frame, "NO LASERS DETECTED OUTSIDE OF IGNORE REGION",
                     cv::Point(200, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5,
                     cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
-      } else {
-        turret.update_belief(laser_pt_px);
       }
+      turret.update_belief(laser_pt_px);
 
       if (mos_pts_px.size() < prev_mossies.size()) {
         bool curr_mos_not_in_radius = true;
@@ -434,8 +438,6 @@ void process_video(cv::VideoCapture& cap) {
                 << points.first.y << ")\n";
       std::cout << "Bottom right point: (" << points.second.x << ", "
                 << points.second.y << ")\n";
-    } else if (key == 's') {
-      save_img = true;
     }
   }
 
@@ -576,6 +578,7 @@ void user_input(void) {
         std::cout << "display laser" << std::endl;
         std::cout << "display mos" << std::endl;
         std::cout << "display all" << std::endl;
+        std::cout << "display tracking" << std::endl;
       } else if (input == "debug ?") {
         std::cout << "debug off" << std::endl;
         std::cout << "debug bg sub" << std::endl;
@@ -597,6 +600,8 @@ void user_input(void) {
         mads::display.store(Display::MOSQUITO_DETECTION);
       } else if (input == "display all") {
         mads::display.store(Display::ALL);
+      } else if (input == "display tracking") {
+        mads::display.store(Display::TRACKING);
       } else if (input == "bg sub") {
         mos_bg_sub = !mos_bg_sub;
       } else if (input == "sl") {

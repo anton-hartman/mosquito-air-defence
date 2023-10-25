@@ -11,3 +11,7 @@ std::atomic<bool> mads::turret_stopped(true);
 std::atomic<Control> mads::control(Control::MANUAL);
 std::atomic<Display> mads::display(Display::OFF);
 std::atomic<Debug::DebugEnum> mads::debug(Debug::OFF);
+std::atomic<bool> mads::laser_lost(false);
+
+std::atomic<bool> mads::x_centered(false);
+std::atomic<bool> mads::y_centered(false);

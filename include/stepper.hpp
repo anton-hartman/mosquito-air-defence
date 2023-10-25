@@ -12,15 +12,12 @@ class Stepper {
   const uint8_t direction_pin;
   const uint8_t step_pin;
 
-  const uint8_t gpio_clockwise;
-  const uint8_t gpio_anticlockwise;
+  const uint8_t forward;
+  const uint8_t backward;
 
   const double depth;                      // mm
   std::atomic<uint16_t> turret_origin_px;  // The origin of the turret in pixels
-
-  // Camera intrinsic parameters
-  const double principal_point;  // principal point (usually the image center).
-  const double focal_length;     // focal lengths in pixel units.
+  const double focal_length;               // focal lengths in pixel units.
 
   std::atomic<uint16_t> target_px;
   std::atomic<uint16_t> detected_laser_px;
@@ -77,18 +74,20 @@ class Stepper {
   void correct_belief();
   void update_target_steps();
   bool step(const uint32_t& steps);
+  void lost_step();
 
  public:
   Stepper(std::string name,
           uint8_t enable_pin,
           uint8_t direction_pin,
           uint8_t step_pin,
-          uint8_t gpio_clockwise,
-          uint8_t gpio_anticlockwise,
+          uint8_t forward,
+          uint8_t backward,
           float depth,
           uint16_t turret_origin_px,
-          double c,
           double f);
+
+  std::atomic<bool> centered;
 
   void run_stepper(void);
   void stop_stepper(void);

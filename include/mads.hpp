@@ -35,8 +35,8 @@ class mads {
   static constexpr double C_Y_DOUBLE = 240.0948537167988;
   static const int C_X;
   static const int C_Y;
-  static constexpr int TURRET_X_ORIGIN_PX = 547;
-  static constexpr int TURRET_Y_ORIGIN_PX = 225;
+  static constexpr int TURRET_X_ORIGIN_PX = 529;
+  static constexpr int TURRET_Y_ORIGIN_PX = 115;
 
   static std::atomic<bool> exit_flag;
   static std::atomic<Control> control;
@@ -44,6 +44,9 @@ class mads {
   static std::atomic<bool> turret_stopped;
   static std::atomic<Display> display;
   static std::atomic<Debug::DebugEnum> debug;
+  static std::atomic<bool> laser_lost;
+  static std::atomic<bool> x_centered;
+  static std::atomic<bool> y_centered;
 
   static void set_laser(bool on) {
     if (on) {
@@ -52,6 +55,14 @@ class mads {
     } else {
       GPIO::output(LASER_PIN, GPIO::LOW);
       laser.store(false);
+    }
+  }
+
+  static bool both_centered() {
+    if (x_centered.load() and y_centered.load()) {
+      return true;
+    } else {
+      return false;
     }
   }
 
