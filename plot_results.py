@@ -216,7 +216,7 @@ def plot_positions_from_file(file_path, threshold=5, test_num=0):
 
 for i in range(1, 8):
     try: 
-        path = f'quali_data/main_quali/main_quali_{i}.txt'
+        path = f'quali_data/main_quali//main_quali_{i} (some id switching).txt'
         plot_positions_from_file(path, test_num=i)
     except:
         print(f'Failed to plot test {i}')
