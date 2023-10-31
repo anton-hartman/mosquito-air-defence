@@ -136,7 +136,7 @@ def plot_laser_progression(set_point_str, measurements_list):
 #     plt.suptitle('Laser and Mosquito Positions Over Time')
 #     plt.show()
 
-def plot_positions_from_file(file_path, threshold=5):
+def plot_positions_from_file(file_path, threshold=5, test_num=0):
     with open(file_path, 'r') as file:
         data_str = file.read()
     
@@ -151,6 +151,7 @@ def plot_positions_from_file(file_path, threshold=5):
              [(int(track_id), (int(detected_x), int(detected_y)), (int(predicted_x), int(predicted_y))) 
               for track_id, detected_x, detected_y, predicted_x, predicted_y in re.findall(r"\((\d+),\((\d+), (\d+)\),\((\d+), (\d+)\)\)", tracks_str)] )
             for time, laser_x, laser_y, tracks_str in matches]
+    
     
     # Extracting and plotting the data
     times = [entry[0] for entry in data]
@@ -209,8 +210,15 @@ def plot_positions_from_file(file_path, threshold=5):
     ax2.legend()
     ax2.grid(True)
 
-    plt.suptitle('Laser and Mosquito Positions Over Time')
-    plt.show()
+    plt.suptitle('Laser and Mosquito Positions Over Time' + f' (Test {test_num})')
+    # plt.show()
 
 
-plot_positions_from_file('/home/anton/mosquito-air-defence/main_quali_5.txt')
+for i in range(1, 8):
+    try: 
+        path = f'quali_data/main_quali/main_quali_{i}.txt'
+        plot_positions_from_file(path, test_num=i)
+    except:
+        print(f'Failed to plot test {i}')
+
+plt.show()
