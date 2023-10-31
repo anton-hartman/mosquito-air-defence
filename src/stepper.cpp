@@ -39,9 +39,13 @@ Stepper::Stepper(std::string name,
       integral(0),
       centered(false) {}
 
-void Stepper::home(void) {
+void Stepper::set_current_and_target_steps_to_zero(void) {
   current_steps.store(0);
   target_steps.store(0);
+}
+
+void Stepper::set_steps_to_curret_position(void) {
+  current_steps.store(pixel_to_steps(detected_laser_px.load()));
 }
 
 void Stepper::enable_stepper(void) {

@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <atomic>
 #include <cmath>
+#include <fstream>
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <thread>
@@ -28,6 +29,12 @@ std::vector<Pt> mos_pts_px;
 bool show_laser = false;
 bool show_setpoint = false;
 bool show_belief = false;
+
+enum class Quali { START, STOP };
+Quali quali = Quali::STOP;
+enum class QualiTest { NONE, LASER, MOSQUITO, TRACKING, MAIN };
+QualiTest quali_test = QualiTest::NONE;
+std::ofstream outfile;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -403,6 +410,14 @@ void process_video(cv::VideoCapture& cap) {
       if (mads::feedback.load()) {
         turret.update_belief(laser_pt_px);
       }
+
+      if (quali_test == QualiTest::LASER and quali == Quali::START) {
+        auto now_ms =
+            std::chrono::time_point_cast<std::chrono::milliseconds>(start_time);
+        auto value = now_ms.time_since_epoch();
+        long duration = value.count();
+        outfile << duration << "," << laser_pt_px.to_string() << ";";
+      }
     }
 
     markup_frame();
@@ -447,18 +462,28 @@ void process_video(cv::VideoCapture& cap) {
 
 void user_input(void) {
   bool edit_mode = false;
+  bool test_mode = false;
   bool turret_origin_mode = false;
   int steps = 1 * MICROSTEPS;
   int px = 110;
   std::string input;
 
+  bool next_laser = false;
+
   while (!mads::exit_flag.load()) {
-    if (edit_mode) {
+    if (quali_test == QualiTest::LASER) {
+      std::cout << "____________________________________" << std::endl;
+      std::cout << "LASER TEST MODE (? = info, q = exit): " << std::endl;
+    } else if (test_mode) {
+      std::cout << "____________________________________________" << std::endl;
+      std::cout << "QAULIFICATION TEST MODE (? = info, q = exit): "
+                << std::endl;
+    } else if (edit_mode) {
       std::cout << "______________________________" << std::endl;
       std::cout << "EDIT MODE (? = info, q = exit): " << std::endl;
     } else {
       if (mads::control.load() == Control::MANUAL) {
-        std::cout << "________________________________________" << std::endl;
+        std::cout << "_________________________" << std::endl;
         std::cout << "MANUAL CONTROL (? = info): ";
       } else if (mads::control.load() == Control::KEYBOARD_AUTO) {
         std::cout << "________________________________" << std::endl;
@@ -473,8 +498,48 @@ void user_input(void) {
     try {
       if (input == "q") {
         edit_mode = false;
+        test_mode = false;
+        quali_test = QualiTest::NONE;
       } else if (input == "e") {
         edit_mode = true;
+      } else if (input == "t") {
+        test_mode = true;
+      } else if (test_mode) {
+        if (input == "?") {
+          std::cout << "l = laser test" << std::endl;
+          std::cout << "Inside a test mode: options = 'start' and 'stop'"
+                    << std::endl;
+        } else if (quali_test == QualiTest::LASER) {
+          if (input == "first") {
+            outfile.open("/home/anton/mosquito-air-defence/laser_quali.txt",
+                         std::ios_base::out);
+            outfile << turret.get_setpoint_px().to_string() << " = set point"
+                    << std::endl;
+            outfile.close();
+          } else if (input == "start") {
+            outfile.open("/home/anton/mosquito-air-defence/laser_quali.txt",
+                         std::ios_base::app);
+            mads::feedback.store(true);
+            turret.start_turret();
+            mads::turret_stopped.store(false);
+            mads::control.store(Control::KEYBOARD_AUTO);
+            quali = Quali::START;
+            std::cout << "Laser quali test started" << std::endl;
+          } else if (input == "s") {
+            quali = Quali::STOP;
+            std::cout << "Laser quali test stop" << std::endl;
+            outfile << std::endl;
+            outfile.close();
+          } else {
+            std::cout << "Invalid input" << std::endl;
+          }
+        } else if (input == "l") {
+          quali_test = QualiTest::LASER;
+          mads::control.store(Control::MANUAL);
+          turret.home_with_belief(laser_pt_px);
+        } else {
+          std::cout << "Invalid input" << std::endl;
+        }
       } else if (edit_mode) {
         if (input == "?") {
           std::cout << "l = laser threshold" << std::endl;
@@ -556,6 +621,7 @@ void user_input(void) {
           std::cout << "Invalid input" << std::endl;
         }
       } else if (input == "?") {
+        std::cout << "t = qualification test mode" << std::endl;
         std::cout << "e = edit mode" << std::endl;
         std::cout << "display ? = display modes" << std::endl;
         std::cout << "debug ? = debug modes" << std::endl;
@@ -617,6 +683,7 @@ void user_input(void) {
         mads::control.store(Control::MANUAL);
         turret.home(laser_pt_px);
       } else if (mads::turret_stopped.load() and
+                 mads::control.load() == Control::MANUAL and
                  (input == "e" or input == "w" or input == "a" or
                   input == "s" or input == "d")) {
         mads::turret_stopped.store(false);

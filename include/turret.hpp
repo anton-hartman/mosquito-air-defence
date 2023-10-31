@@ -44,7 +44,14 @@ class Turret {
   Pt get_belief_steps(void) const;
   Pt get_setpoint_steps(void) const;
 
+  /**
+   * @brief Homes setpoint and sets current and target steps to zero.
+   */
   void home(const Pt detected_laser_px);
+  /**
+   * @brief Does not home setpoint.
+   */
+  void home_with_belief(const Pt detected_laser_px);
   void update_belief(const Pt detected_laser_px);
   void update_setpoint(const Pt setpoint_px);
 

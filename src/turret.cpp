@@ -134,8 +134,15 @@ void Turret::home(const Pt detected_laser_px) {
   y_stepper.set_target_px(detected_laser_px.y);
   x_stepper.set_detected_laser_px(detected_laser_px.x);
   y_stepper.set_detected_laser_px(detected_laser_px.y);
-  x_stepper.home();
-  y_stepper.home();
+  x_stepper.set_current_and_target_steps_to_zero();
+  y_stepper.set_current_and_target_steps_to_zero();
+}
+
+void Turret::home_with_belief(const Pt detected_laser_px) {
+  x_stepper.set_detected_laser_px(detected_laser_px.x);
+  y_stepper.set_detected_laser_px(detected_laser_px.y);
+  x_stepper.set_steps_to_curret_position();
+  y_stepper.set_steps_to_curret_position();
 }
 
 void Turret::update_setpoint(const Pt setpoint_px) {

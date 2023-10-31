@@ -96,7 +96,8 @@ class Stepper {
 
   void step_manually(const int32_t steps);
 
-  void home(void);
+  void set_steps_to_curret_position(void);
+  void set_current_and_target_steps_to_zero(void);
   void set_origin_px(const uint16_t px);
   void set_target_px(const uint16_t px);
   void set_detected_laser_px(const uint16_t px);
