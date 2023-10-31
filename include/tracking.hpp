@@ -19,7 +19,8 @@ extern std::atomic<float> kalman_dt;
  * @param dt The time interval between t and t-1.
  */
 void associate_and_update_tracks(const std::vector<Pt>& blobs, const int dt);
-Track get_closest_track(const Pt& pt);
+Track get_closest_predicted_track(const Pt& pt);
+Track get_closest_detected_track(const Pt& pt);
 Track get_current_track_preditction(const Pt& laser_pt);
 
 }  // namespace tracking

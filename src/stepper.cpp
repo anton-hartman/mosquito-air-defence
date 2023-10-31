@@ -157,7 +157,8 @@ void Stepper::run_stepper() {
       if (mads::laser_lost.load()) {
         if (lost_count++ < 10) {
           step(1);
-          std::cout << this->name << " lost_cout = " << lost_count << std::endl;
+          // std::cout << this->name << " lost_cout = " << lost_count <<
+          // std::endl;
           std::this_thread::sleep_for(std::chrono::milliseconds(300));
         } else {
           uint32_t auto_delay_us = 50000 / MICROSTEPS;
@@ -206,8 +207,8 @@ void Stepper::run_stepper() {
                  mads::control.load() != Control::MANUAL) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
           }
-          std::cout << "current_steps = " << current_steps.load() << std::endl;
-          std::cout << this->name << std::endl;
+          // std::cout << "current_steps = " << current_steps.load() <<
+          // std::endl; std::cout << this->name << std::endl;
         }
       }
 

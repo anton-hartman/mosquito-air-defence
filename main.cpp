@@ -25,6 +25,7 @@ int mos_threshold = 110;
 int laser_remove_radius = 5;
 Pt laser_pt_px;
 std::vector<Pt> mos_pts_px;
+bool use_predicted_for_setpoint = false;
 
 bool show_laser = false;
 bool show_setpoint = false;
@@ -216,8 +217,12 @@ void markup_frame() {
   cv::putText(frame, "Num Tracks = " + std::to_string(tracking::kalmans.size()),
               cv::Point(10, 230), cv::FONT_HERSHEY_SIMPLEX, 0.5,
               cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+  cv::putText(frame,
+              "Setpoint = (" + std::to_string(use_predicted_for_setpoint) + ")",
+              cv::Point(10, 250), cv::FONT_HERSHEY_SIMPLEX, 0.5,
+              cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   if (mads::laser_lost.load()) {
-    cv::putText(frame, "LASER LOST", cv::Point(10, 250),
+    cv::putText(frame, "LASER LOST", cv::Point(10, 270),
                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1,
                 cv::LINE_AA);
   }
@@ -312,8 +317,8 @@ void process_video(cv::VideoCapture& cap) {
       std::vector<Pt> laser_pts =
           detection::detect_lasers(red_channel, laser_threshold);
       // if (mos_bg_sub) {
-      detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
-                                        laser_remove_radius);
+      // detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
+      // laser_remove_radius);
       // }
       laser_pt_px = detection::distinguish_lasers(laser_pts);
       if (laser_pt_px == Pt{-3, -3}) {
@@ -349,14 +354,34 @@ void process_video(cv::VideoCapture& cap) {
       tracking::associate_and_update_tracks(mos_pts_px,
                                             tracking::kalman_dt.load());
       Track current_track;
+
       if (clicked_point != prev_clicked_pt) {
-        current_track = tracking::get_closest_track(clicked_point);
+        current_track = tracking::get_closest_detected_track(clicked_point);
         prev_clicked_pt = clicked_point;
       } else {
         current_track = tracking::get_current_track_preditction(laser_pt_px);
       }
-      // turret.update_setpoint(current_track.detected_pt);
-      turret.update_setpoint(current_track.predicted_pt);
+      if (current_track == -1) {
+        current_track = tracking::get_closest_detected_track(laser_pt_px);
+      }
+
+      if (use_predicted_for_setpoint) {
+        turret.update_setpoint(current_track.predicted_pt);
+      } else {
+        turret.update_setpoint(current_track.detected_pt);
+      }
+
+      if (quali_test == QualiTest::MAIN and quali == Quali::START) {
+        auto now_ms =
+            std::chrono::time_point_cast<std::chrono::milliseconds>(start_time);
+        auto value = now_ms.time_since_epoch();
+        long duration = value.count();
+        outfile << duration << "," << laser_pt_px.to_string() << ",[";
+        for (const Kalman& kalman : tracking::kalmans) {
+          outfile << kalman.track.quali_string();
+        }
+        outfile << "];";
+      }
 
       if (mads::display.load() & Display::TRACKING) {
         for (const Kalman& kalman : tracking::kalmans) {
@@ -471,7 +496,10 @@ void user_input(void) {
   bool next_laser = false;
 
   while (!mads::exit_flag.load()) {
-    if (quali_test == QualiTest::LASER) {
+    if (quali_test == QualiTest::MAIN) {
+      std::cout << "___________________________________" << std::endl;
+      std::cout << "MAIN TEST MODE (? = info, q = exit): " << std::endl;
+    } else if (quali_test == QualiTest::LASER) {
       std::cout << "____________________________________" << std::endl;
       std::cout << "LASER TEST MODE (? = info, q = exit): " << std::endl;
     } else if (test_mode) {
@@ -506,9 +534,28 @@ void user_input(void) {
         test_mode = true;
       } else if (test_mode) {
         if (input == "?") {
+          std::cout << "main = main test" << std::endl;
           std::cout << "l = laser test" << std::endl;
           std::cout << "Inside a test mode: options = 'start' and 'stop'"
                     << std::endl;
+        } else if (quali_test == QualiTest::MAIN) {
+          if (input == "start") {
+            outfile.open("/home/anton/mosquito-air-defence/main_quali.txt",
+                         std::ios_base::out);
+            mads::feedback.store(true);
+            turret.start_turret();
+            mads::turret_stopped.store(false);
+            mads::control.store(Control::FULL_AUTO);
+            quali = Quali::START;
+            std::cout << "Main quali test started" << std::endl;
+          } else if (input == "s") {
+            quali = Quali::STOP;
+            std::cout << "Main quali test stop" << std::endl;
+            outfile << std::endl;
+            outfile.close();
+          } else {
+            std::cout << "Invalid input" << std::endl;
+          }
         } else if (quali_test == QualiTest::LASER) {
           if (input == "first") {
             outfile.open("/home/anton/mosquito-air-defence/laser_quali.txt",
@@ -533,6 +580,10 @@ void user_input(void) {
           } else {
             std::cout << "Invalid input" << std::endl;
           }
+        } else if (input == "main") {
+          quali_test = QualiTest::MAIN;
+          mads::control.store(Control::MANUAL);
+          turret.home_with_belief(laser_pt_px);
         } else if (input == "l") {
           quali_test = QualiTest::LASER;
           mads::control.store(Control::MANUAL);
@@ -668,6 +719,8 @@ void user_input(void) {
         mads::display.store(Display::ALL);
       } else if (input == "display tracking") {
         mads::display.store(Display::TRACKING);
+      } else if (input == "p") {
+        use_predicted_for_setpoint = !use_predicted_for_setpoint;
       } else if (input == "bg sub") {
         mos_bg_sub = !mos_bg_sub;
       } else if (input == "sl") {

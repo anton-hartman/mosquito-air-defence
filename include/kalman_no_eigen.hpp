@@ -60,6 +60,11 @@ class Track {
   }
 
   bool operator==(const int id) const { return this->id == id; }
+
+  std::string quali_string() const {
+    return "(" + std::to_string(id) + "," + detected_pt.to_string() + "," +
+           predicted_pt.to_string() + ")";
+  }
 };
 
 class Kalman {

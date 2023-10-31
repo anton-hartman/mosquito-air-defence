@@ -100,7 +100,7 @@ void associate_and_update_tracks(const std::vector<Pt>& blobs, const int dt) {
   }
 }
 
-Track get_closest_track(const Pt& pt) {
+Track get_closest_predicted_track(const Pt& pt) {
   if (kalmans.size() == 0) {
     return Track();
   }
@@ -112,12 +112,33 @@ Track get_closest_track(const Pt& pt) {
   double min_dist = 1000000;
   int min_dist_index = -1;
   for (int i = 0; i < kalmans.size(); i++) {
-    // double dist =
-    //     std::sqrt(std::pow(kalmans.at(i).track.detected_pt.x - pt.x, 2) +
-    //               std::pow(kalmans.at(i).track.detected_pt.y - pt.y, 2));
     double dist =
         std::sqrt(std::pow(kalmans.at(i).track.predicted_pt.x - pt.x, 2) +
                   std::pow(kalmans.at(i).track.predicted_pt.y - pt.y, 2));
+    if (dist < min_dist) {
+      min_dist = dist;
+      min_dist_index = i;
+    }
+  }
+  current_track_id = kalmans.at(min_dist_index).track.id;
+  return kalmans.at(min_dist_index).track;
+}
+
+Track get_closest_detected_track(const Pt& pt) {
+  if (kalmans.size() == 0) {
+    return Track();
+  }
+
+  if (pt == -1) {
+    Track();
+  }
+
+  double min_dist = 1000000;
+  int min_dist_index = -1;
+  for (int i = 0; i < kalmans.size(); i++) {
+    double dist =
+        std::sqrt(std::pow(kalmans.at(i).track.detected_pt.x - pt.x, 2) +
+                  std::pow(kalmans.at(i).track.detected_pt.y - pt.y, 2));
     if (dist < min_dist) {
       min_dist = dist;
       min_dist_index = i;
@@ -140,11 +161,12 @@ Track get_current_track_preditction(const Pt& laser_pt) {
     }
   }
 
-  if (track == -1) {
-    return get_closest_track(laser_pt);
-  } else {
-    return track;
-  }
+  // if (track == -1) {
+  //   return get_closest_detected_track(laser_pt);
+  // } else {
+  //   return track;
+  // }
+  return track;
 }
 
 }  // namespace tracking
