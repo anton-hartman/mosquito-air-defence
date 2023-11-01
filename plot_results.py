@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import ast
 import itertools
+import pandas as pd
 
 #region Laser Quali
 def plot_laser_progression_from_file(file_path):
@@ -255,7 +256,7 @@ def plot_tracking_data_from_file(file_path):
         
         # Setting up the plot
         plt.figure(figsize=(10, 6))
-        plt.title(f'Test {test_num}: Tracking Data - Detected vs Predicted')
+        # plt.title(f'Test {test_num}: Tracking Data - Detected vs Predicted')
         plt.xlabel('X Position')
         plt.ylabel('Y Position')
         
@@ -264,6 +265,7 @@ def plot_tracking_data_from_file(file_path):
         linestyles = {'detected': '-', 'predicted': '--'}
         
         # Plotting the data
+        id_count = 1
         for track_id in tracking_data[0]['tracks'].keys():
             color = next(colors)
             x_detected, y_detected = [], []
@@ -284,18 +286,146 @@ def plot_tracking_data_from_file(file_path):
             
             # Plotting detected points
             if x_detected and y_detected:
-                plt.plot(x_detected, y_detected, linestyle=linestyles['detected'], color=color, label=f'Track {track_id} (Detected)')
+                plt.plot(x_detected, y_detected, linestyle=linestyles['detected'], color=color, label=f'Track {id_count} (Detected)')
                 plt.scatter([x_detected[0]], [y_detected[0]], marker='o', color=color)
             
             # Plotting predicted points
             if x_predicted and y_predicted:
-                plt.plot(x_predicted, y_predicted, linestyle=linestyles['predicted'], color=color, label=f'Track {track_id} (Predicted)')
+                plt.plot(x_predicted, y_predicted, linestyle=linestyles['predicted'], color=color, label=f'Track {id_count} (Predicted)')
                 plt.scatter([x_predicted[0]], [y_predicted[0]], marker='o', color=color)
+
+            id_count += 1
         
         # Adding a legend
         plt.legend()
         plt.grid(True)
 
-plot_tracking_data_from_file('tracking_quali.txt')
-plt.show()
+# plot_tracking_data_from_file('tracking_quali_2.txt')
+# plt.show()
 #endregion Tracking Quali
+
+
+#region Mos Quali
+def parse_data(file_path):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+        
+    true_positives = 0
+    false_positives = 0
+    false_negatives = 0
+    true_negatives = 0
+    detection_times = []
+    
+    for i in range(0, len(lines), 2):
+        actual_count = int(lines[i].strip())
+        detections = re.findall(r'\[(\d+),(\d+)(?:,\(([^)]+)\))?]', lines[i + 1].strip())
+        
+        last_time = None
+        for detection in detections:
+            time, detected_count, _ = detection
+            time = int(time)
+            detected_count = int(detected_count)
+            
+            if last_time is not None:
+                detection_times.append(time - last_time)
+            last_time = time
+            
+            if actual_count == 0:
+                if detected_count == 0:
+                    true_negatives += 1
+                else:
+                    false_positives += detected_count
+            else:
+                if detected_count == 0:
+                    false_negatives += actual_count
+                else:
+                    true_positives += min(actual_count, detected_count)
+                    false_negatives += max(0, actual_count - detected_count)
+                    false_positives += max(0, detected_count - actual_count)
+                    
+    return true_positives, false_positives, false_negatives, true_negatives, detection_times
+
+def create_results_table(metrics):
+    data = {
+        "Metric": ["True Positives", "False Positives", "False Negatives", "True Negatives", "Accuracy", "False Positive Rate", "Detection Time Requirement Met"],
+        "Value": [
+            metrics["True Positives"],
+            metrics["False Positives"],
+            metrics["False Negatives"],
+            metrics["True Negatives"],
+            metrics["Accuracy"],
+            metrics["False Positive Rate"],
+            metrics["Detection Time Requirement Met"]
+        ]
+    }
+    df = pd.DataFrame(data)
+    return df
+
+def create_bar_chart(metrics):
+    categories = ['True Positives', 'False Positives', 'False Negatives', 'True Negatives']
+    values = [
+        metrics["True Positives"],
+        metrics["False Positives"],
+        metrics["False Negatives"],
+        metrics["True Negatives"]
+    ]
+    
+    plt.figure(figsize=(7, 5))
+    bars = plt.bar(categories, values, color=['green', 'red', 'red', 'green'])
+    
+    plt.ylabel('Count')
+    # plt.title('Mosquito Detection Results')
+    plt.ylim(0, max(values) + 5)
+    
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, height, str(height), ha='center', va='bottom')
+    
+
+def create_time_series_plot(detection_times):
+    plt.figure(figsize=(7, 4))
+    plt.plot(detection_times, marker='o', linestyle='-', color='blue')
+    plt.axhline(y=500, color='r', linestyle='--')
+    
+    plt.ylabel('Detection Time (ms)')
+    # plt.title('Detection Times Over Successive Detections')
+    plt.xlabel('Detection Instance')
+    
+
+def analyze_mosquito_data(file_path):
+    tp, fp, fn, tn, detection_times = parse_data(file_path)
+    
+    accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
+    false_positive_rate = fp / (fp + tn) if (fp + tn) > 0 else 0
+    detection_time_requirement_met = all(time <= 500 for time in detection_times)
+    
+    metrics = {
+        "True Positives": tp,
+        "False Positives": fp,
+        "False Negatives": fn,
+        "True Negatives": tn,
+        "Accuracy": accuracy,
+        "False Positive Rate": false_positive_rate,
+        "Detection Time Requirement Met": detection_time_requirement_met
+    }
+    
+    return metrics, detection_times
+
+def visualize_mosquito_data(metrics, detection_times):
+    # Create a results table
+    results_table = create_results_table(metrics)
+    print(results_table)
+    
+    # Create a bar chart
+    create_bar_chart(metrics)
+    
+    # Create a time series plot
+    create_time_series_plot(detection_times)
+
+# Example usage
+file_path = "quali_data/mos_quali/mos_quali_3.txt"
+metrics, detection_times = analyze_mosquito_data(file_path)
+visualize_mosquito_data(metrics, detection_times)
+plt.show()
+
+#endregion Mos Quali
