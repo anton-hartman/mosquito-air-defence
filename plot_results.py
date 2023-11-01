@@ -2,6 +2,8 @@ import glob
 import re
 import matplotlib.pyplot as plt
 import numpy as np
+import ast
+import itertools
 
 #region Laser Quali
 def plot_laser_progression_from_file(file_path):
@@ -117,11 +119,11 @@ def plot_all_errors_on_single_axes_with_points(files, error_threshold=10, max_ti
     plt.grid(True)
     plt.legend(loc='right')
 
-file_paths = glob.glob("quali_data/laser_quali/laser_quali*")
-plot_all_errors_on_single_axes_with_points(file_paths, error_threshold=10, max_time=2200, min_time=1200)
+# file_paths = glob.glob("quali_data/laser_quali/laser_quali*")
+# plot_all_errors_on_single_axes_with_points(file_paths, error_threshold=10, max_time=2200, min_time=1200)
 # for path in file_paths:
     # plot_laser_progression_from_file(path)
-plt.show()
+# plt.show()
 
 #endregion Laser Quali
 
@@ -231,3 +233,69 @@ def plot_positions_from_file(file_path, threshold=5, test_num=0):
 # plt.show()
 
 #endregion Main Quali
+
+
+#region Tracking Quali
+def plot_tracking_data_from_file(file_path):
+    with open(file_path, 'r') as f:
+        tests_data = f.read().strip().split('\n')
+    
+    for test_num, data_str in enumerate(tests_data, start=1):
+        # Splitting the data string into individual data entries
+        entries = data_str.split(';')[:-1]  # The last element is empty due to the trailing ';', so we ignore it
+        
+        # Parsing and organizing the data
+        tracking_data = []
+        for entry in entries:
+            entry_data = ast.literal_eval(entry)
+            time = entry_data[0]
+            track_data = entry_data[1:]
+            tracks = {track[0]: {'detected': track[1], 'predicted': track[2]} for track in track_data}
+            tracking_data.append({'time': time, 'tracks': tracks})
+        
+        # Setting up the plot
+        plt.figure(figsize=(10, 6))
+        plt.title(f'Test {test_num}: Tracking Data - Detected vs Predicted')
+        plt.xlabel('X Position')
+        plt.ylabel('Y Position')
+        
+        # Colors and line styles for different tracks
+        colors = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])
+        linestyles = {'detected': '-', 'predicted': '--'}
+        
+        # Plotting the data
+        for track_id in tracking_data[0]['tracks'].keys():
+            color = next(colors)
+            x_detected, y_detected = [], []
+            x_predicted, y_predicted = [], []
+            
+            for entry in tracking_data:
+                track = entry['tracks'].get(track_id, None)
+                if track is None:
+                    continue
+                
+                # Detected points
+                x_detected.append(track['detected'][0])
+                y_detected.append(track['detected'][1])
+                
+                # Predicted points
+                x_predicted.append(track['predicted'][0])
+                y_predicted.append(track['predicted'][1])
+            
+            # Plotting detected points
+            if x_detected and y_detected:
+                plt.plot(x_detected, y_detected, linestyle=linestyles['detected'], color=color, label=f'Track {track_id} (Detected)')
+                plt.scatter([x_detected[0]], [y_detected[0]], marker='o', color=color)
+            
+            # Plotting predicted points
+            if x_predicted and y_predicted:
+                plt.plot(x_predicted, y_predicted, linestyle=linestyles['predicted'], color=color, label=f'Track {track_id} (Predicted)')
+                plt.scatter([x_predicted[0]], [y_predicted[0]], marker='o', color=color)
+        
+        # Adding a legend
+        plt.legend()
+        plt.grid(True)
+
+plot_tracking_data_from_file('tracking_quali.txt')
+plt.show()
+#endregion Tracking Quali
