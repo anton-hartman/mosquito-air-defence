@@ -1,8 +1,9 @@
+import glob
 import re
 import matplotlib.pyplot as plt
 import numpy as np
 
-
+#region Laser Quali
 def plot_laser_progression_from_file(file_path):
     with open(file_path, 'r') as file:
         # Read set point from the first line
@@ -49,92 +50,94 @@ def plot_laser_progression(set_point_str, measurements_list):
     ax2.axhline(y=set_point[1], color='red', linestyle='--', label='Set Point')
     
     # Setting labels and legends
-    ax1.set_ylabel('X Position')
+    ax1.set_ylabel('X Position (pixels)')
     ax1.legend()
     ax1.grid(True)
-    # ax1.set_xlim([0, 1500])
+    # ax1.set_xlim([0, 1200])
     ax2.set_xlabel('Time (ms)')
-    ax2.set_ylabel('Y Position')
-    ax2.legend()
+    ax2.set_ylabel('Y Position (pixels)')
+    ax2.legend(loc='upper right')
     ax2.grid(True)
-
-    plt.suptitle('Laser Position Over Time')
-    plt.show()
-
-# plot_laser_progression_from_file("/home/anton/mosquito-air-defence/laser_quali_4.txt")
+    # plt.suptitle('Laser Position Over Time')
 
 
-# def plot_positions_from_file(file_path):
-#     with open(file_path, 'r') as file:
-#         data_str = file.read()
-    
-#     # Parse data
-#     pattern = re.compile(r"(\d+),\((\d+), (\d+)\),\[(.*?)\];")
-#     matches = pattern.findall(data_str)
+def parse_laser_measurements(data_str):
+    pattern = re.compile(r"(\d+),\((\d+), (\d+)\);")
+    matches = pattern.findall(data_str)
+    if not matches:
+        return []
 
-#     # Adjust time to start from zero and convert positions to integers
-#     start_time = int(matches[0][0])
-#     data = [(int(time) - start_time, 
-#              (int(laser_x), int(laser_y)),
-#              [(int(track_id), (int(detected_x), int(detected_y)), (int(predicted_x), int(predicted_y))) 
-#               for track_id, detected_x, detected_y, predicted_x, predicted_y in re.findall(r"\((\d+),\((\d+), (\d+)\),\((\d+), (\d+)\)\)", tracks_str)] )
-#             for time, laser_x, laser_y, tracks_str in matches]
-    
-#     # Extracting and plotting the data
-#     times = [entry[0] for entry in data]
-#     laser_positions = np.array([entry[1] for entry in data])
-    
-#     # Creating the plot
-#     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
+    # Adjust time to start from zero
+    start_time = int(matches[0][0])
+    measurements = [(int(time) - start_time, (int(x), int(y))) for time, x, y in matches]
+    return measurements
 
 
-#     mark_size = 3
-#     # Plotting laser positions
-#     ax1.plot(times, laser_positions[:, 0], marker='o', linestyle='-', color='red', markersize=mark_size, label='Laser X')
-#     ax2.plot(times, laser_positions[:, 1], marker='o', linestyle='-', color='red', markersize=mark_size, label='Laser Y')
+def plot_all_errors_on_single_axes_with_points(files, error_threshold=10, max_time=2200, min_time=1200):
+    plt.figure(figsize=(12, 6))
 
-#     # Define a set of distinct colors for the mosquitoes
-#     distinct_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']  
-    
-#     # Track all mosquitoes separately
-#     mosquitoes_data = {}
-#     for entry in data:
-#         for track_id, detected_pos, predicted_pos in entry[2]:
-#             if track_id not in mosquitoes_data:
-#                 mosquitoes_data[track_id] = {'times': [], 'detected_positions': [], 'predicted_positions': []}
-#             mosquitoes_data[track_id]['times'].append(entry[0])
-#             mosquitoes_data[track_id]['detected_positions'].append(detected_pos)
-#             mosquitoes_data[track_id]['predicted_positions'].append(predicted_pos)
-    
+    for file_path in files:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
 
-#     # Plotting mosquito positions
-#     for idx, (mosquito_id, mosquito_data) in enumerate(mosquitoes_data.items()):
-#         color = distinct_colors[idx % len(distinct_colors)]
+        # Parse set point
+        set_point = np.array(tuple(map(int, re.findall(r'\d+', lines[0].strip()))), dtype=int)
 
-#         times = mosquito_data['times']
-#         detected_positions = np.array(mosquito_data['detected_positions'])
-#         predicted_positions = np.array(mosquito_data['predicted_positions'])
+        # Process each test separately
+        for i, line in enumerate(lines[1:], start=1):
+            measurements = parse_laser_measurements(line)
+            if not measurements:
+                print(f"File: {file_path}, Start Point: {measurements[0][1] if measurements else 'N/A'}, Set Point: {set_point}: No valid measurements found.")
+                continue
 
-#         # Plotting detected mosquito positions
-#         ax1.plot(times, detected_positions[:, 0], marker='x', linestyle='-', color=color, markersize=mark_size, label=f'Detected Mosquito {mosquito_id} X')
-#         ax2.plot(times, detected_positions[:, 1], marker='x', linestyle='-', color=color, markersize=mark_size, label=f'Detected Mosquito {mosquito_id} Y')
+            # Get initial laser position (start point)
+            initial_laser_position = measurements[0][1]
 
-#         # Plotting predicted mosquito positions with dashed line
-#         ax1.plot(times, predicted_positions[:, 0], marker='s', linestyle='--', color=color, markersize=mark_size, alpha=0.6, label=f'Predicted Mosquito {mosquito_id} X')
-#         ax2.plot(times, predicted_positions[:, 1], marker='s', linestyle='--', color=color, markersize=mark_size, alpha=0.6, label=f'Predicted Mosquito {mosquito_id} Y')
+            # Filter measurements based on time
+            measurements = [(time, position) for time, position in measurements if min_time <= time <= max_time]
+
+            # Calculate Euclidean distances (errors) to set point at each time step
+            times = [time for time, _ in measurements]
+            errors = [np.linalg.norm(np.array(position) - set_point) for _, position in measurements]
+
+            # Filter data to only include points where error is less than the threshold
+            near_setpoint_times = [time for time, error in zip(times, errors) if error < error_threshold]
+            near_setpoint_errors = [error for error in errors if error < error_threshold]
+
+            if not near_setpoint_times:
+                print(f"File: {file_path}, Start Point: {initial_laser_position}, Set Point: {set_point}: No data points found near the set point (Error < {error_threshold}).")
+                continue
+
+            # Plotting error near set point
+            plt.plot(near_setpoint_times, near_setpoint_errors, marker='o', linestyle='-', markersize=3, label=f'{tuple(initial_laser_position)} → {tuple(set_point)}')
+
+    plt.xlabel('Time (ms)')
+    plt.ylabel('Error (Euclidean Distance)')
+    # plt.title(f'Error vs. Time (Near Set Point, Error < {error_threshold}, {min_time}ms <= Time <= {max_time}ms)')
+    plt.grid(True)
+    plt.legend(loc='right')
+
+file_paths = glob.glob("quali_data/laser_quali/laser_quali*")
+plot_all_errors_on_single_axes_with_points(file_paths, error_threshold=10, max_time=2200, min_time=1200)
+# for path in file_paths:
+    # plot_laser_progression_from_file(path)
+plt.show()
+
+#endregion Laser Quali
 
 
-#     # Setting labels and legends
-#     ax1.set_ylabel('X Position')
-#     ax1.legend()
-#     ax1.grid(True)
-#     ax2.set_xlabel('Time (ms)')
-#     ax2.set_ylabel('Y Position')
-#     ax2.legend()
-#     ax2.grid(True)
+#region Main Quali
+def calculate_frame_rate_metrics(times):
+    # Calculate frame durations (time between consecutive frames)
+    frame_durations = np.diff(times) / 1000.0  # Convert from milliseconds to seconds
 
-#     plt.suptitle('Laser and Mosquito Positions Over Time')
-#     plt.show()
+    # Calculate average frame rate
+    average_frame_rate = 1 / np.mean(frame_durations)
+
+    # Calculate frame rate variability (standard deviation of frame durations)
+    frame_rate_variability = 1 / np.std(frame_durations)
+
+    return average_frame_rate, frame_rate_variability
 
 def plot_positions_from_file(file_path, threshold=5, test_num=0):
     with open(file_path, 'r') as file:
@@ -156,14 +159,21 @@ def plot_positions_from_file(file_path, threshold=5, test_num=0):
     # Extracting and plotting the data
     times = [entry[0] for entry in data]
     laser_positions = np.array([entry[1] for entry in data])
+
+    # Calculate frame rate metrics
+    average_frame_rate, frame_rate_variability = calculate_frame_rate_metrics(times)
+
+    # Print the frame rate metrics
+    print("Average Frame Rate: {:.2f} Hz".format(average_frame_rate))
+    print("Frame Rate Variability: {:.2f} Hz".format(frame_rate_variability))
     
     # Creating the plot
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
 
     mark_size = 3
     # Plotting laser positions
-    ax1.plot(times, laser_positions[:, 0], marker='o', linestyle='-', color='red', markersize=mark_size, label='Laser X')
-    ax2.plot(times, laser_positions[:, 1], marker='o', linestyle='-', color='red', markersize=mark_size, label='Laser Y')
+    ax1.plot(times, laser_positions[:, 0], marker='o', linestyle='-', color='red', markersize=mark_size, label='Laser')
+    ax2.plot(times, laser_positions[:, 1], marker='o', linestyle='-', color='red', markersize=mark_size, label='Laser')
 
     # Define a set of distinct colors for the mosquitoes
     distinct_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
@@ -178,6 +188,7 @@ def plot_positions_from_file(file_path, threshold=5, test_num=0):
             mosquitoes_data[track_id]['detected_positions'].append(detected_pos)
             mosquitoes_data[track_id]['predicted_positions'].append(predicted_pos)
 
+    id = 1
     # Plotting mosquito positions
     for idx, (mosquito_id, mosquito_data) in enumerate(mosquitoes_data.items()):
         color = distinct_colors[idx % len(distinct_colors)]
@@ -186,12 +197,13 @@ def plot_positions_from_file(file_path, threshold=5, test_num=0):
         predicted_positions = np.array(mosquito_data['predicted_positions'])
 
         # Plotting detected mosquito positions
-        ax1.plot(times, detected_positions[:, 0], marker='x', linestyle='-', color=color, markersize=mark_size, label=f'Detected Mosquito {mosquito_id} X')
-        ax2.plot(times, detected_positions[:, 1], marker='x', linestyle='-', color=color, markersize=mark_size, label=f'Detected Mosquito {mosquito_id} Y')
+        ax1.plot(times, detected_positions[:, 0], marker='x', linestyle='-', color=color, markersize=mark_size, label=f'Detected Mosquito {id}')# {mosquito_id}')
+        ax2.plot(times, detected_positions[:, 1], marker='x', linestyle='-', color=color, markersize=mark_size, label=f'Detected Mosquito {id}')# {mosquito_id}')
 
         # Plotting predicted mosquito positions with dashed line
-        ax1.plot(times, predicted_positions[:, 0], marker='s', linestyle='--', color=color, markersize=mark_size, alpha=0.6, label=f'Predicted Mosquito {mosquito_id} X')
-        ax2.plot(times, predicted_positions[:, 1], marker='s', linestyle='--', color=color, markersize=mark_size, alpha=0.6, label=f'Predicted Mosquito {mosquito_id} Y')
+        ax1.plot(times, predicted_positions[:, 0], marker='s', linestyle='--', color=color, markersize=mark_size, alpha=0.6, label=f'Predicted Mosquito {id}')# {mosquito_id}')
+        ax2.plot(times, predicted_positions[:, 1], marker='s', linestyle='--', color=color, markersize=mark_size, alpha=0.6, label=f'Predicted Mosquito {id}')# {mosquito_id}')
+        id += 1
 
     # # Finding and plotting intersections
     # for time, laser_pos in zip(times, laser_positions):
@@ -202,23 +214,20 @@ def plot_positions_from_file(file_path, threshold=5, test_num=0):
     #                 ax2.scatter(time, detected_pos[1], color='green', s=mark_size * 10)
 
     # Setting labels and legends
-    ax1.set_ylabel('X Position')
+    ax1.set_ylabel('X Position (pixels)')
     ax1.legend()
     ax1.grid(True)
     ax2.set_xlabel('Time (ms)')
-    ax2.set_ylabel('Y Position')
+    ax2.set_ylabel('Y Position (pixels)')
     ax2.legend()
     ax2.grid(True)
 
-    plt.suptitle('Laser and Mosquito Positions Over Time' + f' (Test {test_num})')
-    # plt.show()
+    # plt.suptitle('Laser and Mosquito Positions Over Time' + f' (Test {test_num})')
 
 
-for i in range(1, 8):
-    try: 
-        path = f'quali_data/main_quali//main_quali_{i} (some id switching).txt'
-        plot_positions_from_file(path, test_num=i)
-    except:
-        print(f'Failed to plot test {i}')
+# file_paths = glob.glob('quali_data/main_quali/main_quali*')
+# for path in file_paths:
+#     plot_positions_from_file(path)
+# plt.show()
 
-plt.show()
+#endregion Main Quali
