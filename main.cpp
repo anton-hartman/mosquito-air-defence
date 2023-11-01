@@ -36,6 +36,7 @@ Quali quali = Quali::STOP;
 enum class QualiTest { NONE, LASER, MOSQUITO, TRACKING, MAIN };
 QualiTest quali_test = QualiTest::NONE;
 std::ofstream outfile;
+int quali_frame_count = 0;
 
 void exit_handler(int signo) {
   printf("\r\nSystem exit\r\n");
@@ -311,15 +312,32 @@ void process_video(cv::VideoCapture& cap) {
     cv::split(frame, channels);
     red_channel = channels[2];
 
-    if (mads::control.load() == Control::FULL_AUTO) {
+    if (quali_test == QualiTest::MOSQUITO and quali == Quali::START) {
+      if (quali_frame_count == 100) {
+        quali = Quali::STOP;
+        std::cout << "Mosquito quali test finished" << std::endl;
+        outfile << std::endl;
+        outfile.close();
+      } else {
+        auto now_ms =
+            std::chrono::time_point_cast<std::chrono::milliseconds>(start_time);
+        auto value = now_ms.time_since_epoch();
+        long duration = value.count();
+        outfile << "[" << duration << ",";
+        mos_pts_px = detection::detect_mosquitoes(red_channel, mos_threshold,
+                                                  mos_bg_sub);
+        outfile << mos_pts_px.size();
+        for (const Pt& mos_pt : mos_pts_px) {
+          outfile << "," << mos_pt.to_string();
+        }
+        outfile << "];";
+        ++quali_frame_count;
+      }
+    } else if (mads::control.load() == Control::FULL_AUTO) {
       mos_pts_px = detection::detect_mosquitoes(red_channel.clone(),
                                                 mos_threshold, mos_bg_sub);
       std::vector<Pt> laser_pts =
           detection::detect_lasers(red_channel, laser_threshold);
-      // if (mos_bg_sub) {
-      // detection::remove_lasers_from_mos(laser_pts, mos_pts_px,
-      // laser_remove_radius);
-      // }
       laser_pt_px = detection::distinguish_lasers(laser_pts);
       if (laser_pt_px == Pt{-3, -3}) {
         cv::putText(frame,
@@ -381,6 +399,24 @@ void process_video(cv::VideoCapture& cap) {
           outfile << kalman.track.quali_string();
         }
         outfile << "];";
+      } else if (quali_test == QualiTest::TRACKING and quali == Quali::START) {
+        if (quali_frame_count == 100) {
+          quali = Quali::STOP;
+          std::cout << "Tracking quali test finished" << std::endl;
+          outfile << std::endl;
+          outfile.close();
+        } else {
+          auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(
+              start_time);
+          auto value = now_ms.time_since_epoch();
+          long duration = value.count();
+          outfile << "[" << duration;
+          for (const Kalman& kalman : tracking::kalmans) {
+            outfile << "," << kalman.track.quali_string();
+          }
+          outfile << "];";
+          ++quali_frame_count;
+        }
       }
 
       if (mads::display.load() & Display::TRACKING) {
@@ -502,6 +538,12 @@ void user_input(void) {
     } else if (quali_test == QualiTest::LASER) {
       std::cout << "____________________________________" << std::endl;
       std::cout << "LASER TEST MODE (? = info, q = exit): " << std::endl;
+    } else if (quali_test == QualiTest::MOSQUITO) {
+      std::cout << "_____________________________________" << std::endl;
+      std::cout << "MOSSIE TEST MODE (? = info, q = exit): " << std::endl;
+    } else if (quali_test == QualiTest::TRACKING) {
+      std::cout << "_______________________________________" << std::endl;
+      std::cout << "TRACKING TEST MODE (? = info, q = exit): " << std::endl;
     } else if (test_mode) {
       std::cout << "____________________________________________" << std::endl;
       std::cout << "QAULIFICATION TEST MODE (? = info, q = exit): "
@@ -536,6 +578,8 @@ void user_input(void) {
         if (input == "?") {
           std::cout << "main = main test" << std::endl;
           std::cout << "l = laser test" << std::endl;
+          std::cout << "m = mosquito detection test" << std::endl;
+          std::cout << "tr = tracking test" << std::endl;
           std::cout << "Inside a test mode: options = 'start' and 'stop'"
                     << std::endl;
         } else if (quali_test == QualiTest::MAIN) {
@@ -580,6 +624,29 @@ void user_input(void) {
           } else {
             std::cout << "Invalid input" << std::endl;
           }
+        } else if (quali_test == QualiTest::MOSQUITO) {
+          try {
+            int num_mossies = std::stoi(input);
+            outfile.open("/home/anton/mosquito-air-defence/mos_quali.txt",
+                         std::ios_base::app);
+            outfile << num_mossies << std::endl;
+            quali = Quali::START;
+            quali_frame_count = 0;
+            std::cout << "Mosquito quali test started" << std::endl;
+          } catch (const std::exception& e) {
+            std::cout << "Enter the number of mosquitoes to start."
+                      << std::endl;
+          }
+        } else if (quali_test == QualiTest::TRACKING) {
+          if (input == "start") {
+            outfile.open("/home/anton/mosquito-air-defence/tracking_quali.txt",
+                         std::ios_base::app);
+            quali = Quali::START;
+            std::cout << "Tracking quali test started" << std::endl;
+            quali_frame_count = 0;
+          } else {
+            std::cout << "Invalid input" << std::endl;
+          }
         } else if (input == "main") {
           quali_test = QualiTest::MAIN;
           mads::control.store(Control::MANUAL);
@@ -588,6 +655,10 @@ void user_input(void) {
           quali_test = QualiTest::LASER;
           mads::control.store(Control::MANUAL);
           turret.home_with_belief(laser_pt_px);
+        } else if (input == "m") {
+          quali_test = QualiTest::MOSQUITO;
+        } else if (input == "tr") {
+          quali_test = QualiTest::TRACKING;
         } else {
           std::cout << "Invalid input" << std::endl;
         }
