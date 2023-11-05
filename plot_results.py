@@ -318,11 +318,12 @@ def parse_data(file_path):
     
     for i in range(0, len(lines), 2):
         actual_count = int(lines[i].strip())
-        detections = re.findall(r'\[(\d+),(\d+)(?:,\(([^)]+)\))?]', lines[i + 1].strip())
-        
+        detections = re.findall(r'\[(\d+),(\d+)(?:,\([^)]+\))*\]', lines[i + 1].strip())
+        print('Actual Count:', actual_count, 'Num Detections = ', len(detections))
+
         last_time = None
         for detection in detections:
-            time, detected_count, _ = detection
+            time, detected_count = detection[0:2]
             time = int(time)
             detected_count = int(detected_count)
             
@@ -344,6 +345,7 @@ def parse_data(file_path):
                     false_positives += max(0, detected_count - actual_count)
                     
     return true_positives, false_positives, false_negatives, true_negatives, detection_times
+
 
 def create_results_table(metrics):
     data = {
@@ -374,13 +376,11 @@ def create_bar_chart(metrics):
     bars = plt.bar(categories, values, color=['green', 'red', 'red', 'green'])
     
     plt.ylabel('Count')
-    # plt.title('Mosquito Detection Results')
     plt.ylim(0, max(values) + 5)
     
     for bar in bars:
         height = bar.get_height()
         plt.text(bar.get_x() + bar.get_width() / 2, height, str(height), ha='center', va='bottom')
-    
 
 def create_time_series_plot(detection_times):
     plt.figure(figsize=(7, 4))
@@ -388,9 +388,7 @@ def create_time_series_plot(detection_times):
     plt.axhline(y=500, color='r', linestyle='--')
     
     plt.ylabel('Detection Time (ms)')
-    # plt.title('Detection Times Over Successive Detections')
     plt.xlabel('Detection Instance')
-    
 
 def analyze_mosquito_data(file_path):
     tp, fp, fn, tn, detection_times = parse_data(file_path)
@@ -422,10 +420,8 @@ def visualize_mosquito_data(metrics, detection_times):
     # Create a time series plot
     create_time_series_plot(detection_times)
 
-# Example usage
 file_path = "quali_data/mos_quali/mos_quali_3.txt"
 metrics, detection_times = analyze_mosquito_data(file_path)
 visualize_mosquito_data(metrics, detection_times)
 plt.show()
-
 #endregion Mos Quali
